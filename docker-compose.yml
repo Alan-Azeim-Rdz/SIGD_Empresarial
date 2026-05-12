@@ -52,17 +52,34 @@ services:
   # APLICACIONES (MICROSERVICIOS)
   # ==========================================
 
+  #modo servicios activos 
+  # modulo_central:
+  #   build:
+  #     # 1. El contexto es la carpeta de la Solución (un nivel arriba)
+  #     context: "./src/ModuloCentral/Gestion de Documentos"
+  #     # 2. Le decimos a Docker exactamente dónde está escondido el Dockerfile
+  #     dockerfile: "Gestion de Documentos/Dockerfile"
+  #   container_name: app_central_dotnet
+  #   ports:
+  #     - "5000:8080"
+  #   depends_on:
+  #     - sqlserver
+  #   environment:
+  #     - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
+  #   networks:
+  #     - sigd_network
+
   modulo_central:
     build:
-      # 1. El contexto es la carpeta de la Solución (un nivel arriba)
       context: "./src/ModuloCentral/Gestion de Documentos"
-      # 2. Le decimos a Docker exactamente dónde está escondido el Dockerfile
       dockerfile: "Gestion de Documentos/Dockerfile"
+      target: development # <--- IMPORTANTE: Usar la etapa de desarrollo
     container_name: app_central_dotnet
     ports:
       - "5000:8080"
-    depends_on:
-      - sqlserver
+    volumes:
+      # Montamos la carpeta del proyecto actual al /src del contenedor
+      - "./src/ModuloCentral/Gestion de Documentos/Gestion de Documentos:/src/Gestion de Documentos"
     environment:
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
     networks:
