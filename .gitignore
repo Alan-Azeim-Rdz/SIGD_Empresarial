@@ -1,0 +1,17 @@
+# Secretos locales
+.env
+
+# Visual Studio / .NET
+.vs/
+bin/
+obj/
+*.user
+appsettings.Development.json
+
+# Node / PHP
+node_modules/
+vendor/
+
+# SO
+.DS_Store
+Thumbs.db

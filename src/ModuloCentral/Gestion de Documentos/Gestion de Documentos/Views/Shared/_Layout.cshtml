@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SIGD Empresarial</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+            /* Paleta: Jewel Tones Meet Soft Neutral Harmony */
+            :root {
+                --neutral-bg: #F4F1EB; /* Fondo crema suave */
+                --jewel-sapphire: #1E3D59; /* Azul Zafiro */
+                --jewel-emerald: #0F7A72; /* Verde Esmeralda */
+                --jewel-amethyst: #6B4C9A; /* Morado Amatista */
+                --text-dark: #2C3539;
+            }
+
+            body {
+                background-color: var(--neutral-bg);
+                color: var(--text-dark);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+
+            .navbar-jewel {
+                background-color: var(--jewel-sapphire);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+
+            .navbar-jewel .navbar-brand, .navbar-jewel .nav-link {
+                color: #FFFFFF !important;
+            }
+
+            .btn-jewel-primary {
+                background-color: var(--jewel-emerald);
+                color: white;
+                border: none;
+            }
+            .btn-jewel-primary:hover {
+                background-color: #0c615b;
+                color: white;
+            }
+
+            .card-jewel {
+                border-top: 4px solid var(--jewel-amethyst);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+                border-radius: 8px;
+            }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-jewel mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">SIGD Empresarial</a>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a></li>
+                        
+                        @if (User.IsInRole("Administrador") || User.IsInRole("Superior"))
+                        {
+                            <li class="nav-item"><a class="nav-link fw-bold" style="color: #FFD700 !important;" asp-controller="Auth" asp-action="Registro">Crear Usuario</a></li>
+                        }
+                    </ul>
+                    <ul class="navbar-nav">
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item"><span class="nav-link">Hola, @User.Identity.Name</span></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Auth" asp-action="Logout">Salir</a></li>
+                        }
+                        else
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-controller="Auth" asp-action="Login">Iniciar Sesión</a></li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

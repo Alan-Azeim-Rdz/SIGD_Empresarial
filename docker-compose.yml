@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # BASES DE DATOS
+  # ==========================================
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sigd_sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD}
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+      - ./scripts/sqlserver:/scripts
+    networks:
+      - sigd_network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sigd_postgres
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - POSTGRES_DB=${PG_DATABASE}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - sigd_network
+
+  mongodb:
+    image: mongo:7.0
+    container_name: sigd_mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - sigd_network
+
+  # ==========================================
+  # APLICACIONES (MICROSERVICIOS)
+  # ==========================================
+
+  modulo_central:
+    build:
+      # 1. El contexto es la carpeta de la Solución (un nivel arriba)
+      context: "./src/ModuloCentral/Gestion de Documentos"
+      # 2. Le decimos a Docker exactamente dónde está escondido el Dockerfile
+      dockerfile: "Gestion de Documentos/Dockerfile"
+    container_name: app_central_dotnet
+    ports:
+      - "5000:8080"
+    depends_on:
+      - sqlserver
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
+    networks:
+      - sigd_network
+
+  modulo_reportes:
+    build:
+      context: ./src/ModuloReportes
+    container_name: app_reportes_php
+    ports:
+      - "8000:80"
+    depends_on:
+      - postgres
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${PG_USER}
+      - DB_PASS=${PG_PASSWORD}
+      - DB_NAME=${PG_DATABASE}
+    networks:
+      - sigd_network
+
+  modulo_busqueda:
+    build:
+      context: ./src/ModuloBusqueda
+    container_name: app_busqueda_node
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
+    networks:
+      - sigd_network
+
+# ==========================================
+# VOLÚMENES Y REDES
+# ==========================================
+volumes:
+  sql_data:
+  pg_data:
+  mongo_data:
+
+networks:
+  sigd_network:
+    driver: bridge
