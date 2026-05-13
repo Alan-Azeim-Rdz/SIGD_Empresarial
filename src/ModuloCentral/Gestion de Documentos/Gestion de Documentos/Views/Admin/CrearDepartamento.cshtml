@@ -1,0 +1,58 @@
+@model Departamento
+@{
+    ViewData["Title"] = "Crear Departamento";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card card-jewel">
+                <div class="card-body">
+                    <h3 class="fw-bold mb-4" style="color: var(--jewel-amethyst);">
+                        <i class="fas fa-plus"></i> Crear Nuevo Departamento
+                    </h3>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <h6>Por favor, corrige los siguientes errores:</h6>
+                            <ul class="mb-0">
+                                @foreach (var modelState in ViewData.ModelState.Values)
+                                {
+                                    @foreach (var error in modelState.Errors)
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <form asp-action="CrearDepartamento" method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre del Departamento <span class="text-danger">*</span></label>
+                            <input asp-for="Nombre" class="form-control" placeholder="Ej: Recursos Humanos" required />
+                            <span asp-validation-for="Nombre" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Abreviatura <span class="text-danger">*</span></label>
+                            <input asp-for="Abreviatura" class="form-control" placeholder="Ej: RH" maxlength="10" required />
+                            <small class="text-muted">Máximo 10 caracteres</small>
+                            <span asp-validation-for="Abreviatura" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Departamentos" class="btn btn-light">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-jewel-primary">
+                                <i class="fas fa-save"></i> Guardar Departamento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

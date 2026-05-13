@@ -1,0 +1,75 @@
+@model List<Rol>
+@{
+    ViewData["Title"] = "Gestionar Roles";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold" style="color: var(--jewel-amethyst);">
+                        <i class="fas fa-shield-alt"></i> Gestión de Roles
+                    </h2>
+                </div>
+                <a asp-action="CrearRol" class="btn btn-jewel-primary">
+                    <i class="fas fa-plus"></i> Nuevo Rol
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-jewel">
+                <div class="card-body">
+                    @if (Model.Count == 0)
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay roles registrados.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead style="background-color: var(--jewel-amethyst); color: white;">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th>Fecha Creación</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var rol in Model)
+                                    {
+                                        <tr>
+                                            <td><strong>@rol.Nombre</strong></td>
+                                            <td>@rol.Descripcion</td>
+                                            <td>@rol.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <a asp-action="AsignarPermisosRol" asp-route-id="@rol.Id" class="btn btn-sm btn-info" title="Asignar Permisos">
+                                                    <i class="fas fa-lock"></i> Permisos
+                                                </a>
+                                                <a asp-action="EditarRol" asp-route-id="@rol.Id" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-edit"></i> Editar
+                                                </a>
+                                                <form asp-action="EliminarRol" method="post" style="display: inline;">
+                                                    <input type="hidden" name="id" value="@rol.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro?');">
+                                                        <i class="fas fa-trash"></i> Eliminar
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

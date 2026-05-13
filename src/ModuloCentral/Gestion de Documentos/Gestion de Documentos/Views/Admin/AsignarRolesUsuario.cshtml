@@ -1,0 +1,81 @@
+@using Gestion_de_Documentos.Controllers
+@model AsignarRolesViewModel
+@{
+    ViewData["Title"] = "Asignar Roles a Usuario";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card card-jewel">
+                <div class="card-body">
+                    <h3 class="fw-bold mb-2" style="color: var(--jewel-amethyst);">
+                        <i class="fas fa-user-tag"></i> Asignar Roles
+                    </h3>
+                    <p class="text-muted mb-4">Usuario: <strong>@Model.Usuario.Correo</strong> (@Model.Usuario.Nombre @Model.Usuario.ApellidoP)</p>
+
+                    <form asp-action="AsignarRolesUsuario" method="post">
+                        <input type="hidden" name="idUsuario" value="@Model.Usuario.Id" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">Roles Disponibles</h5>
+                                <div class="list-group">
+                                    @foreach (var rol in Model.RolesDisponibles)
+                                    {
+                                        var isChecked = Model.RolesAsignados.Contains(rol.Id);
+                                        <label class="list-group-item">
+                                            <input type="checkbox" name="rolesSeleccionados" value="@rol.Id" 
+                                                   class="form-check-input me-2" @(isChecked ? "checked" : "") />
+                                            <strong>@rol.Nombre</strong>
+                                            @if (!string.IsNullOrEmpty(rol.Descripcion))
+                                            {
+                                                <br />
+                                                <small class="text-muted">@rol.Descripcion</small>
+                                            }
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <h5 class="fw-bold mb-3">Resumen</h5>
+                                <div class="alert alert-info">
+                                    <p class="mb-2"><strong>Roles Actualmente Asignados:</strong></p>
+                                    @if (Model.RolesAsignados.Count == 0)
+                                    {
+                                        <p class="text-muted mb-0">Ninguno</p>
+                                    }
+                                    else
+                                    {
+                                        <ul class="mb-0">
+                                            @foreach (var idRol in Model.RolesAsignados)
+                                            {
+                                                var rol = Model.RolesDisponibles.FirstOrDefault(r => r.Id == idRol);
+                                                if (rol != null)
+                                                {
+                                                    <li>@rol.Nombre</li>
+                                                }
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-controller="Auth" asp-action="Usuarios" class="btn btn-light">
+                                <i class="fas fa-arrow-left"></i> Volver
+                            </a>
+                            <button type="submit" class="btn btn-jewel-primary">
+                                <i class="fas fa-save"></i> Guardar Roles
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

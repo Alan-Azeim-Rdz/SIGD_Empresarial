@@ -1,0 +1,74 @@
+@model List<TipoDocumento>
+@{
+    ViewData["Title"] = "Gestionar Tipos de Documento";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold" style="color: var(--jewel-amethyst);">
+                        <i class="fas fa-file-alt"></i> Gestión de Tipos de Documento
+                    </h2>
+                </div>
+                <a asp-action="CrearTipoDocumento" class="btn btn-jewel-primary">
+                    <i class="fas fa-plus"></i> Nuevo Tipo
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-jewel">
+                <div class="card-body">
+                    @if (Model.Count == 0)
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay tipos de documento registrados.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead style="background-color: var(--jewel-amethyst); color: white;">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Abreviatura</th>
+                                        <th>Retención (Meses)</th>
+                                        <th>Fecha Creación</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var tipo in Model)
+                                    {
+                                        <tr>
+                                            <td>@tipo.Nombre</td>
+                                            <td><span class="badge bg-light text-dark">@tipo.Abreviatura</span></td>
+                                            <td><span class="badge bg-info">@tipo.TiempoRetencionMeses meses</span></td>
+                                            <td>@tipo.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <a asp-action="EditarTipoDocumento" asp-route-id="@tipo.Id" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-edit"></i> Editar
+                                                </a>
+                                                <form asp-action="EliminarTipoDocumento" method="post" style="display: inline;">
+                                                    <input type="hidden" name="id" value="@tipo.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro?');">
+                                                        <i class="fas fa-trash"></i> Eliminar
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

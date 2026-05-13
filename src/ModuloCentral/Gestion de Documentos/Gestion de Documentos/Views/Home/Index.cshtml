@@ -1,8 +1,100 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using System.Linq
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="py-4">
+    <h1 class="display-5 text-center">Panel de Control</h1>
+    <p class="text-center text-muted">Bienvenido al Sistema Integral de Gestión Documental (SIGD)</p>
 </div>
+
+@if (!User.Identity.IsAuthenticated)
+{
+    <div class="text-center">
+        <p>Por favor <a asp-controller="Auth" asp-action="Login">inicia sesión</a> para acceder a las funciones del sistema.</p>
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <strong>Usuario:</strong> @User.Identity.Name
+        <br />
+        <strong>Roles:</strong> @string.Join(", ", User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value))
+    </div>
+
+    <div class="row g-3">
+        @* Administrador *@
+        @if (User.IsInRole("Administrador"))
+        {
+            <div class="col-md-4">
+                <div class="card card-jewel p-3 h-100">
+                    <h5 class="card-title">Administración</h5>
+                    <p class="card-text">Gestiona usuarios, roles y parámetros del sistema.</p>
+                    <a class="btn btn-jewel-primary" asp-controller="Auth" asp-action="Usuarios">Gestionar Usuarios</a>
+                    <a class="btn btn-outline-secondary ms-2" asp-controller="Auth" asp-action="Registro">Crear Usuario</a>
+                </div>
+            </div>
+        }
+
+        @* Superior / Aprobador *@
+        @if (User.IsInRole("Superior") || User.IsInRole("Aprobador"))
+        {
+            <div class="col-md-4">
+                <div class="card card-jewel p-3 h-100">
+                    <h5 class="card-title">Aprobación y Revisión</h5>
+                    <p class="card-text">Revisa y aprueba documentos pendientes en tu bandeja.</p>
+                    <a class="btn btn-jewel-primary" asp-controller="Aprobacion" asp-action="Pendientes">Ver Pendientes</a>
+                </div>
+            </div>
+        }
+
+        @* Editor / Usuario *@
+        @if (User.IsInRole("Editor") || User.IsInRole("Usuario"))
+        {
+            <div class="col-md-4">
+                <div class="card card-jewel p-3 h-100">
+                    <h5 class="card-title">Gestión de Documentos</h5>
+                    <p class="card-text">Crea, edita y envía documentos para aprobación.</p>
+                    <a class="btn btn-jewel-primary" asp-controller="Documentos" asp-action="Crear">Crear Documento</a>
+                    <a class="btn btn-outline-secondary ms-2" asp-controller="Documentos" asp-action="Index">Mis Documentos</a>
+                </div>
+            </div>
+        }
+
+        @* Normativas *@
+        @if (User.IsInRole("Administrador") || User.IsInRole("Editor") || User.IsInRole("Usuario"))
+        {
+            <div class="col-md-4">
+                <div class="card card-jewel p-3 h-100">
+                    <h5 class="card-title">Normativas</h5>
+                    <p class="card-text">Consulta y gestiona normativas y procedimientos aplicables.</p>
+                    <a class="btn btn-jewel-primary" asp-controller="Normativas" asp-action="Index">Ver Normativas</a>
+                </div>
+            </div>
+        }
+
+        @* Reportes *@
+        @if (User.IsInRole("Administrador") || User.IsInRole("Auditor"))
+        {
+            <div class="col-md-4">
+                <div class="card card-jewel p-3 h-100">
+                    <h5 class="card-title">Reportes</h5>
+                    <p class="card-text">Genera reportes de estado, flujo de aprobación y auditoría.</p>
+                    <a class="btn btn-jewel-primary" asp-controller="Reportes" asp-action="Index">Ir a Reportes</a>
+                </div>
+            </div>
+        }
+
+        @* Bandeja general para cualquier usuario autenticado *@
+        <div class="col-md-4">
+            <div class="card card-jewel p-3 h-100">
+                <h5 class="card-title">Mi Bandeja</h5>
+                <p class="card-text">Accede a tareas, documentos asignados y notificaciones.</p>
+                <a class="btn btn-jewel-primary" asp-controller="Bandeja" asp-action="Index">Ir a Mi Bandeja</a>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="mt-4 text-muted small">Si alguna opción no está visible es porque tu rol no tiene permiso para esa acción.</div>
