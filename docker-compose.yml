@@ -2,9 +2,8 @@ version: '3.8'
 
 services:
   # ==========================================
-  # BASES DE DATOS
+  # BASES DE DATOS (Sin cambios)
   # ==========================================
-
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sigd_sqlserver
@@ -52,12 +51,13 @@ services:
   # APLICACIONES (MICROSERVICIOS)
   # ==========================================
 
-  #modo servicios activos 
+  # ------------------------------------------
+  # 1. MÓDULO CENTRAL (.NET)
+  # ------------------------------------------
+  # --- MODO PRODUCCIÓN (Descomentar para despliegue en empresa) ---
   # modulo_central:
   #   build:
-  #     # 1. El contexto es la carpeta de la Solución (un nivel arriba)
   #     context: "./src/ModuloCentral/Gestion de Documentos"
-  #     # 2. Le decimos a Docker exactamente dónde está escondido el Dockerfile
   #     dockerfile: "Gestion de Documentos/Dockerfile"
   #   container_name: app_central_dotnet
   #   ports:
@@ -69,6 +69,7 @@ services:
   #   networks:
   #     - sigd_network
 
+  # --- MODO DESARROLLO (Edición en tiempo real) ---
   modulo_central:
     build:
       context: "./src/ModuloCentral/Gestion de Documentos"
@@ -85,6 +86,28 @@ services:
     networks:
       - sigd_network
 
+  # ------------------------------------------
+  # 2. MÓDULO DE REPORTES (PHP)
+  # ------------------------------------------
+  # --- MODO PRODUCCIÓN (Descomentar para despliegue en empresa) ---
+  # modulo_reportes:
+  #   build:
+  #     context: ./src/ModuloReportes
+  #   container_name: app_reportes_php
+  #   ports:
+  #     - "8000:80"
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     - DB_HOST=postgres
+  #     - DB_PORT=5432
+  #     - DB_USER=${PG_USER}
+  #     - DB_PASS=${PG_PASSWORD}
+  #     - DB_NAME=${PG_DATABASE}
+  #   networks:
+  #     - sigd_network
+
+  # --- MODO DESARROLLO (Edición en tiempo real) ---
   modulo_reportes:
     build:
       context: ./src/ModuloReportes
@@ -93,6 +116,9 @@ services:
       - "8000:80"
     depends_on:
       - postgres
+    volumes:
+      # Montamos tu código PHP local a la carpeta pública del servidor web (Apache/Nginx) en el contenedor
+      - ./src/ModuloReportes:/var/www/html 
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -102,14 +128,40 @@ services:
     networks:
       - sigd_network
 
+  # ----------------------------------------------------------
+  # 3. MÓDULO DE BÚSQUEDA (Node.js / TypeScript)
+  # ----------------------------------------------------------
+  # >>> MODO PRODUCCIÓN (Descomentar para despliegue final en Empresa) <<<
+  # modulo_busqueda:
+  #   build:
+  #     context: ./src/ModuloBusqueda
+  #     dockerfile: Dockerfile
+  #     target: production  # <--- Apunta a la imagen limpia sin herramientas de desarrollo
+  #   container_name: app_busqueda_node
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - mongodb
+  #   environment:
+  #     - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
+  #   networks:
+  #     - sigd_network
+
+  # >>> MODO DESARROLLO (Activo para edición en tiempo real) <<<
   modulo_busqueda:
     build:
       context: ./src/ModuloBusqueda
+      dockerfile: Dockerfile
+      target: development # <--- CRÍTICO: Le dice a Docker que use la Etapa 2 con ts-node-dev
     container_name: app_busqueda_node
     ports:
       - "3000:3000"
     depends_on:
       - mongodb
+    volumes:
+      - ./src/ModuloBusqueda:/usr/src/app
+      - /usr/src/app/node_modules # Protege las librerías internas contra sobreescritura local
+    command: npm run dev
     environment:
       - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
     networks:
