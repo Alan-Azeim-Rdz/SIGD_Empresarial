@@ -1,0 +1,113 @@
+// ===========================================================
+// Script de Inicialización de MongoDB para el Módulo de Búsqueda
+// Se ejecuta automáticamente la primera vez que el contenedor
+// se levanta via docker-entrypoint-initdb.d
+//
+// Conexión: Se autentica con las credenciales root definidas
+// en MONGO_INITDB_ROOT_USERNAME / MONGO_INITDB_ROOT_PASSWORD
+// ===========================================================
+
+// Usar/crear la base de datos del módulo de búsqueda
+// (Mongoose se conectará a esta misma DB via MONGO_URI)
+db = db.getSiblingDB('sigd_busqueda');
+
+print('========================================');
+print('  Inicializando MongoDB - SIGD Búsqueda');
+print('========================================');
+
+// ----------------------------------------------------------
+// 1. Colección principal: DocumentosMetadata
+//    Debe coincidir con el esquema Mongoose en index.ts
+// ----------------------------------------------------------
+db.createCollection('DocumentosMetadata', {
+    validator: {
+        $jsonSchema: {
+            bsonType: "object",
+            required: ["id_documento_sql", "codigo_interno", "titulo", "id_usuario_creacion"],
+            properties: {
+                id_documento_sql: {
+                    bsonType: "number",
+                    description: "ID del documento en SQL Server (módulo central)"
+                },
+                codigo_interno: {
+                    bsonType: "string",
+                    description: "Código interno único del documento"
+                },
+                titulo: {
+                    bsonType: "string",
+                    description: "Título del documento"
+                },
+                tags: {
+                    bsonType: "array",
+                    items: { bsonType: "string" },
+                    description: "Etiquetas para clasificación"
+                },
+                contenido_extraido: {
+                    bsonType: "string",
+                    description: "Texto extraído del documento para búsqueda full-text"
+                },
+                atributos_especificos: {
+                    bsonType: "object",
+                    description: "Atributos dinámicos específicos del tipo de documento"
+                },
+                // Campos de auditoría (espejo del estándar del proyecto)
+                estatus: {
+                    bsonType: "bool",
+                    description: "Borrado lógico: true=activo, false=eliminado"
+                },
+                fecha_creacion: { bsonType: "date" },
+                id_usuario_creacion: { bsonType: "number" },
+                fecha_modificacion: { bsonType: ["date", "null"] },
+                id_usuario_modificacion: { bsonType: ["number", "null"] },
+                fecha_eliminacion: { bsonType: ["date", "null"] },
+                id_usuario_eliminacion: { bsonType: ["number", "null"] }
+            }
+        }
+    },
+    validationLevel: "moderate",
+    validationAction: "warn"
+});
+
+print('  ✓ Colección "DocumentosMetadata" creada con validación de esquema.');
+
+// ----------------------------------------------------------
+// 2. Índices
+// ----------------------------------------------------------
+
+// Índice de texto completo (coincide con IDX_BusquedaGlobal_Text de Mongoose)
+db.DocumentosMetadata.createIndex(
+    { titulo: "text", tags: "text", contenido_extraido: "text" },
+    {
+        weights: { titulo: 10, tags: 5, contenido_extraido: 1 },
+        name: "IDX_BusquedaGlobal_Text",
+        default_language: "spanish"
+    }
+);
+print('  ✓ Índice de texto completo creado (español, ponderado).');
+
+// Índice único por ID del documento en SQL Server
+db.DocumentosMetadata.createIndex(
+    { id_documento_sql: 1 },
+    { unique: true, name: "IDX_IdDocumentoSQL_Unique" }
+);
+print('  ✓ Índice único por id_documento_sql creado.');
+
+// Índice único por código interno
+db.DocumentosMetadata.createIndex(
+    { codigo_interno: 1 },
+    { unique: true, name: "IDX_CodigoInterno_Unique" }
+);
+print('  ✓ Índice único por codigo_interno creado.');
+
+// Índice para filtro de borrado lógico
+db.DocumentosMetadata.createIndex(
+    { estatus: 1 },
+    { name: "IDX_Estatus" }
+);
+print('  ✓ Índice de estatus creado.');
+
+print('========================================');
+print('  MongoDB inicializado exitosamente');
+print('  Base de datos: sigd_busqueda');
+print('  Colección: DocumentosMetadata');
+print('========================================');

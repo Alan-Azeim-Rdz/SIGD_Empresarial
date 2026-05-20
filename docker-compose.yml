@@ -15,7 +15,36 @@ services:
       - "1433:1433"
     volumes:
       - sql_data:/var/opt/mssql
-      - ./scripts/sqlserver:/scripts
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - sigd_network
+
+  # Contenedor efímero: ejecuta el script SQL y se detiene.
+  # Solo se ejecuta la PRIMERA vez (si la BD no existe, el script la crea).
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sigd_sqlserver_init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./scripts/sqlserver:/scripts:ro
+    entrypoint:
+      - /opt/mssql-tools18/bin/sqlcmd
+      - -S
+      - sqlserver
+      - -U
+      - sa
+      - -P
+      - ${SQL_SA_PASSWORD}
+      - -C
+      - -i
+      - /scripts/init_Central.sql
     networks:
       - sigd_network
 
@@ -40,10 +69,12 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=sigd_busqueda
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+      - ./scripts/mongo:/docker-entrypoint-initdb.d:ro
     networks:
       - sigd_network
 
@@ -79,8 +110,12 @@ services:
     ports:
       - "5000:8080"
     depends_on:
-      - sqlserver
-      - modulo_reportes   # <-- garantiza que el endpoint PHP ya esté listo
+      sqlserver:
+        condition: service_healthy
+      sqlserver-init:
+        condition: service_completed_successfully
+      modulo_reportes:   # <-- garantiza que el endpoint PHP ya esté listo
+        condition: service_started
     volumes:
       # Montamos la carpeta del proyecto actual al /src del contenedor
       - "./src/ModuloCentral/Gestion de Documentos/Gestion de Documentos:/src/Gestion de Documentos"

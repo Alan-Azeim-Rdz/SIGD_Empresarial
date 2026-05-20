@@ -215,3 +215,43 @@ BEGIN
     GROUP BY d.titulo;
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- ==========================================================
+-- 4. DATOS SEMILLA (SEED DATA)
+-- Espejo del usuario Super Admin del módulo central para
+-- mantener consistencia entre las bases de datos.
+-- ==========================================================
+
+-- 4.1 Departamento de Administración
+INSERT INTO departamento (id_departamento, nombre, abreviatura, estatus)
+VALUES (1, 'Administración General', 'ADM', TRUE)
+ON CONFLICT (id_departamento) DO NOTHING;
+
+-- 4.2 Usuario Super Admin (espejo del módulo central)
+INSERT INTO usuario (id_usuario, id_departamento, nombre, apellido_p, correo, estatus)
+VALUES (1, 1, 'Super', 'Administrador', 'admin@sigd.local', TRUE)
+ON CONFLICT (id_usuario) DO NOTHING;
+
+-- 4.3 Actualizar auditoría del departamento
+UPDATE departamento SET id_usuario_creacion = 1 WHERE id_departamento = 1 AND id_usuario_creacion IS NULL;
+
+-- 4.4 Tipo de documento base
+INSERT INTO tipo_documento (id_tipo, nombre, abreviatura, estatus, id_usuario_creacion)
+VALUES (1, 'Procedimiento', 'PROC', TRUE, 1)
+ON CONFLICT (id_tipo) DO NOTHING;
+
+INSERT INTO tipo_documento (id_tipo, nombre, abreviatura, estatus, id_usuario_creacion)
+VALUES (2, 'Manual', 'MAN', TRUE, 1)
+ON CONFLICT (id_tipo) DO NOTHING;
+
+INSERT INTO tipo_documento (id_tipo, nombre, abreviatura, estatus, id_usuario_creacion)
+VALUES (3, 'Formato', 'FMT', TRUE, 1)
+ON CONFLICT (id_tipo) DO NOTHING;
+
+INSERT INTO tipo_documento (id_tipo, nombre, abreviatura, estatus, id_usuario_creacion)
+VALUES (4, 'Instructivo', 'INS', TRUE, 1)
+ON CONFLICT (id_tipo) DO NOTHING;
+
+-- Actualizar auditoría del usuario (se creó a sí mismo)
+UPDATE usuario SET id_usuario_creacion = 1 WHERE id_usuario = 1 AND id_usuario_creacion IS NULL;
