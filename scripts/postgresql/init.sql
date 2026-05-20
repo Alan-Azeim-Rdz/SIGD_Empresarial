@@ -1,48 +1,31 @@
--- ═══════════════════════════════════════════════════════
--- SCRIPT PostgreSQL — Módulo Consulta Pública
--- Proyecto: SIGD Empresarial
--- Autor: Josue J.A.V.
--- ═══════════════════════════════════════════════════════
-
--- ── 1. CREAR BASE DE DATOS ────────────────────────────
-CREATE DATABASE sigd_consulta;
-
--- Conectarse a la base de datos
-\c sigd_consulta;
-
--- ── 2. TABLA: DocumentosVigentes ─────────────────────
--- Solo documentos que ya fueron aprobados en el módulo .NET
+-- ── TABLA: DocumentosVigentes ─────────────────────
 CREATE TABLE DocumentosVigentes (
     id               SERIAL PRIMARY KEY,
-    id_documento_central INT NOT NULL,        -- ID del documento en SQL Server
+    id_documento_central INT NOT NULL,
     titulo           VARCHAR(255) NOT NULL,
     version          VARCHAR(20)  NOT NULL,
     estado           VARCHAR(50)  DEFAULT 'Aprobado',
-    extension        VARCHAR(10)  NOT NULL,   -- pdf, docx, etc.
-    ruta_archivo     VARCHAR(500),            -- ruta donde está guardado
+    extension        VARCHAR(10)  NOT NULL,
+    ruta_archivo     VARCHAR(500),
     fecha_aprobacion DATE         NOT NULL,
     fecha_publicacion TIMESTAMP   DEFAULT NOW(),
     id_tipo_documento INT,
     descripcion      TEXT
 );
 
--- ── 3. TABLA: Reportes ────────────────────────────────
--- Guarda un registro de cada reporte generado
 CREATE TABLE Reportes (
     id               SERIAL PRIMARY KEY,
-    tipo             VARCHAR(100) NOT NULL,   -- 'cumplimiento', 'auditoria', etc.
+    tipo             VARCHAR(100) NOT NULL,
     fecha_generacion TIMESTAMP    DEFAULT NOW(),
     total_documentos INT          DEFAULT 0,
-    generado_por     VARCHAR(100),            -- nombre del usuario que lo generó
-    contenido        TEXT                     -- resumen del reporte en texto
+    generado_por     VARCHAR(100),
+    contenido        TEXT
 );
 
--- ── 4. ÍNDICES (para búsquedas más rápidas) ───────────
 CREATE INDEX idx_documentos_titulo  ON DocumentosVigentes(titulo);
 CREATE INDEX idx_documentos_estado  ON DocumentosVigentes(estado);
 CREATE INDEX idx_reportes_fecha     ON Reportes(fecha_generacion);
 
--- ── 5. DATOS DE EJEMPLO ───────────────────────────────
 INSERT INTO DocumentosVigentes 
     (id_documento_central, titulo, version, estado, extension, fecha_aprobacion, descripcion)
 VALUES
@@ -57,7 +40,6 @@ INSERT INTO Reportes
 VALUES
     ('cumplimiento', 5, 'Admin', 'Reporte inicial del sistema con 5 documentos vigentes');
 
--- ── 6. STORED PROCEDURE: Buscar Documentos ────────────
 CREATE OR REPLACE FUNCTION buscar_documentos(termino VARCHAR)
 RETURNS TABLE (
     id               INT,
@@ -69,13 +51,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT
-        d.id,
-        d.titulo,
-        d.version,
-        d.estado,
-        d.extension,
-        d.fecha_aprobacion
+    SELECT d.id, d.titulo, d.version, d.estado, d.extension, d.fecha_aprobacion
     FROM DocumentosVigentes d
     WHERE d.titulo ILIKE '%' || termino || '%'
        OR d.descripcion ILIKE '%' || termino || '%'
@@ -83,12 +59,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ── 7. TRIGGER: Registrar reporte automáticamente ─────
--- Cada vez que se inserta un reporte, actualiza el total
 CREATE OR REPLACE FUNCTION actualizar_total_reporte()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Contamos cuántos documentos vigentes hay actualmente
     NEW.total_documentos := (SELECT COUNT(*) FROM DocumentosVigentes WHERE estado = 'Aprobado');
     RETURN NEW;
 END;
@@ -99,15 +72,8 @@ CREATE TRIGGER trg_actualizar_total
     FOR EACH ROW
     EXECUTE FUNCTION actualizar_total_reporte();
 
--- ── 8. VISTA: Documentos vigentes resumida ────────────
 CREATE VIEW vista_documentos_vigentes AS
-SELECT
-    id,
-    titulo,
-    version,
-    extension,
-    fecha_aprobacion,
-    estado
+SELECT id, titulo, version, extension, fecha_aprobacion, estado
 FROM DocumentosVigentes
 WHERE estado = 'Aprobado'
 ORDER BY titulo;
