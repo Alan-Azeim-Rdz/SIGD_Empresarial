@@ -1,1 +1,3 @@
-{ "name": "sigd/reportes", "description": "Modulo de reportes", "require": {} }
+{ "name": "sigd/reportes", "description": "Modulo de reportes", "require": {
+        "dompdf/dompdf": "^3.1"
+    } }
