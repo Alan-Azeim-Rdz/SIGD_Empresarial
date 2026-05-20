@@ -1,33 +1,49 @@
 using Gestion_de_Documentos.Models;
+using Gestion_de_Documentos.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ── MVC ───────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 
-// Add DbContext with connection string from configuration
+// ── Entity Framework Core → SQL Server ───────────────────────
 builder.Services.AddDbContext<DirContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// ── Autenticación por Cookie ──────────────────────────────────
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Auth/Login"; // A dónde ir si no están logueados
-        options.AccessDeniedPath = "/Auth/AccesoDenegado"; // A dónde ir si no tienen nivel
-        options.ExpireTimeSpan = TimeSpan.FromHours(2);
+        options.LoginPath        = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccesoDenegado";
+        options.ExpireTimeSpan   = TimeSpan.FromHours(2);
     });
 
-builder.Services.AddControllersWithViews();
+// ── HttpClient para el Módulo de Reportes ─────────────────────
+// Se registra como Typed Client para que ASP.NET Core gestione
+// el ciclo de vida del socket (evita socket exhaustion).
+var reportesTimeout = int.TryParse(
+    builder.Configuration["ReportesModule:TimeoutSeconds"], out var t) ? t : 10;
+
+builder.Services.AddHttpClient<ReportesIntegrationService>(client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ReportesModule:BaseUrl"] ?? "http://modulo_reportes");
+    client.Timeout = TimeSpan.FromSeconds(reportesTimeout);
+});
+
+// ── Registrar el servicio de integración en el contenedor DI ─
+// Scoped: una instancia por petición HTTP, igual que DirContext.
+builder.Services.AddScoped<ReportesIntegrationService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ── Pipeline HTTP ─────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -43,6 +59,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auth}/{action=Registro}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

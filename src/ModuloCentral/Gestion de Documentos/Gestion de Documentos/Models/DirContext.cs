@@ -614,7 +614,8 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.UsuarioRolIdUsuarioNavigations)
                 .HasForeignKey(d => d.IdUsuario)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UsuarioRol_Usuario");
+                .HasConstraintName("FK_UsuarioRol_Usuario")
+                .IsRequired();
 
             entity.HasOne(d => d.IdUsuarioCreacionNavigation).WithMany(p => p.UsuarioRolIdUsuarioCreacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioCreacion)
@@ -632,5 +633,12 @@ public partial class DirContext : DbContext
         OnModelCreatingPartial(modelBuilder);
     }
 
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+    internal async Task SaveChangesAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    private void OnModelCreatingPartial(ModelBuilder modelBuilder)
+    {
+    }
 }

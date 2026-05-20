@@ -78,11 +78,19 @@ services:
     container_name: app_central_dotnet
     ports:
       - "5000:8080"
+    depends_on:
+      - sqlserver
+      - modulo_reportes   # <-- garantiza que el endpoint PHP ya esté listo
     volumes:
       # Montamos la carpeta del proyecto actual al /src del contenedor
       - "./src/ModuloCentral/Gestion de Documentos/Gestion de Documentos:/src/Gestion de Documentos"
     environment:
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
+      # URL interna Docker del Módulo de Reportes (misma sigd_network)
+      - ReportesModule__BaseUrl=http://modulo_reportes
+      # Clave compartida — también declarada en modulo_reportes como SYNC_API_KEY
+      - ReportesModule__SyncApiKey=${SYNC_API_KEY:-sigd_sync_secret_2026}
+      - ReportesModule__TimeoutSeconds=10
     networks:
       - sigd_network
 
@@ -118,13 +126,15 @@ services:
       - postgres
     volumes:
       # Montamos tu código PHP local a la carpeta pública del servidor web (Apache/Nginx) en el contenedor
-      - ./src/ModuloReportes:/var/www/html 
+      - ./src/ModuloReportes:/var/www/html
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${PG_USER}
       - DB_PASS=${PG_PASSWORD}
       - DB_NAME=${PG_DATABASE}
+      # Clave API compartida — debe coincidir con ReportesModule__SyncApiKey del Módulo Central
+      - SYNC_API_KEY=${SYNC_API_KEY:-sigd_sync_secret_2026}
     networks:
       - sigd_network
 

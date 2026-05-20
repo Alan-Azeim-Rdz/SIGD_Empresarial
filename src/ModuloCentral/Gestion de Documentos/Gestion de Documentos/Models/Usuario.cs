@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Gestion_de_Documentos.Models;
 
@@ -119,6 +120,8 @@ public partial class Usuario
 
     public virtual ICollection<Rol> RolIdUsuarioModificacionNavigations { get; set; } = new List<Rol>();
 
+    // 👇 ESTA ES LA LÍNEA MÁGICA QUE ARREGLA EL ERROR 👇
+    [NotMapped]
     public virtual ICollection<UsuarioRol> UsuarioRols { get; set; } = new List<UsuarioRol>();
 
     public virtual ICollection<RolPermiso> RolPermisoIdUsuarioCreacionNavigations { get; set; } = new List<RolPermiso>();

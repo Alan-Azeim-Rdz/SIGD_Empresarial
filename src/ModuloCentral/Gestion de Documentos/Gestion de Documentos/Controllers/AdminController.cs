@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using Gestion_de_Documentos.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Gestion_de_Documentos.Controllers
 {
@@ -233,8 +232,7 @@ namespace Gestion_de_Documentos.Controllers
         {
             if (ModelState.IsValid)
             {
-                var existe = await _context.Permisos
-                    .AnyAsync(p => p.Codigo == permiso.Codigo && p.Estatus == true);
+                var existe = await _context.Permisos.AnyAsync(p => p.Codigo == permiso.Codigo && p.Estatus == true);
 
                 if (existe)
                 {
