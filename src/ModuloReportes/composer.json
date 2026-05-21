@@ -1,16 +1,3 @@
-{
-    "name": "sigd/reportes",
-    "description": "Modulo de reportes y consultas transaccionales de planta",
-    "type": "project",
-    "require": {
-        "php": ">=8.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Config\\": "config/",
-            "Controllers\\": "controllers/",
-            "Models\\": "models/",
-            "Views\\": "views/"
-        }
-    }
-}
+{ "name": "sigd/reportes", "description": "Modulo de reportes", "require": {
+        "dompdf/dompdf": "^3.1"
+    } }

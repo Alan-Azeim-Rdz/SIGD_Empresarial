@@ -1,147 +1,185 @@
+// ═══════════════════════════════════════════════════════
+// MÓDULO DE BÚSQUEDA — Node.js + TypeScript + MongoDB
+// Proyecto: SIGD Empresarial
+// Autor: Josue J.A.V.
+// ═══════════════════════════════════════════════════════
+
 import express, { Request, Response } from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import mongoose, { Schema, Document } from 'mongoose';
 
-dotenv.config();
-
+// ── 1. CONFIGURACIÓN INICIAL ──────────────────────────
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
-// Middleware para procesar payloads JSON gigantes (común en normativas de calidad)
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+// Le decimos a Express que entienda JSON
+// (para recibir datos en el POST /indexar)
+app.use(express.json());
 
-// URI de conexión inyectada desde el docker-compose
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://admin:admin@mongodb:27017/sistema_calidad_db?authSource=admin';
+// ── 2. CONEXIÓN A MONGODB ─────────────────────────────
+// La URL viene de una variable de entorno (más seguro)
+// Si no hay variable, usa localhost por defecto
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/sigd';
 
-// ==========================================
-// DEFINICIÓN DEL ESQUEMA CON AUDITORÍA (Mongoose)
-// ==========================================
-const DocumentoMetadataSchema = new mongoose.Schema({
-    id_documento_sql: { type: Number, required: true, unique: true },
-    codigo_interno: { type: String, required: true, unique: true },
-    titulo: { type: String, required: true },
-    tags: { type: [String], default: [] },
-    contenido_extraido: { type: String, default: "" },
-    atributos_especificos: { type: Object, default: {} },
-    version: { type: Number, default: 1 },
+mongoose.connect(MONGO_URL)
+  .then(() => console.log('✅ Conectado a MongoDB'))
+  .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
 
-    // Espejo de Auditoría y Borrado Lógico de PostgreSQL
-    estatus: { type: Boolean, default: true },
-    fecha_creacion: { type: Date, default: Date.now },
-    id_usuario_creacion: { type: Number, required: true },
-    fecha_modificacion: { type: Date, default: null },
-    id_usuario_modificacion: { type: Number, default: null },
-    fecha_eliminacion: { type: Date, default: null },
-    id_usuario_eliminacion: { type: Number, default: null }
-}, { collection: 'DocumentosMetadata' });
+// ── 3. MODELO DE DATOS (cómo luce un documento en MongoDB)
+// Esto define la "forma" de cada registro que guardaremos
+interface IMetadato extends Document {
+  id_documento: string;   // Ej: "DOC-001"
+  titulo: string;         // Ej: "Manual de Calidad"
+  etiquetas: string[];    // Ej: ["calidad", "ISO", "manual"]
+  extension: string;      // Ej: "pdf"
+  tamanio_kb: number;     // Ej: 245
+  fecha_indexacion: Date; // Ej: 2024-01-15
+}
 
-// --- AQUÍ CONSTRUIMOS EL ÍNDICE DE TEXTO DIRECTAMENTE EN EL ESQUEMA ---
-// Esto le dice a MongoDB de forma automática qué campos indexar y con qué prioridad
-DocumentoMetadataSchema.index(
-    { titulo: 'text', tags: 'text', contenido_extraido: 'text' },
-    {
-        weights: { titulo: 10, tags: 5, contenido_extraido: 1 },
-        name: 'IDX_BusquedaGlobal_Text',
-        default_language: 'spanish'
+const MetadatoSchema = new Schema<IMetadato>({
+  id_documento:     { type: String, required: true, unique: true },
+  titulo:           { type: String, required: true },
+  etiquetas:        { type: [String], default: [] },
+  extension:        { type: String, required: true },
+  tamanio_kb:       { type: Number, required: true },
+  fecha_indexacion: { type: Date, default: Date.now }
+});
+
+const Metadato = mongoose.model<IMetadato>('Metadato', MetadatoSchema);
+
+// ── 4. ENDPOINTS ──────────────────────────────────────
+
+// ┌─────────────────────────────────────────────────────┐
+// │ ENDPOINT 1: POST /indexar                           │
+// │ Lo llama el módulo .NET cuando aprueba un documento │
+// └─────────────────────────────────────────────────────┘
+app.post('/indexar', async (req: Request, res: Response) => {
+  try {
+    // Tomamos los datos que llegaron en el cuerpo del POST
+    const { id_documento, titulo, etiquetas, extension, tamanio_kb } = req.body;
+
+    // Validamos que los campos obligatorios existan
+    if (!id_documento || !titulo || !extension || !tamanio_kb) {
+      res.status(400).json({
+        success: false,
+        mensaje: 'Faltan campos obligatorios: id_documento, titulo, extension, tamanio_kb'
+      });
+      return;
     }
-);
 
-const DocumentoMetadata = mongoose.model('DocumentoMetadata', DocumentoMetadataSchema);
-
-// ==========================================
-// RUTA RAÍZ INFORMATIVA (Soluciona el "Cannot GET /")
-// ==========================================
-app.get('/', (req: Request, res: Response) => {
-    res.status(200).json({
-        modulo: "Módulo de Indexación y Búsqueda NoSQL",
-        estado: "Conectado y Operacional",
-        puerto: PORT
+    // Guardamos en MongoDB
+    const nuevoMetadato = new Metadato({
+      id_documento,
+      titulo,
+      etiquetas: etiquetas || [],
+      extension,
+      tamanio_kb,
+      fecha_indexacion: new Date()
     });
-});
 
-// ==========================================
-// ENDPOINT 1: RECEPCIÓN DEL WEBHOOK (.NET -> NODE)
-// ==========================================
-app.post('/api/busqueda/sincronizar', async (req: Request, res: Response): Promise<void> => {
-    try {
-        const {
-            id_documento_sql,
-            codigo_interno,
-            titulo,
-            tags,
-            contenido_extraido,
-            atributos_especificos,
-            id_usuario_creacion,
-            version
-        } = req.body;
+    await nuevoMetadato.save();
 
-        // Validación estructural básica
-        if (!id_documento_sql || !codigo_interno || !titulo) {
-            res.status(400).json({ error: "Datos obligatorios faltantes (ID, Código o Título)." });
-            return;
-        }
+    res.status(201).json({
+      success: true,
+      mensaje: 'Documento indexado correctamente',
+      data: nuevoMetadato
+    });
 
-        // Simulación de Upsert (Guardar o actualizar si ya existe)
-        const documentoActualizado = await DocumentoMetadata.findOneAndUpdate(
-            { id_documento_sql },
-            {
-                codigo_interno,
-                titulo,
-                tags,
-                contenido_extraido,
-                atributos_especificos,
-                id_usuario_creacion,
-                version,
-                estatus: true,
-                fecha_modificacion: new Date()
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-
-        res.status(200).json({
-            message: "Documento indexado con éxito en MongoDB",
-            id: documentoActualizado._id
-        });
-    } catch (error: any) {
-        res.status(500).json({ error: "Fallo interno al indexar: " + error.message });
+  } catch (error: any) {
+    // Si el documento ya existe (id duplicado)
+    if (error.code === 11000) {
+      res.status(409).json({
+        success: false,
+        mensaje: 'Este documento ya está indexado'
+      });
+      return;
     }
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error interno del servidor',
+      detalle: error.message
+    });
+  }
 });
 
-// ==========================================
-// ENDPOINT 2: BUSCADOR GLOBAL (Full-Text Search)
-// ==========================================
-app.get('/api/busqueda/buscar', async (req: Request, res: Response): Promise<void> => {
-    try {
-        const queryTexto = req.query.q as string;
+// ┌─────────────────────────────────────────────────────┐
+// │ ENDPOINT 2: GET /buscar?q=palabra                   │
+// │ Busca documentos por título o etiquetas             │
+// └─────────────────────────────────────────────────────┘
+app.get('/buscar', async (req: Request, res: Response) => {
+  try {
+    // Tomamos el parámetro ?q= de la URL
+    const query = req.query.q as string;
 
-        if (!queryTexto) {
-            res.status(400).json({ error: "Falta el parámetro de búsqueda '?q='" });
-            return;
-        }
-
-        // Ejecuta la consulta usando el índice de texto '$text' configurado en Mongo
-        const resultados = await DocumentoMetadata.find(
-            {
-                $text: { $search: queryTexto },
-                estatus: true // Filtro de borrado lógico
-            },
-            { score: { $meta: "textScore" } }
-        ).sort({ score: { $meta: "textScore" } }); // Ordena por relevancia automática
-
-        res.status(200).json(resultados);
-    } catch (error: any) {
-        res.status(500).json({ error: "Error en la consulta NoSQL: " + error.message });
+    if (!query || query.trim() === '') {
+      res.status(400).json({
+        success: false,
+        mensaje: 'Debes enviar un término de búsqueda. Ejemplo: /buscar?q=calidad'
+      });
+      return;
     }
+
+    // Buscamos en MongoDB — busca en título Y en etiquetas
+    // $regex significa "contiene esta palabra"
+    // $options: 'i' significa que no importa mayúsculas/minúsculas
+    const resultados = await Metadato.find({
+      $or: [
+        { titulo:    { $regex: query, $options: 'i' } },
+        { etiquetas: { $regex: query, $options: 'i' } }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      total: resultados.length,
+      data: resultados
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al buscar documentos',
+      detalle: error.message
+    });
+  }
 });
 
-// Conexión asíncrona a la Base de Datos
-mongoose.connect(MONGO_URI)
-    .then(() => {
-        console.log('🌱 Conexión exitosa a MongoDB (SIGD_Búsquedas).');
-        app.listen(PORT, () => {
-            console.log(`Servidor de indexación corriendo en http://localhost:${PORT}`);
-        });
-    })
-    .catch(err => console.error('Fallo crítico al conectar a MongoDB:', err));
+// ┌─────────────────────────────────────────────────────┐
+// │ ENDPOINT 3: GET /documento/:id                      │
+// │ Devuelve los metadatos de UN documento específico   │
+// └─────────────────────────────────────────────────────┘
+app.get('/documento/:id', async (req: Request, res: Response) => {
+  try {
+    // Tomamos el :id de la URL. Ej: /documento/DOC-001
+    const { id } = req.params;
+
+    const documento = await Metadato.findOne({ id_documento: id } as any);
+
+    if (!documento) {
+      res.status(404).json({
+        success: false,
+        mensaje: `No se encontró ningún documento con id: ${id}`
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: documento
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al obtener el documento',
+      detalle: error.message
+    });
+  }
+});
+
+// ── 5. INICIAR EL SERVIDOR ────────────────────────────
+app.listen(PORT, () => {
+  console.log(`🚀 Módulo de Búsqueda corriendo en http://localhost:${PORT}`);
+  console.log(`   POST /indexar`);
+  console.log(`   GET  /buscar?q=...`);
+  console.log(`   GET  /documento/:id`);
+});
