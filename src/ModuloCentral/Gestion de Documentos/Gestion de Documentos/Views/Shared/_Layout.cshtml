@@ -65,6 +65,15 @@
                                     <i class="fas fa-search me-1"></i>Buscador Global
                                 </a>
                             </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-network-wired me-1"></i> Módulos Planta
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbarDropdown" style="background-color: var(--jewel-sapphire); border: 1px solid var(--border);">
+                                    <li><a class="dropdown-item text-white" href="http://localhost:8000/index.php?action=dashboard" target="_blank"><i class="fas fa-chart-bar me-2" style="color: #58a6ff;"></i>Dashboard Reportes</a></li>
+                                    <li><a class="dropdown-item text-white" href="http://localhost:8000/index.php?action=portal" target="_blank"><i class="fas fa-book me-2" style="color: #3fb950;"></i>Portal de Normativas</a></li>
+                                </ul>
+                            </li>
                         }
 
                         @if (User.IsInRole("Administrador") || User.IsInRole("Superior"))
@@ -77,6 +86,11 @@
                         @if (User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item"><span class="nav-link">Hola, @User.Identity.Name</span></li>
+                            <li class="nav-item">
+                                <a class="nav-link text-info" href="#" data-bs-toggle="modal" data-bs-target="#modalConexiones" title="Configurar Conexiones">
+                                    <i class="fas fa-cog"></i>
+                                </a>
+                            </li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Auth" asp-action="Logout">Salir</a></li>
                         }
                         else
@@ -93,8 +107,107 @@
             @RenderBody()
         </main>
     </div>
+
+    <!-- Modal Configuración de Conexiones -->
+    <div class="modal fade" id="modalConexiones" tabindex="-1" aria-labelledby="modalConexionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background-color: var(--neutral-bg); color: var(--text-dark); border-radius: 12px; border: 2px solid var(--jewel-sapphire);">
+                <div class="modal-header" style="background-color: var(--jewel-sapphire); color: white; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+                    <h5 class="modal-title fw-bold" id="modalConexionesLabel"><i class="fas fa-network-wired me-2"></i> Configuración de Conexiones</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Define las URLs del ecosistema para la navegación del cliente. De forma predeterminada, el sistema detecta el host actual y cambia el puerto.</p>
+                    <div class="mb-3">
+                        <label for="cfg_csharp" class="form-label fw-bold">Módulo Central (C# - Puerto 5000)</label>
+                        <input type="text" id="cfg_csharp" class="form-control" placeholder="http://localhost:5000" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="cfg_php" class="form-label fw-bold">Módulo de Reportes/Portal (PHP - Puerto 8000)</label>
+                        <input type="text" id="cfg_php" class="form-control" placeholder="http://localhost:8000" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="cfg_node" class="form-label fw-bold">Buscador Global (Node.js - Puerto 3000)</label>
+                        <input type="text" id="cfg_node" class="form-control" placeholder="http://localhost:3000" />
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" id="btnResetConexiones">Restablecer</button>
+                    <button type="button" class="btn btn-jewel-primary" id="btnGuardarConexiones">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        (function() {
+            const currentHost = window.location.hostname;
+            const defaultCSharp = window.location.origin;
+            const defaultPHP = `http://${currentHost}:8000`;
+            const defaultNode = `http://${currentHost}:3000`;
+
+            const resolvedUrls = {
+                csharp: localStorage.getItem('cfg_url_csharp') || defaultCSharp,
+                php: localStorage.getItem('cfg_url_php') || defaultPHP,
+                node: localStorage.getItem('cfg_url_node') || defaultNode
+            };
+
+            function rewriteLinks() {
+                document.querySelectorAll('a[href]').forEach(el => {
+                    let href = el.getAttribute('href');
+                    if (href) {
+                        if (href.startsWith('http://localhost:5000') || href.startsWith('https://localhost:5001')) {
+                            el.href = href.replace(/https?:\/\/localhost:(5000|5001)/, resolvedUrls.csharp);
+                        } else if (href.startsWith('http://localhost:8000')) {
+                            el.href = href.replace('http://localhost:8000', resolvedUrls.php);
+                        } else if (href.startsWith('http://localhost:3000')) {
+                            el.href = href.replace('http://localhost:3000', resolvedUrls.node);
+                        }
+                    }
+                });
+            }
+
+            rewriteLinks();
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                rewriteLinks();
+                
+                // Cargar valores en inputs
+                const inputCSharp = document.getElementById('cfg_csharp');
+                const inputPHP = document.getElementById('cfg_php');
+                const inputNode = document.getElementById('cfg_node');
+                
+                if (inputCSharp) inputCSharp.value = resolvedUrls.csharp;
+                if (inputPHP) inputPHP.value = resolvedUrls.php;
+                if (inputNode) inputNode.value = resolvedUrls.node;
+
+                // Guardar cambios
+                const btnGuardar = document.getElementById('btnGuardarConexiones');
+                if (btnGuardar) {
+                    btnGuardar.addEventListener('click', () => {
+                        localStorage.setItem('cfg_url_csharp', inputCSharp.value.trim());
+                        localStorage.setItem('cfg_url_php', inputPHP.value.trim());
+                        localStorage.setItem('cfg_url_node', inputNode.value.trim());
+                        location.reload();
+                    });
+                }
+
+                // Restablecer
+                const btnReset = document.getElementById('btnResetConexiones');
+                if (btnReset) {
+                    btnReset.addEventListener('click', () => {
+                        localStorage.removeItem('cfg_url_csharp');
+                        localStorage.removeItem('cfg_url_php');
+                        localStorage.removeItem('cfg_url_node');
+                        location.reload();
+                    });
+                }
+            });
+        })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

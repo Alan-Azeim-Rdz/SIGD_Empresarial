@@ -1,4 +1,4 @@
-﻿@using System.Linq
+@using System.Linq
 @using System.Security.Claims
 @{
     ViewData["Title"] = "Inicio";
@@ -44,7 +44,7 @@ else
                 <div class="card card-jewel p-3 h-100">
                     <h5 class="card-title">Aprobación y Revisión</h5>
                     <p class="card-text">Revisa y aprueba documentos pendientes en tu bandeja.</p>
-                    <a class="btn btn-jewel-primary" asp-controller="Aprobacion" asp-action="Pendientes">Ver Pendientes</a>
+                    <a class="btn btn-jewel-primary" asp-controller="Flujo" asp-action="Pendientes">Ver Pendientes</a>
                 </div>
             </div>
         }
@@ -56,8 +56,8 @@ else
                 <div class="card card-jewel p-3 h-100">
                     <h5 class="card-title">Gestión de Documentos</h5>
                     <p class="card-text">Crea, edita y envía documentos para aprobación.</p>
-                    <a class="btn btn-jewel-primary" asp-controller="Documentos" asp-action="Crear">Crear Documento</a>
-                    <a class="btn btn-outline-secondary ms-2" asp-controller="Documentos" asp-action="Index">Mis Documentos</a>
+                    <a class="btn btn-jewel-primary" asp-controller="Documento" asp-action="Crear">Crear Documento</a>
+                    <a class="btn btn-outline-secondary ms-2" asp-controller="Documento" asp-action="Index">Mis Documentos</a>
                 </div>
             </div>
         }
@@ -67,9 +67,9 @@ else
         {
             <div class="col-md-4">
                 <div class="card card-jewel p-3 h-100">
-                    <h5 class="card-title">Normativas</h5>
-                    <p class="card-text">Consulta y gestiona normativas y procedimientos aplicables.</p>
-                    <a class="btn btn-jewel-primary" asp-controller="Normativas" asp-action="Index">Ver Normativas</a>
+                    <h5 class="card-title">Portal de Normativas</h5>
+                    <p class="card-text">Consulta y firma normativas y procedimientos vigentes en planta.</p>
+                    <a class="btn btn-jewel-primary" href="http://localhost:8000/index.php?action=portal" target="_blank">Ir al Portal</a>
                 </div>
             </div>
         }
@@ -79,9 +79,9 @@ else
         {
             <div class="col-md-4">
                 <div class="card card-jewel p-3 h-100">
-                    <h5 class="card-title">Reportes</h5>
-                    <p class="card-text">Genera reportes de estado, flujo de aprobación y auditoría.</p>
-                    <a class="btn btn-jewel-primary" asp-controller="Reportes" asp-action="Index">Ir a Reportes</a>
+                    <h5 class="card-title">Reportes y KPIs</h5>
+                    <p class="card-text">Genera reportes de estado, flujo de aprobación y auditoría en tiempo real.</p>
+                    <a class="btn btn-jewel-primary" href="http://localhost:8000/index.php?action=dashboard" target="_blank">Ir a Reportes</a>
                 </div>
             </div>
         }
@@ -89,9 +89,9 @@ else
         @* Bandeja general para cualquier usuario autenticado *@
         <div class="col-md-4">
             <div class="card card-jewel p-3 h-100">
-                <h5 class="card-title">Mi Bandeja</h5>
-                <p class="card-text">Accede a tareas, documentos asignados y notificaciones.</p>
-                <a class="btn btn-jewel-primary" asp-controller="Bandeja" asp-action="Index">Ir a Mi Bandeja</a>
+                <h5 class="card-title">Mis Documentos</h5>
+                <p class="card-text">Accede a tus documentos creados, borradores y versiones.</p>
+                <a class="btn btn-jewel-primary" asp-controller="Documento" asp-action="Index">Ir a Mis Documentos</a>
             </div>
         </div>
     </div>

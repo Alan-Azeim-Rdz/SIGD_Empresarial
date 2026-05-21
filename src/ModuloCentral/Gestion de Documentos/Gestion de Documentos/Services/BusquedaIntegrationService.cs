@@ -66,7 +66,8 @@ namespace Gestion_de_Documentos.Services
                 tags = new string[] { doc.IdTipoDocumentoNavigation?.Nombre ?? "General" },
                 contenido_extraido = contenidoExtraido,
                 atributos_especificos = new { },
-                id_usuario_creacion = idUsuario
+                id_usuario_creacion = idUsuario,
+                version = version.NumeroVersion
             };
         }
 

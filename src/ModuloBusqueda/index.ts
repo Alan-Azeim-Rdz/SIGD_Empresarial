@@ -25,6 +25,7 @@ const DocumentoMetadataSchema = new mongoose.Schema({
     tags: { type: [String], default: [] },
     contenido_extraido: { type: String, default: "" },
     atributos_especificos: { type: Object, default: {} },
+    version: { type: Number, default: 1 },
 
     // Espejo de Auditoría y Borrado Lógico de PostgreSQL
     estatus: { type: Boolean, default: true },
@@ -72,7 +73,8 @@ app.post('/api/busqueda/sincronizar', async (req: Request, res: Response): Promi
             tags,
             contenido_extraido,
             atributos_especificos,
-            id_usuario_creacion
+            id_usuario_creacion,
+            version
         } = req.body;
 
         // Validación estructural básica
@@ -91,6 +93,7 @@ app.post('/api/busqueda/sincronizar', async (req: Request, res: Response): Promi
                 contenido_extraido,
                 atributos_especificos,
                 id_usuario_creacion,
+                version,
                 estatus: true,
                 fecha_modificacion: new Date()
             },

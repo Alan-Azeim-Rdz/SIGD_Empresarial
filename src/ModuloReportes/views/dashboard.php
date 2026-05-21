@@ -267,6 +267,10 @@
         <a href="http://localhost:3000" target="_blank" class="nav-link-side">
             <i class="fas fa-database fa-fw"></i> API Búsqueda
         </a>
+        <div class="sidebar-divider"></div>
+        <a href="#" class="nav-link-side" data-bs-toggle="modal" data-bs-target="#modalConexiones" id="btn-config-conexiones" style="color: var(--accent1) !important;">
+            <i class="fas fa-cog fa-fw"></i> Conexiones
+        </a>
     </nav>
 </aside>
 
@@ -466,5 +470,101 @@ fetch(`${BASE}?action=api_recientes`)
     });
 </script>
 
+    <!-- Modal Configuración de Conexiones -->
+    <div class="modal fade" id="modalConexiones" tabindex="-1" aria-labelledby="modalConexionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary" style="border-radius: 12px;">
+                <div class="modal-header border-secondary" style="background-color: #1a1a1a;">
+                    <h5 class="modal-title fw-bold text-primary" id="modalConexionesLabel"><i class="fas fa-network-wired me-2"></i> Configuración de Conexiones</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Define las URLs del ecosistema para la navegación del cliente y llamadas de API. De forma predeterminada, se detecta el host actual y cambia el puerto.</p>
+                    <div class="mb-3">
+                        <label for="cfg_csharp" class="form-label fw-bold text-light">Módulo Central (C# - Puerto 5000)</label>
+                        <input type="text" id="cfg_csharp" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:5000" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="cfg_php" class="form-label fw-bold text-light">Módulo de Reportes/Portal (PHP - Puerto 8000)</label>
+                        <input type="text" id="cfg_php" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:8000" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="cfg_node" class="form-label fw-bold text-light">Buscador Global (Node.js - Puerto 3000)</label>
+                        <input type="text" id="cfg_node" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:3000" />
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary" style="background-color: #1a1a1a;">
+                    <button type="button" class="btn btn-outline-light btn-sm" id="btnResetConexiones">Restablecer</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnGuardarConexiones">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function() {
+            // Configuración y resolución de conexiones
+            const currentHost = window.location.hostname;
+            const defaultCSharp = `http://${currentHost}:5000`;
+            const defaultPHP = window.location.origin;
+            const defaultNode = `http://${currentHost}:3000`;
+
+            const resolvedUrls = {
+                csharp: localStorage.getItem('cfg_url_csharp') || defaultCSharp,
+                php: localStorage.getItem('cfg_url_php') || defaultPHP,
+                node: localStorage.getItem('cfg_url_node') || defaultNode
+            };
+
+            function rewriteLinks() {
+                document.querySelectorAll('a[href]').forEach(el => {
+                    let href = el.getAttribute('href');
+                    if (href) {
+                        if (href.startsWith('http://localhost:5000')) {
+                            el.href = href.replace('http://localhost:5000', resolvedUrls.csharp);
+                        } else if (href.startsWith('http://localhost:8000')) {
+                            el.href = href.replace('http://localhost:8000', resolvedUrls.php);
+                        } else if (href.startsWith('http://localhost:3000')) {
+                            el.href = href.replace('http://localhost:3000', resolvedUrls.node);
+                        }
+                    }
+                });
+            }
+
+            rewriteLinks();
+
+            document.addEventListener('DOMContentLoaded', () => {
+                rewriteLinks();
+                
+                const inputCSharp = document.getElementById('cfg_csharp');
+                const inputPHP = document.getElementById('cfg_php');
+                const inputNode = document.getElementById('cfg_node');
+                
+                if (inputCSharp) inputCSharp.value = resolvedUrls.csharp;
+                if (inputPHP) inputPHP.value = resolvedUrls.php;
+                if (inputNode) inputNode.value = resolvedUrls.node;
+
+                const btnGuardar = document.getElementById('btnGuardarConexiones');
+                if (btnGuardar) {
+                    btnGuardar.addEventListener('click', () => {
+                        localStorage.setItem('cfg_url_csharp', inputCSharp.value.trim());
+                        localStorage.setItem('cfg_url_php', inputPHP.value.trim());
+                        localStorage.setItem('cfg_url_node', inputNode.value.trim());
+                        location.reload();
+                    });
+                }
+
+                const btnReset = document.getElementById('btnResetConexiones');
+                if (btnReset) {
+                    btnReset.addEventListener('click', () => {
+                        localStorage.removeItem('cfg_url_csharp');
+                        localStorage.removeItem('cfg_url_php');
+                        localStorage.removeItem('cfg_url_node');
+                        location.reload();
+                    });
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

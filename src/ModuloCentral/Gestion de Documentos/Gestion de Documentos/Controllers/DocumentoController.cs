@@ -294,5 +294,27 @@ namespace Gestion_de_Documentos.Controllers
                 return NotFound("No se pudo recuperar el archivo desde MongoDB GridFS.");
             }
         }
+
+        [AllowAnonymous]
+        public async Task<IActionResult> DescargarUltima(int id)
+        {
+            var version = await _context.DocumentoVersions
+                .Where(v => v.IdDocumento == id && v.Estatus == true)
+                .OrderByDescending(v => v.NumeroVersion)
+                .FirstOrDefaultAsync();
+
+            if (version == null || string.IsNullOrEmpty(version.RutaArchivoFisico))
+                return NotFound("No se encontró una versión activa para este documento.");
+
+            try
+            {
+                var (stream, fileName, contentType) = await _gridFsService.DescargarArchivoAsync(version.RutaArchivoFisico);
+                return File(stream, contentType, fileName);
+            }
+            catch (Exception)
+            {
+                return NotFound("No se pudo recuperar el archivo desde MongoDB GridFS.");
+            }
+        }
     }
 }
