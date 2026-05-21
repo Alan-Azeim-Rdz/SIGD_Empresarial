@@ -184,7 +184,7 @@ services:
       - /usr/src/app/node_modules # Protege las librerías internas contra sobreescritura local
     command: npm run dev
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/sigd_busqueda?authSource=admin
     networks:
       - sigd_network
 

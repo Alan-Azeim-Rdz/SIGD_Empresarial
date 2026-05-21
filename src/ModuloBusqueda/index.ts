@@ -18,9 +18,9 @@ app.use(express.json());
 // ── 2. CONEXIÓN A MONGODB ─────────────────────────────
 // La URL viene de una variable de entorno (más seguro)
 // Si no hay variable, usa localhost por defecto
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/sigd';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sigd';
 
-mongoose.connect(MONGO_URL)
+mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB'))
   .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
 
