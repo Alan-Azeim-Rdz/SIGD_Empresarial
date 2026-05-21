@@ -1,0 +1,207 @@
+@{
+    ViewData["Title"] = "Buscador Global de Documentos";
+}
+
+<style>
+    .search-hero {
+        background: linear-gradient(135deg, #0a2342 0%, #1565c0 60%, #0288d1 100%);
+        border-radius: 1rem;
+        padding: 2.5rem 2rem 2rem;
+        color: #fff;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(21,101,192,.25);
+    }
+    .search-hero h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: .3rem; }
+    .search-hero p  { opacity: .8; margin-bottom: 1.5rem; }
+
+    #search-input {
+        border-radius: 2rem 0 0 2rem;
+        border: none;
+        padding: .85rem 1.4rem;
+        font-size: 1rem;
+        box-shadow: none;
+        flex: 1;
+    }
+    #btn-buscar {
+        border-radius: 0 2rem 2rem 0;
+        padding: .85rem 1.8rem;
+        font-weight: 600;
+        background: #43a047;
+        border-color: #43a047;
+        color: #fff;
+        transition: background .2s;
+    }
+    #btn-buscar:hover { background: #2e7d32; border-color: #2e7d32; }
+
+    #spinner { display: none; }
+
+    .result-card {
+        border: none;
+        border-radius: .85rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,.08);
+        transition: transform .15s, box-shadow .15s;
+        margin-bottom: 1rem;
+        animation: fadeInUp .3s ease both;
+    }
+    .result-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.13); }
+
+    .result-score {
+        font-size: .75rem;
+        background: #e3f2fd;
+        color: #1565c0;
+        border-radius: 1rem;
+        padding: .2rem .7rem;
+        font-weight: 700;
+    }
+    .result-tag {
+        font-size: .75rem;
+        background: #e8f5e9;
+        color: #2e7d32;
+        border-radius: 1rem;
+        padding: .2rem .65rem;
+        margin-right: .3rem;
+    }
+    .result-extract {
+        font-size: .88rem;
+        color: #555;
+        margin-top: .5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    @@keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #no-results, #error-msg { display: none; }
+</style>
+
+<!-- Hero con buscador -->
+<div class="search-hero">
+    <h1><i class="fas fa-search me-2"></i> Buscador Global de Documentos</h1>
+    <p>Busca en todos los documentos vigentes del sistema de forma instantánea</p>
+    <div class="d-flex">
+        <input id="search-input" type="text" class="form-control" placeholder="Escribe el título, código, etiquetas o palabras clave del documento..." />
+        <button id="btn-buscar" class="btn"><i class="fas fa-search"></i> Buscar</button>
+    </div>
+</div>
+
+<!-- Spinner de carga -->
+<div id="spinner" class="text-center my-5">
+    <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"></div>
+    <p class="mt-3 text-muted">Buscando en el índice NoSQL…</p>
+</div>
+
+<!-- Sin resultados -->
+<div id="no-results" class="text-center py-5">
+    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+    <p class="text-muted fs-5">No se encontraron documentos para <strong id="term-label"></strong>.</p>
+    <small class="text-muted">Intenta con otras palabras clave o revisa que el documento esté en estado "Vigente".</small>
+</div>
+
+<!-- Error -->
+<div id="error-msg" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <span id="error-text"></span>
+</div>
+
+<!-- Contador de resultados -->
+<div id="results-header" class="d-flex align-items-center justify-content-between mb-3" style="display:none!important">
+    <span id="results-count" class="text-muted fw-semibold"></span>
+    <span class="badge bg-secondary"><i class="fas fa-database me-1"></i> Índice MongoDB</span>
+</div>
+
+<!-- Tarjetas de resultado -->
+<div id="results-container"></div>
+
+
+<script>
+    const input      = document.getElementById('search-input');
+    const btnBuscar  = document.getElementById('btn-buscar');
+    const spinner    = document.getElementById('spinner');
+    const noResults  = document.getElementById('no-results');
+    const errorMsg   = document.getElementById('error-msg');
+    const errorText  = document.getElementById('error-text');
+    const container  = document.getElementById('results-container');
+    const header     = document.getElementById('results-header');
+    const countEl    = document.getElementById('results-count');
+    const termLabel  = document.getElementById('term-label');
+
+    function resetUI() {
+        spinner.style.display   = 'none';
+        noResults.style.display = 'none';
+        errorMsg.style.display  = 'none';
+        header.style.display    = 'none';
+        container.innerHTML     = '';
+    }
+
+    async function buscar() {
+        const q = input.value.trim();
+        if (!q) { input.focus(); return; }
+
+        resetUI();
+        spinner.style.display = 'block';
+
+        try {
+            const resp = await fetch(`/Busqueda/Buscar?q=${encodeURIComponent(q)}`);
+            const data = await resp.json();
+
+            spinner.style.display = 'none';
+
+            if (data.error) {
+                errorText.textContent  = data.error;
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            if (!Array.isArray(data) || data.length === 0) {
+                termLabel.textContent   = `"${q}"`;
+                noResults.style.display = 'block';
+                return;
+            }
+
+            countEl.textContent    = `${data.length} documento${data.length > 1 ? 's' : ''} encontrado${data.length > 1 ? 's' : ''} para "${q}"`;
+            header.style.removeProperty('display');
+            header.style.display   = 'flex';
+
+            data.forEach((doc, i) => {
+                const tagsHtml = (doc.tags || []).map(t => `<span class="result-tag">${t}</span>`).join('');
+                const score    = doc.score ? `<span class="result-score">Relevancia: ${doc.score.toFixed(2)}</span>` : '';
+                const extract  = doc.contenido_extraido
+                    ? `<p class="result-extract">${doc.contenido_extraido}</p>` : '';
+
+                const card = `
+                    <div class="card result-card" style="animation-delay:${i * 0.06}s">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div>
+                                    <h5 class="mb-1 fw-bold">${doc.titulo}</h5>
+                                    <small class="text-muted"><i class="fas fa-barcode me-1"></i>${doc.codigo_interno}</small>
+                                </div>
+                                ${score}
+                            </div>
+                            ${tagsHtml ? `<div class="mt-2">${tagsHtml}</div>` : ''}
+                            ${extract}
+                            <div class="mt-3 d-flex gap-2 flex-wrap">
+                                <a href="/Documento/Detalle/${doc.id_documento_sql}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye me-1"></i> Ver Detalle
+                                </a>
+                            </div>
+                        </div>
+                    </div>`;
+                container.insertAdjacentHTML('beforeend', card);
+            });
+
+        } catch (err) {
+            spinner.style.display  = 'none';
+            errorText.textContent  = 'Error inesperado al conectar con el buscador. Verifica que el servicio esté activo.';
+            errorMsg.style.display = 'block';
+        }
+    }
+
+    btnBuscar.addEventListener('click', buscar);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') buscar(); });
+</script>

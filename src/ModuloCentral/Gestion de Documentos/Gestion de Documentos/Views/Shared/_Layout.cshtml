@@ -1,10 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - SIGD Empresarial</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
     <style>
             /* Paleta: Jewel Tones Meet Soft Neutral Harmony */
             :root {
@@ -56,8 +57,19 @@
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Inicio</a></li>
                         
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-controller="Documento" asp-action="Index"><i class="fas fa-file-alt me-1"></i>Mis Documentos</a></li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Busqueda" asp-action="Global">
+                                    <i class="fas fa-search me-1"></i>Buscador Global
+                                </a>
+                            </li>
+                        }
+
                         @if (User.IsInRole("Administrador") || User.IsInRole("Superior"))
                         {
+                            <li class="nav-item"><a class="nav-link text-warning" asp-controller="Flujo" asp-action="Pendientes">Aprobaciones Pendientes</a></li>
                             <li class="nav-item"><a class="nav-link fw-bold" style="color: #FFD700 !important;" asp-controller="Auth" asp-action="Registro">Crear Usuario</a></li>
                         }
                     </ul>

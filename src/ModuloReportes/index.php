@@ -7,6 +7,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use Controllers\SyncController;
 use Controllers\ReporteController;
+use Controllers\DashboardController;
 
 // Configuración CORS global
 header("Access-Control-Allow-Origin: *");
@@ -17,9 +18,14 @@ $action = $_GET['action'] ?? '';
 
 // Identificar si la petición es para una vista HTML (Frontend)
 if ($action === 'portal') {
-    // Si entran al portal, cargamos la vista HTML
     header("Content-Type: text/html; charset=UTF-8");
     require_once __DIR__ . '/views/portal_operario.php';
+    exit;
+}
+
+if ($action === 'dashboard') {
+    $controller = new DashboardController();
+    $controller->mostrarDashboard();
     exit;
 }
 
@@ -32,6 +38,11 @@ switch ($action) {
         $controller->sincronizarDocumento();
         break;
 
+    case 'sincronizar_batch':
+        $controller = new SyncController();
+        $controller->sincronizarBatch();
+        break;
+
     case 'registrar_acuse':
         $controller = new ReporteController();
         $controller->registrarAcuse();
@@ -42,15 +53,40 @@ switch ($action) {
         $controller->obtenerClimaCumplimiento();
         break;
 
+    case 'api_kpis':
+        $controller = new DashboardController();
+        $controller->obtenerKpis();
+        break;
+
+    case 'api_docs_por_depto':
+        $controller = new DashboardController();
+        $controller->docsPorDepartamento();
+        break;
+
+    case 'api_evolucion':
+        $controller = new DashboardController();
+        $controller->evolucionMensual();
+        break;
+
+    case 'api_recientes':
+        $controller = new DashboardController();
+        $controller->documentosRecientes();
+        break;
+
     default:
         http_response_code(200);
         echo json_encode([
-            "modulo" => "Módulo de Consultas y Reportes Operacionales (PostgreSQL)",
-            "estado" => "Conectado y Operacional",
+            "modulo"  => "Módulo de Consultas y Reportes Operacionales (PostgreSQL)",
+            "estado"  => "Conectado y Operacional",
             "rutas_disponibles" => [
-                "API Sync" => "/index.php?action=sincronizar",
-                "API Acuse" => "/index.php?action=registrar_acuse",
-                "Portal Operario" => "/index.php?action=portal"
+                "Dashboard"       => "/index.php?action=dashboard",
+                "Portal Operario" => "/index.php?action=portal",
+                "API Sync"        => "/index.php?action=sincronizar",
+                "API Acuse"       => "/index.php?action=registrar_acuse",
+                "API KPIs"        => "/index.php?action=api_kpis",
+                "API Docs/Depto"  => "/index.php?action=api_docs_por_depto",
+                "API Evolución"   => "/index.php?action=api_evolucion",
+                "API Recientes"   => "/index.php?action=api_recientes",
             ]
         ]);
         break;

@@ -1374,6 +1374,54 @@ GO
 
 
 -- ==========================================================================================
+-- SECCIÓN 3.5: PROCEDIMIENTOS DE AUTENTICACIÓN (HASHEO EN BD)
+-- ==========================================================================================
+
+-- Procedimiento para Crear un Usuario hasheando su contraseña internamente
+CREATE PROCEDURE [dbo].[SP_CrearUsuario]
+    @IdDepartamento INT,
+    @Nombre VARCHAR(100),
+    @ApellidoP VARCHAR(100),
+    @ApellidoM VARCHAR(100) = NULL,
+    @Correo VARCHAR(150),
+    @ContrasenaPlana VARCHAR(255),
+    @IdUsuarioCreacion INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Aplicamos SHA-256 y lo convertimos a string hexadecimal uppercase
+    DECLARE @HashContrasena VARCHAR(255) = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @ContrasenaPlana), 2);
+    
+    INSERT INTO [dbo].[Usuario] (IdDepartamento, Nombre, ApellidoP, ApellidoM, Correo, Contrasena, IdUsuarioCreacion)
+    VALUES (@IdDepartamento, @Nombre, @ApellidoP, @ApellidoM, @Correo, @HashContrasena, @IdUsuarioCreacion);
+    
+    SELECT SCOPE_IDENTITY() AS IdUsuario;
+END
+GO
+
+-- Procedimiento para Validar el Login de un Usuario
+CREATE PROCEDURE [dbo].[SP_ValidarLogin]
+    @Correo VARCHAR(150),
+    @ContrasenaPlana VARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Hashear la contraseña entrante para comparar
+    DECLARE @HashIntento VARCHAR(255) = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', @ContrasenaPlana), 2);
+    
+    SELECT 
+        Id, IdDepartamento, Nombre, ApellidoP, ApellidoM, Correo, Estatus
+    FROM [dbo].[Usuario]
+    WHERE Correo = @Correo 
+      AND Contrasena = @HashIntento
+      AND Estatus = 1; -- Solo usuarios activos
+END
+GO
+
+
+-- ==========================================================================================
 -- SECCIÓN 4: DATOS SEMILLA (SEED DATA)
 -- Crea el usuario Super Administrador con máxima autoridad para gestionar el sistema.
 -- ==========================================================================================

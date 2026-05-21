@@ -34,9 +34,20 @@ builder.Services.AddHttpClient<ReportesIntegrationService>(client =>
     client.Timeout = TimeSpan.FromSeconds(reportesTimeout);
 });
 
+builder.Services.AddHttpClient<BusquedaIntegrationService>(client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["BusquedaModule:BaseUrl"] ?? "http://modulo_busqueda:3000");
+    client.Timeout = TimeSpan.FromSeconds(reportesTimeout);
+});
+
 // ── Registrar el servicio de integración en el contenedor DI ─
 // Scoped: una instancia por petición HTTP, igual que DirContext.
 builder.Services.AddScoped<ReportesIntegrationService>();
+builder.Services.AddScoped<BusquedaIntegrationService>();
+
+// ── Servicio MongoDB GridFS para Archivos Físicos ─────────────
+builder.Services.AddSingleton<IMongoGridFsService, MongoGridFsService>();
 
 var app = builder.Build();
 

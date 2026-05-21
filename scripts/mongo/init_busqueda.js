@@ -106,8 +106,62 @@ db.DocumentosMetadata.createIndex(
 );
 print('  ✓ Índice de estatus creado.');
 
+// ----------------------------------------------------------
+// 3. Colección Espejo de Usuarios (Para Autenticación)
+// ----------------------------------------------------------
+db.createCollection('Usuarios', {
+    validator: {
+        $jsonSchema: {
+            bsonType: "object",
+            required: ["correo", "contrasena", "estatus"],
+            properties: {
+                correo: { bsonType: "string" },
+                contrasena: { bsonType: "string" },
+                estatus: { bsonType: "bool" }
+            }
+        }
+    }
+});
+db.Usuarios.createIndex({ correo: 1 }, { unique: true, name: "IDX_Correo_Unique" });
+print('  ✓ Colección "Usuarios" creada.');
+
+// Insertar Seed Data de Admin con la contraseña YA HASHEADA (simulando lo que hace SQL Server/Postgres)
+// El Hash SHA-256 de 'Admin@SIGD2026!' es:
+db.Usuarios.insert({
+    correo: 'admin@sigd.local',
+    contrasena: '9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08', // Placeholder del Hash real
+    estatus: true
+});
+print('  ✓ Usuario Admin insertado en MongoDB.');
+
+// ----------------------------------------------------------
+// 4. Procedimiento Almacenado (Server-Side JavaScript)
+// NOTA: En MongoDB moderno, la ejecución de funciones en la BD 
+// está deprecada. Sin embargo, cumpliendo con la premisa de "los 3 casos",
+// se guarda la función en system.js para que pueda ser invocada con db.loadServerScripts()
+// ----------------------------------------------------------
+db.system.js.save({
+    _id: "fn_validar_login",
+    value: function(correo, contrasena_plana) {
+        // En un entorno de BD puro, MongoDB no tiene una función nativa 'hash()' 
+        // accesible directamente en JS del servidor como PostgreSQL (pgcrypto) o SQL Server (HASHBYTES).
+        // En una arquitectura real, Node.js enviaría el hash ya computado.
+        // Aquí simulamos que la BD hace la comparación asumiendo una función SHA256 inyectada.
+        
+        var hashCalculado = mi_funcion_sha256_interna(contrasena_plana); 
+        
+        var usuario = db.Usuarios.findOne({
+            correo: correo,
+            contrasena: hashCalculado,
+            estatus: true
+        });
+        
+        return usuario != null ? usuario : null;
+    }
+});
+print('  ✓ Función fn_validar_login guardada en system.js.');
+
 print('========================================');
 print('  MongoDB inicializado exitosamente');
 print('  Base de datos: sigd_busqueda');
-print('  Colección: DocumentosMetadata');
 print('========================================');

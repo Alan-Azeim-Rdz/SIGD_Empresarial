@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Gestion_de_Documentos.Controllers
 {
@@ -40,7 +42,9 @@ namespace Gestion_de_Documentos.Controllers
                     .ThenInclude(ur => ur.IdRolNavigation)
                 .FirstOrDefaultAsync(u => u.Correo == username && u.Estatus == true);
 
-            if (usuario != null && usuario.Contrasena == contrasena)
+            var hashContrasena = HashPassword(contrasena);
+
+            if (usuario != null && string.Equals(usuario.Contrasena.Trim(), hashContrasena.Trim(), StringComparison.OrdinalIgnoreCase))
             {
                 var claims = new List<System.Security.Claims.Claim>
                 {
@@ -116,6 +120,8 @@ namespace Gestion_de_Documentos.Controllers
                 nuevoUsuario.FechaCreacion = DateTime.Now;
                 nuevoUsuario.IdUsuarioCreacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
 
+                nuevoUsuario.Contrasena = HashPassword(nuevoUsuario.Contrasena);
+
                 _context.Usuarios.Add(nuevoUsuario);
                 await _context.SaveChangesAsync();
 
@@ -153,6 +159,24 @@ namespace Gestion_de_Documentos.Controllers
         public IActionResult AccesoDenegado()
         {
             return View();
+        }
+
+        // --- HASHEAR CONTRASEÑA ---
+        private string HashPassword(string password)
+        {
+            if (string.IsNullOrEmpty(password)) return string.Empty;
+            using (var sha256 = SHA256.Create())
+            {
+                // NOTA: Usamos Encoding.Unicode (UTF-16LE) para coincidir con
+                // HASHBYTES('SHA2_256', N'...') en SQL Server (que usa NVARCHAR)
+                var bytes = sha256.ComputeHash(Encoding.Unicode.GetBytes(password));
+                var builder = new StringBuilder();
+                foreach (var b in bytes)
+                {
+                    builder.Append(b.ToString("X2"));
+                }
+                return builder.ToString();
+            }
         }
     }
 }

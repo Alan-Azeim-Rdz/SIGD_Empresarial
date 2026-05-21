@@ -1,0 +1,60 @@
+@model IEnumerable<Gestion_de_Documentos.Models.FlujoAprobacion>
+
+@{
+    ViewData["Title"] = "Pendientes de Aprobación";
+}
+
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0 text-dark">Bandeja de Aprobaciones</h3>
+        <span class="badge bg-warning text-dark p-2">@Model.Count() Pendientes</span>
+    </div>
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="alert alert-info text-center">
+                No tienes documentos pendientes de aprobación. ¡Excelente trabajo!
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var flujo in Model)
+                {
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-jewel-sapphire">@flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.Titulo</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">@flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.CodigoInterno</h6>
+                                
+                                <p class="card-text mt-3">
+                                    <strong>Versión:</strong> V@(flujo.IdVersionDocumentoNavigation.NumeroVersion)<br/>
+                                    <strong>Enviado por:</strong> Usuario ID @flujo.IdUsuarioCreacion<br/>
+                                    <strong>Fecha:</strong> @flujo.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")
+                                </p>
+                                
+                                <a asp-controller="Documento" asp-action="Detalle" asp-route-id="@flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.Id" class="btn btn-sm btn-outline-info mb-3 w-100" target="_blank">
+                                    Revisar Documento
+                                </a>
+
+                                <form asp-action="Responder" method="post">
+                                    <input type="hidden" name="idFlujo" value="@flujo.Id" />
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Comentarios (opcional)</label>
+                                        <textarea name="comentarios" class="form-control" rows="2" placeholder="Motivo de rechazo o nota de aprobación..."></textarea>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" name="respuesta" value="Rechazar" class="btn btn-danger w-50">Rechazar</button>
+                                        <button type="submit" name="respuesta" value="Aprobar" class="btn btn-success w-50">Aprobar (Hacer Vigente)</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

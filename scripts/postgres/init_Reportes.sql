@@ -2,6 +2,8 @@
 -- 1. CREACIÓN DE TABLAS BASE CON CAMPOS DE AUDITORÍA
 -- ==========================================================
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE departamento (
     id_departamento INT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
@@ -23,6 +25,7 @@ CREATE TABLE usuario (
     nombre VARCHAR(100) NOT NULL,
     apellido_p VARCHAR(100) NOT NULL,
     correo VARCHAR(150) UNIQUE NOT NULL,
+    contrasena VARCHAR(255) NOT NULL,
     
     -- Auditoría y Borrado Lógico
     estatus BOOLEAN DEFAULT TRUE,
@@ -216,6 +219,50 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- D) Funciones de Autenticación (Hasheo en BD)
+CREATE OR REPLACE FUNCTION fn_crear_usuario(
+    p_id_usuario INT,
+    p_id_departamento INT,
+    p_nombre VARCHAR,
+    p_apellido_p VARCHAR,
+    p_correo VARCHAR,
+    p_contrasena_plana VARCHAR,
+    p_id_usuario_creacion INT
+) RETURNS VOID AS $$
+BEGIN
+    INSERT INTO usuario (id_usuario, id_departamento, nombre, apellido_p, correo, contrasena, id_usuario_creacion)
+    VALUES (
+        p_id_usuario, 
+        p_id_departamento, 
+        p_nombre, 
+        p_apellido_p, 
+        p_correo, 
+        UPPER(encode(digest(p_contrasena_plana, 'sha256'), 'hex')), 
+        p_id_usuario_creacion
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION fn_validar_login(
+    p_correo VARCHAR,
+    p_contrasena_plana VARCHAR
+) RETURNS TABLE (
+    id_usuario INT,
+    id_departamento INT,
+    nombre VARCHAR,
+    apellido_p VARCHAR,
+    correo VARCHAR
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT u.id_usuario, u.id_departamento, u.nombre, u.apellido_p, u.correo
+    FROM usuario u
+    WHERE u.correo = p_correo
+      AND u.contrasena = UPPER(encode(digest(p_contrasena_plana, 'sha256'), 'hex'))
+      AND u.estatus = TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- ==========================================================
 -- 4. DATOS SEMILLA (SEED DATA)
@@ -229,8 +276,8 @@ VALUES (1, 'Administración General', 'ADM', TRUE)
 ON CONFLICT (id_departamento) DO NOTHING;
 
 -- 4.2 Usuario Super Admin (espejo del módulo central)
-INSERT INTO usuario (id_usuario, id_departamento, nombre, apellido_p, correo, estatus)
-VALUES (1, 1, 'Super', 'Administrador', 'admin@sigd.local', TRUE)
+INSERT INTO usuario (id_usuario, id_departamento, nombre, apellido_p, correo, contrasena, estatus)
+VALUES (1, 1, 'Super', 'Administrador', 'admin@sigd.local', UPPER(encode(digest('Admin@SIGD2026!', 'sha256'), 'hex')), TRUE)
 ON CONFLICT (id_usuario) DO NOTHING;
 
 -- 4.3 Actualizar auditoría del departamento

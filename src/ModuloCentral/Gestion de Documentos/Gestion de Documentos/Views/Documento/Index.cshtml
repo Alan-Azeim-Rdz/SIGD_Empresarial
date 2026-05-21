@@ -1,0 +1,48 @@
+@model IEnumerable<Gestion_de_Documentos.Models.Documento>
+
+@{
+    ViewData["Title"] = "Mis Documentos";
+}
+
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0 text-dark">Mis Documentos</h3>
+        <a asp-action="Crear" class="btn btn-jewel-primary">Nuevo Documento (PDF)</a>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Título</th>
+                    <th>Tipo</th>
+                    <th>Depto.</th>
+                    <th>Estado</th>
+                    <th>Fecha Creación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.CodigoInterno</td>
+                        <td>@item.Titulo</td>
+                        <td>@item.IdTipoDocumentoNavigation?.Nombre</td>
+                        <td>@item.IdDepartamentoNavigation?.Nombre</td>
+                        <td>
+                            @if(item.EstadoActual == "Borrador") { <span class="badge bg-secondary">Borrador</span> }
+                            else if(item.EstadoActual == "En Revision") { <span class="badge bg-warning text-dark">En Revisión</span> }
+                            else if(item.EstadoActual == "Vigente") { <span class="badge bg-success">Vigente</span> }
+                            else { <span class="badge bg-danger">@item.EstadoActual</span> }
+                        </td>
+                        <td>@item.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <a asp-action="Detalle" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">Ver Detalle</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
