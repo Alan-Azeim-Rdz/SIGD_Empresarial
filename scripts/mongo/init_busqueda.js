@@ -135,31 +135,21 @@ db.Usuarios.insert({
 print('  ✓ Usuario Admin insertado en MongoDB.');
 
 // ----------------------------------------------------------
-// 4. Procedimiento Almacenado (Server-Side JavaScript)
-// NOTA: En MongoDB moderno, la ejecución de funciones en la BD 
-// está deprecada. Sin embargo, cumpliendo con la premisa de "los 3 casos",
-// se guarda la función en system.js para que pueda ser invocada con db.loadServerScripts()
+// 4. Función de validación de login (JavaScript local)
+// db.system.js fue eliminada en MongoDB 4.4+; se declara aquí
+// como función JS estándar para usar durante la inicialización.
+// En producción, la lógica de login y hashing vive en Node.js.
 // ----------------------------------------------------------
-db.system.js.save({
-    _id: "fn_validar_login",
-    value: function(correo, contrasena_plana) {
-        // En un entorno de BD puro, MongoDB no tiene una función nativa 'hash()' 
-        // accesible directamente en JS del servidor como PostgreSQL (pgcrypto) o SQL Server (HASHBYTES).
-        // En una arquitectura real, Node.js enviaría el hash ya computado.
-        // Aquí simulamos que la BD hace la comparación asumiendo una función SHA256 inyectada.
-        
-        var hashCalculado = mi_funcion_sha256_interna(contrasena_plana); 
-        
-        var usuario = db.Usuarios.findOne({
-            correo: correo,
-            contrasena: hashCalculado,
-            estatus: true
-        });
-        
-        return usuario != null ? usuario : null;
-    }
-});
-print('  ✓ Función fn_validar_login guardada en system.js.');
+function fn_validar_login(correo, hashContrasena) {
+    // Recibe el hash SHA-256 ya calculado por la capa de aplicación (Node.js).
+    // MongoDB no expone funciones criptográficas nativas en el shell.
+    return db.Usuarios.findOne({
+        correo: correo,
+        contrasena: hashContrasena,
+        estatus: true
+    });
+}
+print('  ✓ Función fn_validar_login declarada como JS local (db.system.js eliminado en MongoDB 4.4+).');
 
 print('========================================');
 print('  MongoDB inicializado exitosamente');
