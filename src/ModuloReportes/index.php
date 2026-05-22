@@ -12,15 +12,15 @@ use Dompdf\Dompdf;
 use Dompdf\Options;
 
 // ── 1. CONEXIÓN A POSTGRESQL ──────────────────────────
-// Tomamos los datos de variables de entorno (más seguro)
-// Si no hay variable, usamos valores por defecto
-$host     = getenv('POSTGRES_HOST')     ?: 'localhost';
-$port     = getenv('POSTGRES_PORT')     ?: '5432';
-$dbname   = getenv('POSTGRES_DB')       ?: 'sigd_consulta';
-$user     = getenv('POSTGRES_USER')     ?: 'postgres';
-$password = getenv('POSTGRES_PASSWORD') ?: 'postgres';
+$host     = getenv('DB_HOST') ?: 'postgres';
+$port     = getenv('DB_PORT') ?: '5432';
+$dbname   = getenv('DB_NAME') ?: 'sigd_reportes';
+$user     = getenv('DB_USER') ?: 'sigd_user';
+$password = getenv('DB_PASS') ?: '';
 
-// Intentamos conectar a PostgreSQL
+$pdo     = null;
+$dbError = null;
+
 try {
     $pdo = new PDO(
         "pgsql:host=$host;port=$port;dbname=$dbname",
@@ -29,48 +29,57 @@ try {
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
 } catch (PDOException $e) {
-    // Si no hay conexión, seguimos con $pdo = null
-    // El sistema mostrará datos de ejemplo
-    $pdo = null;
+    $dbError = $e->getMessage();
 }
 
-// ── 2. LÓGICA DE RUTAS ────────────────────────────────
-// Leemos qué acción pidió el usuario desde la URL
-// Ejemplo: index.php?accion=reporte
+// ── 2. HELPER: obtener estatus legible ───────────────
+function estatusTexto(mixed $val): string
+{
+    // PostgreSQL devuelve booleans como 't'/'f' o '1'/'0' según el driver
+    return ($val === true || $val === 't' || $val === '1' || $val === 'true')
+        ? 'Aprobado'
+        : 'Inactivo';
+}
+
+// ── 3. LÓGICA DE RUTAS ────────────────────────────────
 $accion = $_GET['accion'] ?? 'buscar';
 
-// ── 3. ACCIÓN: GENERAR REPORTE PDF ───────────────────
+// ── 4. ACCIÓN: GENERAR REPORTE PDF ───────────────────
 if ($accion === 'reporte') {
-    // Obtenemos documentos aprobados para el reporte
-    $documentos = [];
-    if ($pdo) {
-        $stmt = $pdo->query("SELECT * FROM DocumentosVigentes ORDER BY titulo");
-        $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } else {
-        // Datos de ejemplo si no hay BD
-        $documentos = [
-            ['id' => 1, 'titulo' => 'Manual de Calidad ISO 9001',
-             'version' => '2.0', 'fecha_aprobacion' => '2024-01-15', 'estado' => 'Aprobado'],
-            ['id' => 2, 'titulo' => 'Procedimiento de Auditoría',
-             'version' => '1.5', 'fecha_aprobacion' => '2024-02-20', 'estado' => 'Aprobado'],
-            ['id' => 3, 'titulo' => 'Política de Calidad',
-             'version' => '3.0', 'fecha_aprobacion' => '2024-03-10', 'estado' => 'Aprobado'],
-        ];
+    if (!$pdo) {
+        http_response_code(503);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo "No se puede generar el reporte: sin conexión a la base de datos.\n$dbError";
+        exit;
     }
 
-    // Construimos el HTML del reporte
+    $stmt = $pdo->query("
+        SELECT id_documento,
+               titulo,
+               codigo_interno,
+               version_actual,
+               TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
+               estatus
+        FROM documento_vigente
+        WHERE estatus = true
+        ORDER BY titulo
+    ");
+    $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     $fecha_hoy = date('d/m/Y H:i');
     $total     = count($documentos);
     $filas     = '';
 
     foreach ($documentos as $doc) {
+        $estado = estatusTexto($doc['estatus']);
         $filas .= "
         <tr>
-            <td>{$doc['id']}</td>
+            <td>{$doc['id_documento']}</td>
             <td>{$doc['titulo']}</td>
-            <td>{$doc['version']}</td>
-            <td>{$doc['fecha_aprobacion']}</td>
-            <td><span style='color: green; font-weight: bold;'>{$doc['estado']}</span></td>
+            <td>{$doc['codigo_interno']}</td>
+            <td>v{$doc['version_actual']}</td>
+            <td>{$doc['fecha_publicacion']}</td>
+            <td><span style='color: green; font-weight: bold;'>{$estado}</span></td>
         </tr>";
     }
 
@@ -90,7 +99,7 @@ if ($accion === 'reporte') {
         </style>
     </head>
     <body>
-        <h1>📋 Reporte de Cumplimiento de Normativas</h1>
+        <h1>Reporte de Cumplimiento de Normativas</h1>
         <h3>Sistema Integral de Gestión Documental — SIGD Empresarial</h3>
         <p>Fecha de generación: <strong>$fecha_hoy</strong></p>
         <table>
@@ -98,8 +107,9 @@ if ($accion === 'reporte') {
                 <tr>
                     <th>ID</th>
                     <th>Título del Documento</th>
+                    <th>Código Interno</th>
                     <th>Versión</th>
-                    <th>Fecha Aprobación</th>
+                    <th>Fecha Publicación</th>
                     <th>Estado</th>
                 </tr>
             </thead>
@@ -112,7 +122,6 @@ if ($accion === 'reporte') {
     </body>
     </html>";
 
-    // Generamos el PDF con dompdf
     $options = new Options();
     $options->set('isHtml5ParserEnabled', true);
 
@@ -121,58 +130,118 @@ if ($accion === 'reporte') {
     $dompdf->setPaper('A4', 'landscape');
     $dompdf->render();
 
-    // Descargamos el PDF automáticamente
-    $dompdf->stream("Reporte_Cumplimiento_$fecha_hoy.pdf", [
-        "Attachment" => true
-    ]);
+    $dompdf->stream("Reporte_Cumplimiento_$fecha_hoy.pdf", ['Attachment' => true]);
     exit;
 }
 
-// ── 4. ACCIÓN: DESCARGAR ARCHIVO ─────────────────────
+// ── 5. ACCIÓN: DESCARGAR ARCHIVO ─────────────────────
 if ($accion === 'descargar') {
-    $id = $_GET['id'] ?? null;
+    $id = (int)($_GET['id'] ?? 0);
 
     if (!$id) {
+        http_response_code(400);
         die('ID de documento no especificado.');
     }
 
-    // En producción buscarías la ruta real en la BD
-    // Por ahora simulamos la descarga
-    header('Content-Type: application/octet-stream');
-    header("Content-Disposition: attachment; filename=\"Documento_$id.pdf\"");
-    echo "Contenido del documento $id";
+    if (!$pdo) {
+        http_response_code(503);
+        die('Sin conexión a la base de datos. No se puede descargar el documento.');
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT id_documento,
+               titulo,
+               codigo_interno,
+               version_actual,
+               TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion
+        FROM documento_vigente
+        WHERE id_documento = :id AND estatus = true
+    ");
+    $stmt->execute([':id' => $id]);
+    $doc = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$doc) {
+        http_response_code(404);
+        die('Documento no encontrado o no está vigente.');
+    }
+
+    $options = new Options();
+    $options->set('isHtml5ParserEnabled', true);
+    $dompdf = new Dompdf($options);
+
+    $htmlDoc = "
+    <html><head><style>
+        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+        h1 { color: #1a56db; font-size: 20px; border-bottom: 2px solid #1a56db; padding-bottom: 10px; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+        .label { font-weight: bold; color: #555; width: 40%; background: #f8fafc; }
+        .footer { margin-top: 40px; color: #aaa; font-size: 10px; text-align: center; }
+    </style></head><body>
+        <h1>Documento: {$doc['titulo']}</h1>
+        <table>
+            <tr>
+                <td class='label'>Código Interno</td>
+                <td>{$doc['codigo_interno']}</td>
+            </tr>
+            <tr>
+                <td class='label'>Versión</td>
+                <td>v{$doc['version_actual']}</td>
+            </tr>
+            <tr>
+                <td class='label'>Fecha de Publicación</td>
+                <td>{$doc['fecha_publicacion']}</td>
+            </tr>
+            <tr>
+                <td class='label'>ID Documento</td>
+                <td>{$doc['id_documento']}</td>
+            </tr>
+        </table>
+        <div class='footer'>Generado por SIGD Empresarial — Módulo de Consulta Pública</div>
+    </body></html>";
+
+    $dompdf->loadHtml($htmlDoc);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+
+    $filename = 'Documento_' . $doc['codigo_interno'] . '_v' . $doc['version_actual'] . '.pdf';
+    $dompdf->stream($filename, ['Attachment' => true]);
     exit;
 }
 
-// ── 5. ACCIÓN: BUSCAR DOCUMENTOS (página principal) ──
-$busqueda    = $_GET['q'] ?? '';
-$documentos  = [];
+// ── 6. ACCIÓN: BUSCAR DOCUMENTOS (página principal) ──
+$busqueda   = $_GET['q'] ?? '';
+$documentos = [];
 
-if ($pdo && $busqueda !== '') {
-    // Búsqueda en PostgreSQL con ILIKE (no distingue mayúsculas)
-    $stmt = $pdo->prepare(
-        "SELECT * FROM DocumentosVigentes
-         WHERE titulo ILIKE :q
-         ORDER BY titulo"
-    );
-    $stmt->execute([':q' => "%$busqueda%"]);
-    $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-} elseif ($busqueda === '') {
-    // Sin búsqueda — mostrar todos
-    if ($pdo) {
-        $stmt = $pdo->query("SELECT * FROM DocumentosVigentes ORDER BY titulo");
+if ($pdo) {
+    if ($busqueda !== '') {
+        $stmt = $pdo->prepare("
+            SELECT id_documento,
+                   titulo,
+                   codigo_interno,
+                   version_actual,
+                   TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
+                   estatus
+            FROM documento_vigente
+            WHERE titulo ILIKE :q
+              AND estatus = true
+            ORDER BY titulo
+        ");
+        $stmt->execute([':q' => "%$busqueda%"]);
         $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
-        // Datos de ejemplo si no hay BD conectada
-        $documentos = [
-            ['id' => 1, 'titulo' => 'Manual de Calidad ISO 9001',
-             'version' => '2.0', 'fecha_aprobacion' => '2024-01-15', 'estado' => 'Aprobado'],
-            ['id' => 2, 'titulo' => 'Procedimiento de Auditoría',
-             'version' => '1.5', 'fecha_aprobacion' => '2024-02-20', 'estado' => 'Aprobado'],
-            ['id' => 3, 'titulo' => 'Política de Calidad',
-             'version' => '3.0', 'fecha_aprobacion' => '2024-03-10', 'estado' => 'Aprobado'],
-        ];
+        $stmt = $pdo->query("
+            SELECT id_documento,
+                   titulo,
+                   codigo_interno,
+                   version_actual,
+                   TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
+                   estatus
+            FROM documento_vigente
+            WHERE estatus = true
+            ORDER BY titulo
+        ");
+        $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 ?>
@@ -210,6 +279,18 @@ if ($pdo && $busqueda !== '') {
             margin: 40px auto;
             padding: 0 20px;
         }
+
+        /* ── AVISO DE ERROR DE BD ── */
+        .db-error {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            color: #991b1b;
+            font-size: 14px;
+        }
+        .db-error strong { display: block; margin-bottom: 4px; }
 
         /* ── BARRA DE BÚSQUEDA ── */
         .search-section {
@@ -316,6 +397,10 @@ if ($pdo && $busqueda !== '') {
             background: #d1fae5;
             color: #065f46;
         }
+        .badge-inactive {
+            background: #f1f5f9;
+            color: #64748b;
+        }
 
         .no-results {
             text-align: center;
@@ -337,18 +422,25 @@ if ($pdo && $busqueda !== '') {
 
 <header>
     <div>
-        <h1>📋 SIGD Empresarial</h1>
+        <h1>SIGD Empresarial</h1>
         <p>Sistema Integral de Gestión Documental — Consulta Pública</p>
     </div>
     <a href="?accion=reporte" class="btn btn-report">
-        📄 Generar Reporte PDF
+        Generar Reporte PDF
     </a>
 </header>
 
 <main>
+    <?php if ($dbError): ?>
+    <div class="db-error">
+        <strong>Error de conexión a la base de datos</strong>
+        <?= htmlspecialchars($dbError) ?>
+    </div>
+    <?php endif; ?>
+
     <!-- Barra de búsqueda -->
     <div class="search-section">
-        <h2>🔍 Buscar Documentos Vigentes</h2>
+        <h2>Buscar Documentos Vigentes</h2>
         <form class="search-form" method="GET" action="">
             <input
                 type="text"
@@ -359,7 +451,7 @@ if ($pdo && $busqueda !== '') {
             <button type="submit" class="btn btn-primary">Buscar</button>
             <?php if ($busqueda): ?>
                 <a href="?" class="btn" style="background:#e2e8f0; color:#333;">
-                    ✕ Limpiar
+                    Limpiar
                 </a>
             <?php endif; ?>
         </form>
@@ -380,8 +472,13 @@ if ($pdo && $busqueda !== '') {
 
         <?php if (empty($documentos)): ?>
             <div class="no-results">
-                <p>😕 No se encontraron documentos.</p>
-                <p>Intenta con otro término de búsqueda.</p>
+                <?php if (!$pdo): ?>
+                    <p>Sin conexión a la base de datos.</p>
+                <?php elseif ($busqueda): ?>
+                    <p>No se encontraron documentos para "<?= htmlspecialchars($busqueda) ?>".</p>
+                <?php else: ?>
+                    <p>No hay documentos vigentes registrados.</p>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <table>
@@ -389,25 +486,30 @@ if ($pdo && $busqueda !== '') {
                     <tr>
                         <th>ID</th>
                         <th>Título</th>
+                        <th>Código Interno</th>
                         <th>Versión</th>
-                        <th>Fecha Aprobación</th>
+                        <th>Fecha Publicación</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($documentos as $doc): ?>
+                    <?php foreach ($documentos as $doc):
+                        $estadoTexto  = estatusTexto($doc['estatus']);
+                        $badgeClass   = ($estadoTexto === 'Aprobado') ? 'badge' : 'badge badge-inactive';
+                    ?>
                     <tr>
-                        <td><?= $doc['id'] ?></td>
+                        <td><?= (int)$doc['id_documento'] ?></td>
                         <td><strong><?= htmlspecialchars($doc['titulo']) ?></strong></td>
-                        <td>v<?= $doc['version'] ?></td>
-                        <td><?= $doc['fecha_aprobacion'] ?></td>
-                        <td><span class="badge">✅ <?= $doc['estado'] ?></span></td>
+                        <td><?= htmlspecialchars($doc['codigo_interno']) ?></td>
+                        <td>v<?= (int)$doc['version_actual'] ?></td>
+                        <td><?= htmlspecialchars($doc['fecha_publicacion']) ?></td>
+                        <td><span class="<?= $badgeClass ?>"><?= $estadoTexto ?></span></td>
                         <td>
-                            <a href="?accion=descargar&id=<?= $doc['id'] ?>"
+                            <a href="?accion=descargar&id=<?= (int)$doc['id_documento'] ?>"
                                class="btn btn-success"
                                style="padding: 7px 14px; font-size: 13px;">
-                                📥 Descargar
+                                Descargar
                             </a>
                         </td>
                     </tr>
