@@ -32,6 +32,7 @@ interface IMetadato extends Document {
   codigo_interno:         string;   // Código interno único del documento
   titulo:                 string;   // Título del documento
   tags:                   string[]; // Etiquetas para clasificación
+  version?:               number;   // Número de versión sincronizado con SQL Server
   contenido_extraido?:    string;   // Texto extraído para búsqueda full-text (opcional)
   id_usuario_creacion:    number;   // ID del usuario que creó el registro
   estatus:                boolean;  // Borrado lógico: true=activo, false=eliminado
@@ -49,6 +50,7 @@ const MetadatoSchema = new Schema<IMetadato>(
     codigo_interno:          { type: String, required: true, unique: true },
     titulo:                  { type: String, required: true },
     tags:                    { type: [String], default: [] },
+    version:                 { type: Number, min: 1 },
     contenido_extraido:      { type: String },
     id_usuario_creacion:     { type: Number, required: true },
     estatus:                 { type: Boolean, required: true, default: true },
@@ -78,7 +80,7 @@ const Metadato = mongoose.model<IMetadato>('DocumentosMetadata', MetadatoSchema)
 app.post('/indexar', async (req: Request, res: Response) => {
   try {
     // Tomamos los datos que llegaron en el cuerpo del POST
-    const { id_documento_sql, codigo_interno, titulo, tags, contenido_extraido, id_usuario_creacion } = req.body;
+    const { id_documento_sql, codigo_interno, titulo, tags, version, contenido_extraido, id_usuario_creacion } = req.body;
 
     // Validamos campos requeridos según el $jsonSchema del init script
     if (!id_documento_sql || !codigo_interno || !titulo || !id_usuario_creacion) {
@@ -95,6 +97,7 @@ app.post('/indexar', async (req: Request, res: Response) => {
       codigo_interno,
       titulo,
       tags:                tags || [],
+      version:             version ?? 1,
       contenido_extraido:  contenido_extraido ?? undefined,
       id_usuario_creacion,
       estatus:             true,
