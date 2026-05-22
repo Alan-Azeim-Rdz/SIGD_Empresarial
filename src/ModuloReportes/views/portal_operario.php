@@ -159,10 +159,10 @@
 
             try {
                 // Aquí llamamos a tu microservicio de MongoDB usando la URL dinámica resuelta
-                const response = await fetch(`${resolvedUrls.node}/api/busqueda/buscar?q=${query}`);
+                const response = await fetch(`${resolvedUrls.node}/buscar?q=${encodeURIComponent(query)}`);
                 const data = await response.json();
                 
-                renderizarTabla(data);
+                renderizarTabla(data.data || []);
             } catch (error) {
                 console.error("Error contactando a Node.js:", error);
             }
