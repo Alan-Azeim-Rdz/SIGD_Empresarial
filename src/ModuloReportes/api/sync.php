@@ -22,9 +22,21 @@ use Controllers\SyncController;
 // ── Cabeceras de respuesta ─────────────────────────────────────
 header('Content-Type: application/json; charset=UTF-8');
 
-// ── CORS: Solo el Módulo Central (misma red Docker) ───────────
-// En producción sustituir '*' por la IP/hostname exacta del contenedor central
-header('Access-Control-Allow-Origin: *');
+// ── CORS: Restringido al Módulo Central ───────────────────────
+// Lista blanca de orígenes permitidos. En Docker el Módulo Central
+// se comunica internamente (server-to-server, sin CORS), pero si en
+// algún caso se invoca desde un navegador, solo estos orígenes pasan.
+$allowedOrigins = [
+    'http://modulo_central',       // Nombre del servicio en Docker network
+    'http://localhost:5000',       // ModuloCentral expuesto en host
+    'http://127.0.0.1:5000',       // Alternativa localhost
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: {$origin}");
+    header('Vary: Origin');
+}
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, X-Api-Key');
 
