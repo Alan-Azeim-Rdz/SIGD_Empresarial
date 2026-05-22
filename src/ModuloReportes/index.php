@@ -8,8 +8,11 @@
 // Cargamos las dependencias instaladas con Composer
 require_once __DIR__ . '/vendor/autoload.php';
 
+use Config\Logger;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+
+$logger = Logger::getInstance();
 
 // ── 1. CONEXIÓN A POSTGRESQL ──────────────────────────
 $host     = getenv('DB_HOST') ?: 'postgres';
@@ -30,6 +33,12 @@ try {
     );
 } catch (PDOException $e) {
     $dbError = $e->getMessage();
+    $logger->error('db_connection_failed', [
+        'host'  => $host,
+        'port'  => $port,
+        'db'    => $dbname,
+        'error' => $e->getMessage(),
+    ]);
 }
 
 // ── 2. HELPER: obtener estatus legible ───────────────
@@ -148,64 +157,75 @@ if ($accion === 'descargar') {
         die('Sin conexión a la base de datos. No se puede descargar el documento.');
     }
 
-    $stmt = $pdo->prepare("
-        SELECT id_documento,
-               titulo,
-               codigo_interno,
-               version_actual,
-               TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion
-        FROM documento_vigente
-        WHERE id_documento = :id AND estatus = true
-    ");
-    $stmt->execute([':id' => $id]);
-    $doc = $stmt->fetch(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $pdo->prepare("
+            SELECT id_documento,
+                   titulo,
+                   codigo_interno,
+                   version_actual,
+                   TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion
+            FROM documento_vigente
+            WHERE id_documento = :id AND estatus = true
+        ");
+        $stmt->execute([':id' => $id]);
+        $doc = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$doc) {
-        http_response_code(404);
-        die('Documento no encontrado o no está vigente.');
+        if (!$doc) {
+            http_response_code(404);
+            die('Documento no encontrado o no está vigente.');
+        }
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $dompdf = new Dompdf($options);
+
+        $htmlDoc = "
+        <html><head><style>
+            body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+            h1 { color: #1a56db; font-size: 20px; border-bottom: 2px solid #1a56db; padding-bottom: 10px; }
+            table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+            td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+            .label { font-weight: bold; color: #555; width: 40%; background: #f8fafc; }
+            .footer { margin-top: 40px; color: #aaa; font-size: 10px; text-align: center; }
+        </style></head><body>
+            <h1>Documento: {$doc['titulo']}</h1>
+            <table>
+                <tr>
+                    <td class='label'>Código Interno</td>
+                    <td>{$doc['codigo_interno']}</td>
+                </tr>
+                <tr>
+                    <td class='label'>Versión</td>
+                    <td>v{$doc['version_actual']}</td>
+                </tr>
+                <tr>
+                    <td class='label'>Fecha de Publicación</td>
+                    <td>{$doc['fecha_publicacion']}</td>
+                </tr>
+                <tr>
+                    <td class='label'>ID Documento</td>
+                    <td>{$doc['id_documento']}</td>
+                </tr>
+            </table>
+            <div class='footer'>Generado por SIGD Empresarial — Módulo de Consulta Pública</div>
+        </body></html>";
+
+        $dompdf->loadHtml($htmlDoc);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'Documento_' . $doc['codigo_interno'] . '_v' . $doc['version_actual'] . '.pdf';
+        $dompdf->stream($filename, ['Attachment' => true]);
+    } catch (\Throwable $e) {
+        $logger->error('download_failed', [
+            'id_documento' => $id,
+            'error'        => $e->getMessage(),
+            'file'         => $e->getFile(),
+            'line'         => $e->getLine(),
+        ]);
+        http_response_code(500);
+        die('Error interno al generar el documento.');
     }
-
-    $options = new Options();
-    $options->set('isHtml5ParserEnabled', true);
-    $dompdf = new Dompdf($options);
-
-    $htmlDoc = "
-    <html><head><style>
-        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-        h1 { color: #1a56db; font-size: 20px; border-bottom: 2px solid #1a56db; padding-bottom: 10px; }
-        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-        td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
-        .label { font-weight: bold; color: #555; width: 40%; background: #f8fafc; }
-        .footer { margin-top: 40px; color: #aaa; font-size: 10px; text-align: center; }
-    </style></head><body>
-        <h1>Documento: {$doc['titulo']}</h1>
-        <table>
-            <tr>
-                <td class='label'>Código Interno</td>
-                <td>{$doc['codigo_interno']}</td>
-            </tr>
-            <tr>
-                <td class='label'>Versión</td>
-                <td>v{$doc['version_actual']}</td>
-            </tr>
-            <tr>
-                <td class='label'>Fecha de Publicación</td>
-                <td>{$doc['fecha_publicacion']}</td>
-            </tr>
-            <tr>
-                <td class='label'>ID Documento</td>
-                <td>{$doc['id_documento']}</td>
-            </tr>
-        </table>
-        <div class='footer'>Generado por SIGD Empresarial — Módulo de Consulta Pública</div>
-    </body></html>";
-
-    $dompdf->loadHtml($htmlDoc);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-
-    $filename = 'Documento_' . $doc['codigo_interno'] . '_v' . $doc['version_actual'] . '.pdf';
-    $dompdf->stream($filename, ['Attachment' => true]);
     exit;
 }
 
@@ -214,34 +234,44 @@ $busqueda   = $_GET['q'] ?? '';
 $documentos = [];
 
 if ($pdo) {
-    if ($busqueda !== '') {
-        $stmt = $pdo->prepare("
-            SELECT id_documento,
-                   titulo,
-                   codigo_interno,
-                   version_actual,
-                   TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
-                   estatus
-            FROM documento_vigente
-            WHERE titulo ILIKE :q
-              AND estatus = true
-            ORDER BY titulo
-        ");
-        $stmt->execute([':q' => "%$busqueda%"]);
-        $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } else {
-        $stmt = $pdo->query("
-            SELECT id_documento,
-                   titulo,
-                   codigo_interno,
-                   version_actual,
-                   TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
-                   estatus
-            FROM documento_vigente
-            WHERE estatus = true
-            ORDER BY titulo
-        ");
-        $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        if ($busqueda !== '') {
+            $stmt = $pdo->prepare("
+                SELECT id_documento,
+                       titulo,
+                       codigo_interno,
+                       version_actual,
+                       TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
+                       estatus
+                FROM documento_vigente
+                WHERE titulo ILIKE :q
+                  AND estatus = true
+                ORDER BY titulo
+            ");
+            $stmt->execute([':q' => "%$busqueda%"]);
+            $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $stmt = $pdo->query("
+                SELECT id_documento,
+                       titulo,
+                       codigo_interno,
+                       version_actual,
+                       TO_CHAR(fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
+                       estatus
+                FROM documento_vigente
+                WHERE estatus = true
+                ORDER BY titulo
+            ");
+            $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } catch (\Throwable $e) {
+        $logger->error('search_failed', [
+            'q'     => $busqueda,
+            'error' => $e->getMessage(),
+            'file'  => $e->getFile(),
+            'line'  => $e->getLine(),
+        ]);
+        $documentos = [];
     }
 }
 ?>

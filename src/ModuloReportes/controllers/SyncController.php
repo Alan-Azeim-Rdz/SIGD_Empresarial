@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Controllers;
 
 use Config\Database;
+use Config\Logger;
 use PDO;
 use Exception;
 
@@ -52,9 +53,13 @@ class SyncController
 
         try {
             $this->upsertDocumento($data);
-
-            // Registrar el evento de sincronización en la bitácora local
             $this->registrarEventoSync($data['id_documento'], 'SYNC_OK', null);
+
+            Logger::getInstance()->info('document_synced', [
+                'id_documento'   => $data['id_documento'],
+                'codigo_interno' => $data['codigo_interno'] ?? null,
+                'version_actual' => $data['version_actual'] ?? null,
+            ]);
 
             http_response_code(200);
             echo json_encode([
@@ -64,6 +69,14 @@ class SyncController
             ]);
         } catch (Exception $e) {
             $this->registrarEventoSync($data['id_documento'] ?? 0, 'SYNC_ERROR', $e->getMessage());
+
+            Logger::getInstance()->error('document_sync_failed', [
+                'id_documento' => $data['id_documento'] ?? null,
+                'error'        => $e->getMessage(),
+                'file'         => $e->getFile(),
+                'line'         => $e->getLine(),
+            ]);
+
             http_response_code(500);
             echo json_encode([
                 'status'  => 'error',
@@ -125,15 +138,28 @@ class SyncController
 
             $this->db->commit();
 
+            Logger::getInstance()->info('batch_synced', [
+                'sincronizados' => $exitosos,
+                'omitidos'      => $fallidos,
+                'total'         => count($lote),
+            ]);
+
             http_response_code(200);
             echo json_encode([
-                'status'      => 'success',
+                'status'        => 'success',
                 'sincronizados' => $exitosos,
-                'omitidos'    => $fallidos,
-                'detalle'     => $resultados,
+                'omitidos'      => $fallidos,
+                'detalle'       => $resultados,
             ]);
         } catch (Exception $e) {
             $this->db->rollBack();
+
+            Logger::getInstance()->error('batch_sync_failed', [
+                'error' => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+            ]);
+
             http_response_code(500);
             echo json_encode([
                 'status'  => 'error',

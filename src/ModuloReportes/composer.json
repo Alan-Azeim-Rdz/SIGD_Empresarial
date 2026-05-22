@@ -1,3 +1,15 @@
-{ "name": "sigd/reportes", "description": "Modulo de reportes", "require": {
-        "dompdf/dompdf": "^3.1"
-    } }
+{
+    "name": "sigd/reportes",
+    "description": "Modulo de reportes",
+    "require": {
+        "dompdf/dompdf": "^3.1",
+        "monolog/monolog": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Config\\":      "config/",
+            "Controllers\\": "controllers/",
+            "Models\\":      "models/"
+        }
+    }
+}

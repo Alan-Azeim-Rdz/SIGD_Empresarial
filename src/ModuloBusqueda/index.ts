@@ -8,21 +8,51 @@ import express, { Request, Response } from 'express';
 import mongoose, { Schema, Document } from 'mongoose';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+import pino from 'pino';
 
-// ── 1. CONFIGURACIÓN INICIAL ──────────────────────────
-const app = express();
+// ── 1. LOGGER ────────────────────────────────────────
+// Prod (NODE_ENV=production): JSON puro en stdout, 1 línea por entrada.
+// Dev: pino-pretty con colores (instalado en devDependencies).
+const logger = pino({
+  level: process.env['LOG_LEVEL'] ?? 'info',
+  transport: process.env['NODE_ENV'] === 'production'
+    ? undefined
+    : { target: 'pino-pretty', options: { colorize: true } }
+});
+
+// ── 2. CONFIGURACIÓN EXPRESS ──────────────────────────
+const app  = express();
 const PORT = 3000;
 
 app.use(express.json());
 
-// ── 2. CONEXIÓN A MONGODB ─────────────────────────────
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sigd';
+// Middleware de log HTTP: registra método, URL, status y latencia
+// de cada petición al terminar la respuesta (evento 'finish').
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    logger.info({
+      method:      req.method,
+      url:         req.url,
+      status:      res.statusCode,
+      duration_ms: Date.now() - start
+    }, 'http_request');
+  });
+  next();
+});
+
+// ── 3. CONEXIÓN A MONGODB ─────────────────────────────
+const MONGO_URI = process.env['MONGO_URI'] ?? 'mongodb://localhost:27017/sigd';
+
+// Enmascara la contraseña del URI antes de loguearlo
+const maskUri = (uri: string): string =>
+  uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)[^@]+(@)/, '$1***$2');
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Conectado a MongoDB'))
-  .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
+  .then(() => logger.info({ uri_masked: maskUri(MONGO_URI) }, 'mongodb_connected'))
+  .catch((err: unknown) => logger.error({ err }, 'mongodb_connection_failed'));
 
-// ── 3. MODELO DE DATOS ────────────────────────────────
+// ── 4. MODELO DE DATOS ────────────────────────────────
 // Esquema sincronizado con scripts/mongo/init_busqueda.js
 interface IMetadato extends Document {
   id_documento_sql:         number;
@@ -67,11 +97,9 @@ MetadatoSchema.index(
 
 const Metadato = mongoose.model<IMetadato>('DocumentosMetadata', MetadatoSchema);
 
-// ── 4. OPENAPI / SWAGGER ──────────────────────────────
-// apis: [__filename] funciona tanto en ts-node-dev (apunta al .ts)
-// como en producción con node dist/index.js (apunta al .js compilado).
-// El tsconfig no tiene removeComments:true, por lo que los comentarios
-// JSDoc se preservan en el .js generado.
+// ── 5. OPENAPI / SWAGGER ──────────────────────────────
+// apis: [__filename] funciona en ts-node-dev (.ts) y en producción
+// compilada (.js) porque tsconfig no tiene removeComments: true.
 const swaggerSpec = swaggerJsdoc({
   definition: {
     openapi: '3.0.0',
@@ -96,13 +124,13 @@ const swaggerSpec = swaggerJsdoc({
           type: 'object',
           required: ['id_documento_sql', 'codigo_interno', 'titulo', 'id_usuario_creacion'],
           properties: {
-            id_documento_sql:   { type: 'integer', example: 11,                              description: 'ID del documento en SQL Server' },
-            codigo_interno:     { type: 'string',  example: 'CAL-MAN-001',                  description: 'Código interno único del documento' },
-            titulo:             { type: 'string',  example: 'Manual de Calidad ISO 9001:2015' },
-            tags:               { type: 'array', items: { type: 'string' }, example: ['calidad', 'ISO 9001', 'manual', 'SGC'] },
-            version:            { type: 'integer', minimum: 1, example: 4,                  description: 'Versión del documento (default 1 si no se envía)' },
-            contenido_extraido: { type: 'string',  example: 'Documento rector del Sistema de Gestión de Calidad de la empresa.' },
-            id_usuario_creacion:{ type: 'integer', example: 1,                              description: 'ID del usuario que aprobó el documento' }
+            id_documento_sql:    { type: 'integer', example: 11,                              description: 'ID del documento en SQL Server' },
+            codigo_interno:      { type: 'string',  example: 'CAL-MAN-001',                  description: 'Código interno único del documento' },
+            titulo:              { type: 'string',  example: 'Manual de Calidad ISO 9001:2015' },
+            tags:                { type: 'array', items: { type: 'string' }, example: ['calidad', 'ISO 9001', 'manual', 'SGC'] },
+            version:             { type: 'integer', minimum: 1, example: 4,                  description: 'Versión del documento (default 1 si no se envía)' },
+            contenido_extraido:  { type: 'string',  example: 'Documento rector del Sistema de Gestión de Calidad de la empresa.' },
+            id_usuario_creacion: { type: 'integer', example: 1,                              description: 'ID del usuario que aprobó el documento' }
           }
         },
         Metadato: {
@@ -111,9 +139,9 @@ const swaggerSpec = swaggerJsdoc({
             {
               type: 'object',
               properties: {
-                _id:             { type: 'string',  example: '6650a1b2c3d4e5f6a7b8c9d0', readOnly: true },
-                estatus:         { type: 'boolean', example: true,                          description: 'Borrado lógico: true=activo' },
-                fecha_indexacion:{ type: 'string',  format: 'date-time',                   readOnly: true }
+                _id:              { type: 'string',  example: '6650a1b2c3d4e5f6a7b8c9d0', readOnly: true },
+                estatus:          { type: 'boolean', example: true,                        description: 'Borrado lógico: true=activo' },
+                fecha_indexacion: { type: 'string',  format: 'date-time',                 readOnly: true }
               }
             }
           ]
@@ -135,7 +163,7 @@ const swaggerSpec = swaggerJsdoc({
 app.use('/docs',      swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
 
-// ── 5. ENDPOINTS ──────────────────────────────────────
+// ── 6. ENDPOINTS ──────────────────────────────────────
 
 /**
  * @openapi
@@ -235,23 +263,18 @@ app.post('/indexar', async (req: Request, res: Response) => {
       data: nuevoMetadato
     });
 
-  } catch (error: any) {
-    if (error.code === 11000) {
-      res.status(409).json({
-        success: false,
-        mensaje: 'Este documento ya está indexado'
-      });
+  } catch (error: unknown) {
+    const err = error as { code?: number; message?: string };
+    if (err.code === 11000) {
+      res.status(409).json({ success: false, mensaje: 'Este documento ya está indexado' });
       return;
     }
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error interno del servidor',
-      detalle: error.message
-    });
+    logger.error({ err, endpoint: 'POST /indexar' }, 'request_failed');
+    res.status(500).json({ success: false, mensaje: 'Error interno del servidor', detalle: err.message });
   }
 });
 
-// ── Helper: escapa caracteres especiales de regex para evitar ReDoS ──
+// ── Helper: escapa metacaracteres regex para evitar ReDoS ──
 // Sin esto, un usuario podría enviar patrones como "(a+)+" que consumen
 // recursos exponencialmente (Denegación de Servicio por regex catastrófico).
 function escapeRegex(text: string): string {
@@ -314,27 +337,20 @@ function escapeRegex(text: string): string {
  */
 app.get('/buscar', async (req: Request, res: Response) => {
   try {
-    const query = (req.query.q as string)?.trim();
+    const query = (req.query['q'] as string | undefined)?.trim();
 
     if (!query) {
-      res.status(400).json({
-        success: false,
-        mensaje: 'Debes enviar un término de búsqueda. Ejemplo: /buscar?q=calidad'
-      });
+      res.status(400).json({ success: false, mensaje: 'Debes enviar un término de búsqueda. Ejemplo: /buscar?q=calidad' });
       return;
     }
 
     if (query.length > 100) {
-      res.status(400).json({
-        success: false,
-        mensaje: 'El término de búsqueda es demasiado largo (máximo 100 caracteres).'
-      });
+      res.status(400).json({ success: false, mensaje: 'El término de búsqueda es demasiado largo (máximo 100 caracteres).' });
       return;
     }
 
-    const safeQuery = escapeRegex(query);
-
-    const regex = { $regex: safeQuery, $options: 'i' };
+    const safeQuery  = escapeRegex(query);
+    const regex      = { $regex: safeQuery, $options: 'i' };
     const resultados = await Metadato.find({
       estatus: true,
       $or: [
@@ -344,18 +360,11 @@ app.get('/buscar', async (req: Request, res: Response) => {
       ]
     });
 
-    res.status(200).json({
-      success: true,
-      total: resultados.length,
-      data: resultados
-    });
+    res.status(200).json({ success: true, total: resultados.length, data: resultados });
 
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al buscar documentos',
-      detalle: error.message
-    });
+  } catch (error: unknown) {
+    logger.error({ err: error, endpoint: 'GET /buscar', q: req.query['q'] }, 'request_failed');
+    res.status(500).json({ success: false, mensaje: 'Error al buscar documentos', detalle: (error as Error).message });
   }
 });
 
@@ -419,32 +428,23 @@ app.get('/documento/:id', async (req: Request, res: Response) => {
     const documento = await Metadato.findOne(filtro);
 
     if (!documento) {
-      res.status(404).json({
-        success: false,
-        mensaje: `No se encontró ningún documento activo con id: ${id}`
-      });
+      res.status(404).json({ success: false, mensaje: `No se encontró ningún documento activo con id: ${id}` });
       return;
     }
 
-    res.status(200).json({
-      success: true,
-      data: documento
-    });
+    res.status(200).json({ success: true, data: documento });
 
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error al obtener el documento',
-      detalle: error.message
-    });
+  } catch (error: unknown) {
+    logger.error({ err: error, endpoint: 'GET /documento/:id', id: req.params['id'] }, 'request_failed');
+    res.status(500).json({ success: false, mensaje: 'Error al obtener el documento', detalle: (error as Error).message });
   }
 });
 
-// ── 6. INICIAR EL SERVIDOR ────────────────────────────
+// ── 7. INICIAR EL SERVIDOR ────────────────────────────
 app.listen(PORT, () => {
-  console.log(`🚀 Módulo de Búsqueda corriendo en http://localhost:${PORT}`);
-  console.log(`   POST /indexar`);
-  console.log(`   GET  /buscar?q=...`);
-  console.log(`   GET  /documento/:id`);
-  console.log(`   📖  Docs: http://localhost:${PORT}/docs`);
+  logger.info({
+    port:      PORT,
+    endpoints: ['POST /indexar', 'GET /buscar', 'GET /documento/:id'],
+    docs_url:  `http://localhost:${PORT}/docs`
+  }, 'server_started');
 });

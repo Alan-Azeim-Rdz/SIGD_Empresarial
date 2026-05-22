@@ -27,9 +27,14 @@ class Database {
                 ]);
             }
         } catch (PDOException $exception) {
-            // En entorno de desarrollo imprimimos el error; en producción se debería registrar en un log oculto
+            Logger::getInstance()->error('db_connection_failed', [
+                'host'  => $host,
+                'port'  => $port,
+                'db'    => $db_name,
+                'error' => $exception->getMessage(),
+            ]);
             die(json_encode([
-                "status" => "error", 
+                "status"  => "error",
                 "message" => "Fallo crítico en la conexión a PostgreSQL: " . $exception->getMessage()
             ]));
         }

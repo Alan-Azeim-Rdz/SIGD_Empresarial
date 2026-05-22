@@ -17,7 +17,10 @@ declare(strict_types=1);
 // ── Carga del autoloader de Composer ──────────────────────────
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use Config\Logger;
 use Controllers\SyncController;
+
+$logger = Logger::getInstance();
 
 // ── Cabeceras de respuesta ─────────────────────────────────────
 header('Content-Type: application/json; charset=UTF-8');
@@ -54,6 +57,10 @@ $apiKey          = $_SERVER['HTTP_X_API_KEY'] ?? '';
 $expectedApiKey  = getenv('SYNC_API_KEY') ?: 'sigd_sync_secret_2026';   // fallback solo para desarrollo local
 
 if (empty($apiKey) || !hash_equals($expectedApiKey, $apiKey)) {
+    $logger->warning('api_key_invalid', [
+        'ip'     => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
+    ]);
     http_response_code(401);
     echo json_encode([
         'status'  => 'error',
@@ -76,6 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Ejemplo: POST /api/sync.php?action=sincronizar
 //          POST /api/sync.php?action=sincronizar_batch
 $action = $_GET['action'] ?? 'sincronizar';
+
+$logger->info('sync_request', [
+    'action' => $action,
+    'ip'     => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+    'method' => $_SERVER['REQUEST_METHOD'] ?? 'unknown',
+]);
 
 try {
     $controller = new SyncController();
@@ -110,12 +123,15 @@ try {
             ]);
     }
 } catch (Throwable $e) {
-    // Captura cualquier error inesperado para no exponer trazas al exterior
+    $logger->error('sync_unhandled_exception', [
+        'action' => $action,
+        'error'  => $e->getMessage(),
+        'file'   => $e->getFile(),
+        'line'   => $e->getLine(),
+    ]);
     http_response_code(500);
     echo json_encode([
         'status'  => 'error',
         'message' => 'Error interno del servidor. Consulta los logs del contenedor PHP.'
     ]);
-    // Registrar el error real en el log de PHP (visible en `docker logs app_reportes_php`)
-    error_log('[SIGD-Sync] Error no controlado: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
 }
