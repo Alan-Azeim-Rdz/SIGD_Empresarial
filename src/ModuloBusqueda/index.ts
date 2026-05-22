@@ -6,42 +6,38 @@
 
 import express, { Request, Response } from 'express';
 import mongoose, { Schema, Document } from 'mongoose';
+import swaggerUi from 'swagger-ui-express';
+import swaggerJsdoc from 'swagger-jsdoc';
 
 // ── 1. CONFIGURACIÓN INICIAL ──────────────────────────
 const app = express();
 const PORT = 3000;
 
-// Le decimos a Express que entienda JSON
-// (para recibir datos en el POST /indexar)
 app.use(express.json());
 
 // ── 2. CONEXIÓN A MONGODB ─────────────────────────────
-// La URL viene de una variable de entorno (más seguro)
-// Si no hay variable, usa localhost por defecto
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sigd';
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ Conectado a MongoDB'))
   .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
 
-// ── 3. MODELO DE DATOS (cómo luce un documento en MongoDB)
+// ── 3. MODELO DE DATOS ────────────────────────────────
 // Esquema sincronizado con scripts/mongo/init_busqueda.js
-// Cualquier cambio aquí debe replicarse en el init script.
 interface IMetadato extends Document {
-  id_documento_sql:       number;   // ID del documento en SQL Server (módulo central)
-  codigo_interno:         string;   // Código interno único del documento
-  titulo:                 string;   // Título del documento
-  tags:                   string[]; // Etiquetas para clasificación
-  version?:               number;   // Número de versión sincronizado con SQL Server
-  contenido_extraido?:    string;   // Texto extraído para búsqueda full-text (opcional)
-  id_usuario_creacion:    number;   // ID del usuario que creó el registro
-  estatus:                boolean;  // Borrado lógico: true=activo, false=eliminado
-  fecha_indexacion:       Date;
-  // Campos de auditoría opcionales
-  fecha_modificacion?:    Date | null;
+  id_documento_sql:         number;
+  codigo_interno:           string;
+  titulo:                   string;
+  tags:                     string[];
+  version?:                 number;
+  contenido_extraido?:      string;
+  id_usuario_creacion:      number;
+  estatus:                  boolean;
+  fecha_indexacion:         Date;
+  fecha_modificacion?:      Date | null;
   id_usuario_modificacion?: number | null;
-  fecha_eliminacion?:     Date | null;
-  id_usuario_eliminacion?: number | null;
+  fecha_eliminacion?:       Date | null;
+  id_usuario_eliminacion?:  number | null;
 }
 
 const MetadatoSchema = new Schema<IMetadato>(
@@ -71,18 +67,146 @@ MetadatoSchema.index(
 
 const Metadato = mongoose.model<IMetadato>('DocumentosMetadata', MetadatoSchema);
 
-// ── 4. ENDPOINTS ──────────────────────────────────────
+// ── 4. OPENAPI / SWAGGER ──────────────────────────────
+// apis: [__filename] funciona tanto en ts-node-dev (apunta al .ts)
+// como en producción con node dist/index.js (apunta al .js compilado).
+// El tsconfig no tiene removeComments:true, por lo que los comentarios
+// JSDoc se preservan en el .js generado.
+const swaggerSpec = swaggerJsdoc({
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'ModuloBusqueda API',
+      version: '1.0.0',
+      description:
+        'API REST del Módulo de Búsqueda del SIGD Empresarial. ' +
+        'Permite indexar documentos aprobados y realizar búsquedas full-text ' +
+        'sobre sus metadatos almacenados en MongoDB.'
+    },
+    servers: [
+      { url: 'http://localhost:3000',       description: 'Desarrollo local' },
+      { url: 'http://modulo_busqueda:3000', description: 'Red Docker interna' }
+    ],
+    tags: [
+      { name: 'Documentos', description: 'Indexación y búsqueda de documentos' }
+    ],
+    components: {
+      schemas: {
+        MetadatoInput: {
+          type: 'object',
+          required: ['id_documento_sql', 'codigo_interno', 'titulo', 'id_usuario_creacion'],
+          properties: {
+            id_documento_sql:   { type: 'integer', example: 11,                              description: 'ID del documento en SQL Server' },
+            codigo_interno:     { type: 'string',  example: 'CAL-MAN-001',                  description: 'Código interno único del documento' },
+            titulo:             { type: 'string',  example: 'Manual de Calidad ISO 9001:2015' },
+            tags:               { type: 'array', items: { type: 'string' }, example: ['calidad', 'ISO 9001', 'manual', 'SGC'] },
+            version:            { type: 'integer', minimum: 1, example: 4,                  description: 'Versión del documento (default 1 si no se envía)' },
+            contenido_extraido: { type: 'string',  example: 'Documento rector del Sistema de Gestión de Calidad de la empresa.' },
+            id_usuario_creacion:{ type: 'integer', example: 1,                              description: 'ID del usuario que aprobó el documento' }
+          }
+        },
+        Metadato: {
+          allOf: [
+            { '$ref': '#/components/schemas/MetadatoInput' },
+            {
+              type: 'object',
+              properties: {
+                _id:             { type: 'string',  example: '6650a1b2c3d4e5f6a7b8c9d0', readOnly: true },
+                estatus:         { type: 'boolean', example: true,                          description: 'Borrado lógico: true=activo' },
+                fecha_indexacion:{ type: 'string',  format: 'date-time',                   readOnly: true }
+              }
+            }
+          ]
+        },
+        RespuestaError: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: false },
+            mensaje: { type: 'string',  example: 'Descripción del error' },
+            detalle: { type: 'string',  example: 'Mensaje técnico opcional' }
+          }
+        }
+      }
+    }
+  },
+  apis: [__filename]
+});
 
-// ┌─────────────────────────────────────────────────────┐
-// │ ENDPOINT 1: POST /indexar                           │
-// │ Lo llama el módulo .NET cuando aprueba un documento │
-// └─────────────────────────────────────────────────────┘
+app.use('/docs',      swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
+
+// ── 5. ENDPOINTS ──────────────────────────────────────
+
+/**
+ * @openapi
+ * /indexar:
+ *   post:
+ *     tags:
+ *       - Documentos
+ *     summary: Indexar un documento
+ *     description: >
+ *       Registra los metadatos de un documento aprobado en MongoDB.
+ *       Lo llama el módulo .NET Central cuando el documento pasa a estado Aprobado.
+ *       Si no se envía `version`, el valor por defecto es 1.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/MetadatoInput'
+ *           example:
+ *             id_documento_sql: 11
+ *             codigo_interno: CAL-MAN-001
+ *             titulo: Manual de Calidad ISO 9001:2015
+ *             tags: [calidad, ISO 9001, manual, SGC, gestión]
+ *             version: 4
+ *             contenido_extraido: Documento rector del Sistema de Gestión de Calidad de la empresa.
+ *             id_usuario_creacion: 1
+ *     responses:
+ *       '201':
+ *         description: Documento indexado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 mensaje:
+ *                   type: string
+ *                   example: Documento indexado correctamente
+ *                 data:
+ *                   $ref: '#/components/schemas/Metadato'
+ *       '400':
+ *         description: Faltan campos obligatorios
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespuestaError'
+ *             example:
+ *               success: false
+ *               mensaje: 'Faltan campos obligatorios: id_documento_sql, codigo_interno, titulo, id_usuario_creacion'
+ *       '409':
+ *         description: El documento ya está indexado (id o código duplicado)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespuestaError'
+ *             example:
+ *               success: false
+ *               mensaje: Este documento ya está indexado
+ *       '500':
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespuestaError'
+ */
 app.post('/indexar', async (req: Request, res: Response) => {
   try {
-    // Tomamos los datos que llegaron en el cuerpo del POST
     const { id_documento_sql, codigo_interno, titulo, tags, version, contenido_extraido, id_usuario_creacion } = req.body;
 
-    // Validamos campos requeridos según el $jsonSchema del init script
     if (!id_documento_sql || !codigo_interno || !titulo || !id_usuario_creacion) {
       res.status(400).json({
         success: false,
@@ -91,7 +215,6 @@ app.post('/indexar', async (req: Request, res: Response) => {
       return;
     }
 
-    // Guardamos en MongoDB
     const nuevoMetadato = new Metadato({
       id_documento_sql,
       codigo_interno,
@@ -113,7 +236,6 @@ app.post('/indexar', async (req: Request, res: Response) => {
     });
 
   } catch (error: any) {
-    // Si el documento ya existe (id duplicado)
     if (error.code === 11000) {
       res.status(409).json({
         success: false,
@@ -128,24 +250,72 @@ app.post('/indexar', async (req: Request, res: Response) => {
     });
   }
 });
+
 // ── Helper: escapa caracteres especiales de regex para evitar ReDoS ──
-// Convierte cualquier metacarácter regex en texto literal seguro.
 // Sin esto, un usuario podría enviar patrones como "(a+)+" que consumen
-// recursos exponencialmente (ataque de Denegación de Servicio).
+// recursos exponencialmente (Denegación de Servicio por regex catastrófico).
 function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-// ┌─────────────────────────────────────────────────────┐
-// │ ENDPOINT 2: GET /buscar?q=palabra                   │
-// │ Busca documentos por título o etiquetas             │
-// └─────────────────────────────────────────────────────┘
 
+/**
+ * @openapi
+ * /buscar:
+ *   get:
+ *     tags:
+ *       - Documentos
+ *     summary: Buscar documentos por término
+ *     description: >
+ *       Busca documentos activos por término en título, tags y contenido extraído.
+ *       La búsqueda es insensible a mayúsculas y está protegida contra ataques
+ *       ReDoS mediante escape de metacaracteres regex.
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Término de búsqueda (máximo 100 caracteres)
+ *         example: calidad
+ *     responses:
+ *       '200':
+ *         description: Lista de documentos que coinciden con el término
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 total:
+ *                   type: integer
+ *                   example: 3
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Metadato'
+ *       '400':
+ *         description: Parámetro `q` ausente o mayor a 100 caracteres
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespuestaError'
+ *             example:
+ *               success: false
+ *               mensaje: Debes enviar un término de búsqueda. Ejemplo /buscar?q=calidad
+ *       '500':
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespuestaError'
+ */
 app.get('/buscar', async (req: Request, res: Response) => {
   try {
-    // Tomamos el parámetro ?q= de la URL
     const query = (req.query.q as string)?.trim();
 
-    // Validación 1: no puede estar vacío
     if (!query) {
       res.status(400).json({
         success: false,
@@ -154,7 +324,6 @@ app.get('/buscar', async (req: Request, res: Response) => {
       return;
     }
 
-    // Validación 2: límite de longitud (previene queries abusivos)
     if (query.length > 100) {
       res.status(400).json({
         success: false,
@@ -163,12 +332,8 @@ app.get('/buscar', async (req: Request, res: Response) => {
       return;
     }
 
-    // Sanitización: escapamos caracteres especiales de regex
-    // El usuario busca texto literal, no patrones regex
     const safeQuery = escapeRegex(query);
 
-    // Buscamos en MongoDB — solo documentos activos (borrado lógico)
-    // Busca en titulo, tags y contenido_extraido
     const regex = { $regex: safeQuery, $options: 'i' };
     const resultados = await Metadato.find({
       estatus: true,
@@ -194,14 +359,56 @@ app.get('/buscar', async (req: Request, res: Response) => {
   }
 });
 
-// ┌─────────────────────────────────────────────────────┐
-// │ ENDPOINT 3: GET /documento/:id                      │
-// │ Devuelve los metadatos de UN documento específico   │
-// └─────────────────────────────────────────────────────┘
+/**
+ * @openapi
+ * /documento/{id}:
+ *   get:
+ *     tags:
+ *       - Documentos
+ *     summary: Obtener un documento por ID o código interno
+ *     description: >
+ *       Devuelve los metadatos completos de un documento activo.
+ *       Si el parámetro `id` es numérico se busca por `id_documento_sql`;
+ *       si es alfanumérico (ej. CAL-MAN-001) se busca por `codigo_interno`.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID numérico de SQL Server o código interno del documento
+ *         example: CAL-MAN-001
+ *     responses:
+ *       '200':
+ *         description: Documento encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Metadato'
+ *       '404':
+ *         description: No existe ningún documento activo con ese ID o código
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespuestaError'
+ *             example:
+ *               success: false
+ *               mensaje: 'No se encontró ningún documento activo con id: CAL-MAN-999'
+ *       '500':
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RespuestaError'
+ */
 app.get('/documento/:id', async (req: Request, res: Response) => {
   try {
-    // Tomamos el :id de la URL.
-    // Si es numérico → busca por id_documento_sql; si no → por codigo_interno
     const { id } = req.params;
     const esNumerico = /^\d+$/.test(id);
 
@@ -233,10 +440,11 @@ app.get('/documento/:id', async (req: Request, res: Response) => {
   }
 });
 
-// ── 5. INICIAR EL SERVIDOR ────────────────────────────
+// ── 6. INICIAR EL SERVIDOR ────────────────────────────
 app.listen(PORT, () => {
   console.log(`🚀 Módulo de Búsqueda corriendo en http://localhost:${PORT}`);
   console.log(`   POST /indexar`);
   console.log(`   GET  /buscar?q=...`);
   console.log(`   GET  /documento/:id`);
+  console.log(`   📖  Docs: http://localhost:${PORT}/docs`);
 });
