@@ -25,26 +25,49 @@ mongoose.connect(MONGO_URI)
   .catch((err) => console.error('❌ Error conectando a MongoDB:', err));
 
 // ── 3. MODELO DE DATOS (cómo luce un documento en MongoDB)
-// Esto define la "forma" de cada registro que guardaremos
+// Esquema sincronizado con scripts/mongo/init_busqueda.js
+// Cualquier cambio aquí debe replicarse en el init script.
 interface IMetadato extends Document {
-  id_documento: string;   // Ej: "DOC-001"
-  titulo: string;         // Ej: "Manual de Calidad"
-  etiquetas: string[];    // Ej: ["calidad", "ISO", "manual"]
-  extension: string;      // Ej: "pdf"
-  tamanio_kb: number;     // Ej: 245
-  fecha_indexacion: Date; // Ej: 2024-01-15
+  id_documento_sql:       number;   // ID del documento en SQL Server (módulo central)
+  codigo_interno:         string;   // Código interno único del documento
+  titulo:                 string;   // Título del documento
+  tags:                   string[]; // Etiquetas para clasificación
+  contenido_extraido?:    string;   // Texto extraído para búsqueda full-text (opcional)
+  id_usuario_creacion:    number;   // ID del usuario que creó el registro
+  estatus:                boolean;  // Borrado lógico: true=activo, false=eliminado
+  fecha_indexacion:       Date;
+  // Campos de auditoría opcionales
+  fecha_modificacion?:    Date | null;
+  id_usuario_modificacion?: number | null;
+  fecha_eliminacion?:     Date | null;
+  id_usuario_eliminacion?: number | null;
 }
 
-const MetadatoSchema = new Schema<IMetadato>({
-  id_documento:     { type: String, required: true, unique: true },
-  titulo:           { type: String, required: true },
-  etiquetas:        { type: [String], default: [] },
-  extension:        { type: String, required: true },
-  tamanio_kb:       { type: Number, required: true },
-  fecha_indexacion: { type: Date, default: Date.now }
-});
+const MetadatoSchema = new Schema<IMetadato>(
+  {
+    id_documento_sql:        { type: Number, required: true, unique: true },
+    codigo_interno:          { type: String, required: true, unique: true },
+    titulo:                  { type: String, required: true },
+    tags:                    { type: [String], default: [] },
+    contenido_extraido:      { type: String },
+    id_usuario_creacion:     { type: Number, required: true },
+    estatus:                 { type: Boolean, required: true, default: true },
+    fecha_indexacion:        { type: Date, default: Date.now },
+    fecha_modificacion:      { type: Date, default: null },
+    id_usuario_modificacion: { type: Number, default: null },
+    fecha_eliminacion:       { type: Date, default: null },
+    id_usuario_eliminacion:  { type: Number, default: null }
+  },
+  { collection: 'DocumentosMetadata' }
+);
 
-const Metadato = mongoose.model<IMetadato>('Metadato', MetadatoSchema);
+// Índice de texto completo — coincide con IDX_BusquedaGlobal_Text del init script
+MetadatoSchema.index(
+  { titulo: 'text', tags: 'text', contenido_extraido: 'text' },
+  { weights: { titulo: 10, tags: 5, contenido_extraido: 1 }, default_language: 'spanish', name: 'IDX_BusquedaGlobal_Text' }
+);
+
+const Metadato = mongoose.model<IMetadato>('DocumentosMetadata', MetadatoSchema);
 
 // ── 4. ENDPOINTS ──────────────────────────────────────
 
@@ -55,25 +78,27 @@ const Metadato = mongoose.model<IMetadato>('Metadato', MetadatoSchema);
 app.post('/indexar', async (req: Request, res: Response) => {
   try {
     // Tomamos los datos que llegaron en el cuerpo del POST
-    const { id_documento, titulo, etiquetas, extension, tamanio_kb } = req.body;
+    const { id_documento_sql, codigo_interno, titulo, tags, contenido_extraido, id_usuario_creacion } = req.body;
 
-    // Validamos que los campos obligatorios existan
-    if (!id_documento || !titulo || !extension || !tamanio_kb) {
+    // Validamos campos requeridos según el $jsonSchema del init script
+    if (!id_documento_sql || !codigo_interno || !titulo || !id_usuario_creacion) {
       res.status(400).json({
         success: false,
-        mensaje: 'Faltan campos obligatorios: id_documento, titulo, extension, tamanio_kb'
+        mensaje: 'Faltan campos obligatorios: id_documento_sql, codigo_interno, titulo, id_usuario_creacion'
       });
       return;
     }
 
     // Guardamos en MongoDB
     const nuevoMetadato = new Metadato({
-      id_documento,
+      id_documento_sql,
+      codigo_interno,
       titulo,
-      etiquetas: etiquetas || [],
-      extension,
-      tamanio_kb,
-      fecha_indexacion: new Date()
+      tags:                tags || [],
+      contenido_extraido:  contenido_extraido ?? undefined,
+      id_usuario_creacion,
+      estatus:             true,
+      fecha_indexacion:    new Date()
     });
 
     await nuevoMetadato.save();
@@ -139,11 +164,15 @@ app.get('/buscar', async (req: Request, res: Response) => {
     // El usuario busca texto literal, no patrones regex
     const safeQuery = escapeRegex(query);
 
-    // Buscamos en MongoDB — busca en título Y en etiquetas
+    // Buscamos en MongoDB — solo documentos activos (borrado lógico)
+    // Busca en titulo, tags y contenido_extraido
+    const regex = { $regex: safeQuery, $options: 'i' };
     const resultados = await Metadato.find({
+      estatus: true,
       $or: [
-        { titulo:    { $regex: safeQuery, $options: 'i' } },
-        { etiquetas: { $regex: safeQuery, $options: 'i' } }
+        { titulo:             regex },
+        { tags:               regex },
+        { contenido_extraido: regex }
       ]
     });
 
@@ -168,15 +197,21 @@ app.get('/buscar', async (req: Request, res: Response) => {
 // └─────────────────────────────────────────────────────┘
 app.get('/documento/:id', async (req: Request, res: Response) => {
   try {
-    // Tomamos el :id de la URL. Ej: /documento/DOC-001
+    // Tomamos el :id de la URL.
+    // Si es numérico → busca por id_documento_sql; si no → por codigo_interno
     const { id } = req.params;
+    const esNumerico = /^\d+$/.test(id);
 
-    const documento = await Metadato.findOne({ id_documento: id } as any);
+    const filtro = esNumerico
+      ? { id_documento_sql: parseInt(id, 10), estatus: true }
+      : { codigo_interno: id,                 estatus: true };
+
+    const documento = await Metadato.findOne(filtro);
 
     if (!documento) {
       res.status(404).json({
         success: false,
-        mensaje: `No se encontró ningún documento con id: ${id}`
+        mensaje: `No se encontró ningún documento activo con id: ${id}`
       });
       return;
     }
