@@ -100,17 +100,25 @@ app.post('/indexar', async (req: Request, res: Response) => {
     });
   }
 });
-
+// ── Helper: escapa caracteres especiales de regex para evitar ReDoS ──
+// Convierte cualquier metacarácter regex en texto literal seguro.
+// Sin esto, un usuario podría enviar patrones como "(a+)+" que consumen
+// recursos exponencialmente (ataque de Denegación de Servicio).
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 // ┌─────────────────────────────────────────────────────┐
 // │ ENDPOINT 2: GET /buscar?q=palabra                   │
 // │ Busca documentos por título o etiquetas             │
 // └─────────────────────────────────────────────────────┘
+
 app.get('/buscar', async (req: Request, res: Response) => {
   try {
     // Tomamos el parámetro ?q= de la URL
-    const query = req.query.q as string;
+    const query = (req.query.q as string)?.trim();
 
-    if (!query || query.trim() === '') {
+    // Validación 1: no puede estar vacío
+    if (!query) {
       res.status(400).json({
         success: false,
         mensaje: 'Debes enviar un término de búsqueda. Ejemplo: /buscar?q=calidad'
@@ -118,13 +126,24 @@ app.get('/buscar', async (req: Request, res: Response) => {
       return;
     }
 
+    // Validación 2: límite de longitud (previene queries abusivos)
+    if (query.length > 100) {
+      res.status(400).json({
+        success: false,
+        mensaje: 'El término de búsqueda es demasiado largo (máximo 100 caracteres).'
+      });
+      return;
+    }
+
+    // Sanitización: escapamos caracteres especiales de regex
+    // El usuario busca texto literal, no patrones regex
+    const safeQuery = escapeRegex(query);
+
     // Buscamos en MongoDB — busca en título Y en etiquetas
-    // $regex significa "contiene esta palabra"
-    // $options: 'i' significa que no importa mayúsculas/minúsculas
     const resultados = await Metadato.find({
       $or: [
-        { titulo:    { $regex: query, $options: 'i' } },
-        { etiquetas: { $regex: query, $options: 'i' } }
+        { titulo:    { $regex: safeQuery, $options: 'i' } },
+        { etiquetas: { $regex: safeQuery, $options: 'i' } }
       ]
     });
 
