@@ -50,6 +50,11 @@ db.createCollection('DocumentosMetadata', {
                     bsonType: "object",
                     description: "Atributos dinámicos específicos del tipo de documento"
                 },
+                version: {
+                    bsonType: "number",
+                    minimum: 1,
+                    description: "Número de versión del documento (sincronizado con SQL Server)"
+                },
                 // Campos de auditoría (espejo del estándar del proyecto)
                 estatus: {
                     bsonType: "bool",
