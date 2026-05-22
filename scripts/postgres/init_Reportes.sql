@@ -80,6 +80,7 @@ CREATE TABLE acuse_lectura (
     id_acuse SERIAL PRIMARY KEY,
     id_documento INT REFERENCES documento_vigente(id_documento),
     id_usuario INT REFERENCES usuario(id_usuario),
+    fecha_lectura TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Momento exacto del acuse (auditoría ISO)
     direccion_ip VARCHAR(50),
     dispositivo_info TEXT,
     
