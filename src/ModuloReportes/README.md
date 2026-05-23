@@ -15,7 +15,9 @@
 - [Interfaz Web](#-interfaz-web)
 - [Base de Datos](#-base-de-datos)
 - [Seguridad](#-seguridad)
+- [Logs Estructurados](#-logs-estructurados)
 - [Docker](#-docker)
+- [Tests](#-tests)
 - [Pruebas Rápidas](#-pruebas-rápidas)
 - [Problemas Conocidos y Solución](#-problemas-conocidos-y-solución)
 - [Integración con Otros Módulos](#-integración-con-otros-módulos)
@@ -45,6 +47,8 @@ El Módulo de Reportes es el microservicio de **consulta pública y trazabilidad
 | PostgreSQL       | 16-alpine  | Base de datos relacional                         |
 | PDO / pdo_pgsql  | nativa     | Capa de acceso a datos con prepared statements   |
 | dompdf/dompdf    | ^3.1       | Generación de reportes y fichas en PDF           |
+| monolog/monolog  | ^3.0       | Logger estructurado JSON para PHP                |
+| PHPUnit          | ^11.0      | Framework de tests unitarios                     |
 | Composer         | latest     | Gestor de dependencias PHP                       |
 | Bootstrap        | 5.3.2      | Estilos del portal de operarios (CDN)            |
 
@@ -58,18 +62,26 @@ src/ModuloReportes/
 ├── api/
 │   └── sync.php                 # Endpoint de sincronización con ModuloCentral
 ├── config/
-│   └── Database.php             # Clase de conexión PDO a PostgreSQL
+│   └── Database.php             # Clase de conexión PDO a PostgreSQL (acepta ?PDO inyectado)
+│   └── Logger.php               # Singleton Monolog — Config\Logger::getInstance()
 ├── controllers/
 │   ├── DashboardController.php  # KPIs, gráficas y documentos recientes
 │   ├── ReporteController.php    # Registro de acuses y reporte de cumplimiento
-│   └── SyncController.php       # Lógica UPSERT de sincronización de documentos
+│   └── SyncController.php       # Lógica UPSERT de sincronización (acepta ?PDO inyectado)
 ├── models/
-│   └── Acuse.php                # Modelo para registro e historial de acuses de lectura
+│   └── Acuse.php                # Modelo para registro e historial de acuses (acepta ?PDO inyectado)
 ├── views/
 │   ├── dashboard.php            # Vista de estadísticas con gráficas (Chart.js)
 │   └── portal_operario.php      # Portal dark-mode para operarios (Bootstrap 5)
+├── tests/                       # Suites de tests unitarios (no requieren Postgres)
+│   ├── bootstrap.php            #   Variables de entorno ficticias para PHPUnit
+│   ├── LoggerTest.php           #   5 tests: singleton, channel, LOG_LEVEL
+│   ├── DatabaseTest.php         #   3 tests: estructura, sin conectar a DB real
+│   ├── SyncControllerTest.php   #   6 tests: validaciones, mocks PDO, batch
+│   └── AcuseTest.php            #   6 tests: registrarLectura, obtenerLecturas
 ├── vendor/                      # Dependencias instaladas por Composer
 ├── composer.json                # Declaración de dependencias PHP
+├── phpunit.xml                  # Configuración PHPUnit 11
 └── Dockerfile                   # PHP 8.2 + Apache + extensión pdo_pgsql
 ```
 
@@ -92,7 +104,7 @@ Desde la raíz del repositorio:
 
 ```bash
 # Copiar y completar las variables de entorno
-cp .env.example .env   # editar PG_USER, PG_PASSWORD, PG_DATABASE, SYNC_API_KEY
+cp .env.example .env   # editar DB_USER, DB_PASS, DB_NAME, SYNC_API_KEY
 
 # Levantar solo este módulo y su base de datos
 docker compose up postgres modulo_reportes
@@ -145,8 +157,11 @@ psql -U sigd_user -d sigd_reportes -f ../../scripts/postgres/init_Reportes.sql
 | `DB_PASS`      | Contraseña del usuario de la BD                       | `mi_contraseña`           | Sí        |
 | `DB_NAME`      | Nombre de la base de datos                            | `sigd_reportes`           | Sí        |
 | `SYNC_API_KEY` | Clave API compartida con el Módulo Central            | `sigd_sync_secret_2026`   | Sí        |
+| `LOG_LEVEL`    | Nivel mínimo de log (DEBUG/INFO/WARNING/ERROR)        | `INFO`                    | No        |
 
-Las variables `DB_*` provienen de las variables `PG_*` definidas en el `.env` raíz del proyecto. `SYNC_API_KEY` debe coincidir exactamente con `ReportesModule__SyncApiKey` del Módulo Central.
+> **Nota:** Los nombres correctos son `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME` — no `POSTGRES_HOST`, `POSTGRES_USER`, etc. Verificar que el `.env` de la raíz use exactamente estos nombres al inyectarlos al contenedor PHP.
+
+`SYNC_API_KEY` debe coincidir exactamente con `ReportesModule__SyncApiKey` del Módulo Central.
 
 ---
 
@@ -215,7 +230,7 @@ Vista que consume los endpoints JSON del `DashboardController`:
 ## 🗄️ Base de Datos
 
 **Motor:** PostgreSQL 16-alpine  
-**Nombre de la BD:** definido por la variable `PG_DATABASE` (ej. `sigd_reportes`)
+**Nombre de la BD:** definido por la variable `DB_NAME` (ej. `sigd_reportes`)
 
 ### Tablas principales
 
@@ -245,6 +260,17 @@ Vista que consume los endpoints JSON del `DashboardController`:
 | `hash_verificacion`      | VARCHAR(255)  | Hash del archivo para verificar integridad       |
 | `estatus`                | BOOLEAN       | Borrado lógico: `true` = vigente                 |
 
+### Campos clave de `acuse_lectura`
+
+| Columna          | Tipo        | Descripción                                          |
+|------------------|-------------|------------------------------------------------------|
+| `id_acuse`       | INT (PK)    | Identificador del acuse                              |
+| `id_documento`   | INT (FK)    | Documento leído                                      |
+| `id_usuario`     | INT (FK)    | Operario que firmó la lectura                        |
+| `fecha_lectura`  | TIMESTAMP   | Fecha y hora del acuse                               |
+| `ip`             | VARCHAR     | IP del cliente al momento del acuse                  |
+| `user_agent`     | TEXT        | Navegador/cliente del operario                       |
+
 ### Inicialización
 
 El script `scripts/postgres/init_Reportes.sql` se ejecuta automáticamente la primera vez que el contenedor de PostgreSQL arranca (vía `docker-entrypoint-initdb.d`). Crea:
@@ -265,6 +291,47 @@ El script `scripts/postgres/init_Reportes.sql` se ejecuta automáticamente la pr
 **Validación de API Key:** Cada petición a `api/sync.php` debe incluir el header `X-Api-Key` con el valor de la variable de entorno `SYNC_API_KEY`. La comparación usa `hash_equals()` para evitar timing attacks. Las peticiones sin clave válida reciben `401 Unauthorized` y el procesamiento se detiene inmediatamente.
 
 **Prepared statements en PDO:** Todas las consultas SQL que incorporan datos externos usan `bindValue()` con tipado explícito (`PDO::PARAM_INT`, `PDO::PARAM_STR`). La capa de acceso a datos tiene `PDO::ATTR_EMULATE_PREPARES => false`, lo que fuerza el uso de preparaciones nativas de PostgreSQL y elimina el riesgo de inyección SQL.
+
+---
+
+## 📊 Logs Estructurados
+
+**Librería:** `monolog/monolog ^3.0`  
+**Singleton:** `Config\Logger::getInstance()`  
+**Channel:** `modulo-reportes`
+
+| Configuración | Valor                                             |
+|---------------|---------------------------------------------------|
+| Formato       | JSON estructurado (una línea por entrada)          |
+| Destino       | `php://stderr` (visible con `docker logs`)         |
+| Nivel default | `INFO` (configurable con `LOG_LEVEL`)             |
+
+**Eventos registrados:**
+
+| Evento                  | Nivel   | Descripción                                      |
+|-------------------------|---------|--------------------------------------------------|
+| `api_key_invalid`       | WARNING | Petición rechazada por API key inválida          |
+| `sync_request`          | INFO    | Inicio de sincronización de documento            |
+| `document_synced`       | INFO    | Documento sincronizado exitosamente              |
+| `document_sync_failed`  | ERROR   | Fallo al sincronizar un documento                |
+| `batch_synced`          | INFO    | Lote de documentos procesado                     |
+| `db_connection_failed`  | ERROR   | Fallo de conexión a PostgreSQL                   |
+| `search_failed`         | ERROR   | Fallo al buscar documentos en el portal          |
+| `download_failed`       | ERROR   | Fallo al generar PDF de descarga                 |
+
+**Ejemplo de log JSON real:**
+
+```json
+{
+  "message": "api_key_invalid",
+  "context": { "ip": "172.18.0.1", "method": "POST" },
+  "level": 300,
+  "level_name": "WARNING",
+  "channel": "modulo-reportes",
+  "datetime": "2026-05-22T21:53:16.786239+00:00",
+  "extra": {}
+}
+```
 
 ---
 
@@ -289,6 +356,33 @@ FROM php:8.2-apache
 - `./src/ModuloReportes:/var/www/html` — código local montado; los cambios en PHP se reflejan sin rebuild
 
 **Servidor web:** Apache 2.4 con `mod_rewrite` habilitado (necesario si se implementa enrutamiento URL limpio en el futuro).
+
+---
+
+## 🧪 Tests
+
+**Framework:** PHPUnit 11  
+**Suites:** 4 archivos, **21 tests** con **37 aserciones**
+
+| Suite                    | Tests | Qué cubre                                              |
+|--------------------------|-------|--------------------------------------------------------|
+| `LoggerTest.php`         | 5     | Singleton, channel, respeto de `LOG_LEVEL`             |
+| `DatabaseTest.php`       | 3     | Estructura de clase (sin conectar a Postgres real)     |
+| `SyncControllerTest.php` | 6     | Validaciones, UPSERT, batch con ítem inválido          |
+| `AcuseTest.php`          | 6     | `registrarLectura`, `obtenerLecturasPorDocumento`      |
+
+**Sin infraestructura real:** los tests usan mocks puros de `PDO` y `PDOStatement` — no requieren PostgreSQL ni Docker corriendo. El archivo `tests/bootstrap.php` inyecta credenciales ficticias antes de que se cargue cualquier clase.
+
+**Ejecutar tests (sin instalar nada localmente):**
+
+```bash
+# Desde src/ModuloReportes/
+docker run --rm \
+  -v "$(pwd):/app" \
+  -w /app \
+  php:8.2-cli \
+  sh -c "composer install --no-interaction && vendor/bin/phpunit"
+```
 
 ---
 
@@ -354,7 +448,7 @@ Fallo crítico en la conexión a PostgreSQL: ...
 
 El contenedor de PostgreSQL puede no estar listo aún (arranca más lento que PHP/Apache).
 
-Solución: esperar 10–15 segundos y recargar la página, o revisar `docker logs sigd_postgres`. Verificar que `PG_USER`, `PG_PASSWORD` y `PG_DATABASE` en el `.env` sean correctas y coincidan con las variables `DB_*` inyectadas al contenedor de PHP.
+Solución: esperar 10–15 segundos y recargar la página, o revisar `docker logs sigd_postgres`. Verificar que `DB_HOST`, `DB_USER`, `DB_PASS` y `DB_NAME` estén correctamente definidas en el `.env` y que se inyecten al contenedor de PHP.
 
 ---
 
@@ -412,7 +506,7 @@ Solución: identificar el proceso con `netstat -ano | findstr :8000` (Windows) y
 ```
 
 - **ModuloCentral → ModuloReportes:** Cada vez que se aprueba o actualiza un documento, ModuloCentral llama a `POST /api/sync.php` con los metadatos completos. La comunicación es server-to-server dentro de `sigd_network`.
-- **Portal Operario → ModuloBusqueda:** La vista `portal_operario.php` consulta el microservicio Node.js para búsquedas full-text en tiempo real.
+- **Portal Operario → ModuloBusqueda:** La vista `portal_operario.php` consulta el endpoint `GET /buscar?q=...` del microservicio Node.js para búsquedas full-text en tiempo real. La respuesta se estructura como `{ success, total, data: [...] }` y el portal extrae `data.data` antes de renderizar la tabla.
 - **Portal Operario → ModuloReportes:** Tras encontrar un documento, el operario firma su lectura enviando `POST /index.php?action=registrar_acuse` a este módulo.
 - **ModuloBusqueda:** No tiene dependencia directa de este módulo.
 
@@ -425,12 +519,13 @@ Solución: identificar el proceso con `netstat -ano | findstr :8000` (Windows) y
    git checkout -b feature/reportes-mi-mejora
    ```
 2. Realizar los cambios en `src/ModuloReportes/`.
-3. Verificar que el portal responde y que la sincronización funciona (ver [Pruebas Rápidas](#-pruebas-rápidas)).
-4. Confirmar los cambios con un mensaje descriptivo:
+3. Verificar que los tests siguen pasando: `composer test`
+4. Verificar que el portal responde y que la sincronización funciona (ver [Pruebas Rápidas](#-pruebas-rápidas)).
+5. Confirmar los cambios con un mensaje descriptivo:
    ```bash
    git commit -m "feat(reportes): descripción del cambio"
    ```
-5. Abrir un Pull Request hacia la rama `development` en GitHub.
+6. Abrir un Pull Request hacia la rama `development` en GitHub.
 
 ---
 
