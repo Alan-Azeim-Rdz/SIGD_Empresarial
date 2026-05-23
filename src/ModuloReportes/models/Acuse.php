@@ -9,23 +9,28 @@ class Acuse {
     private ?PDO $db;
     private string $table_name = "acuse_lectura";
 
-    public function __construct() {
-        // Inicializar la conexión segura a PostgreSQL
-        $database = new Database();
-        $this->db = $database->getConnection();
+    /**
+     * @param PDO|null $db  Inyección de dependencia para tests (null = usa Database::getConnection())
+     */
+    public function __construct(?PDO $db = null) {
+        if ($db !== null) {
+            $this->db = $db;
+        } else {
+            $database = new Database();
+            $this->db = $database->getConnection();
+        }
     }
 
     /**
-     * Registra una firma digital de lectura de un operario en planta
-     * Cumple con la trazabilidad exigida por las normas ISO de calidad
+     * Registra una firma digital de lectura de un operario en planta.
+     * Cumple con la trazabilidad exigida por las normas ISO de calidad.
      */
     public function registrarLectura(int $id_documento, int $id_usuario, string $ip, string $user_agent, int $usuario_creador): bool {
         try {
-            // Consulta SQL estructurada con los campos de auditoría requeridos
             $query = "INSERT INTO " . $this->table_name . " (
                         id_documento, id_usuario, fecha_lectura, direccion_ip, dispositivo_info,
                         estatus, fecha_creacion, id_usuario_creacion
-                      ) 
+                      )
                       VALUES (
                         :id_doc, :id_usr, CURRENT_TIMESTAMP, :ip, :user_agent,
                         true, CURRENT_TIMESTAMP, :creador
@@ -33,12 +38,11 @@ class Acuse {
 
             $stmt = $this->db->prepare($query);
 
-            // Vinculación y sanitización estricta de parámetros
-            $stmt->bindValue(':id_doc', $id_documento, PDO::PARAM_INT);
-            $stmt->bindValue(':id_usr', $id_usuario, PDO::PARAM_INT);
-            $stmt->bindValue(':ip', $ip, PDO::PARAM_STR);
-            $stmt->bindValue(':user_agent', $user_agent, PDO::PARAM_STR);
-            $stmt->bindValue(':creador', $usuario_creador, PDO::PARAM_INT);
+            $stmt->bindValue(':id_doc',     $id_documento,   PDO::PARAM_INT);
+            $stmt->bindValue(':id_usr',     $id_usuario,     PDO::PARAM_INT);
+            $stmt->bindValue(':ip',         $ip,             PDO::PARAM_STR);
+            $stmt->bindValue(':user_agent', $user_agent,     PDO::PARAM_STR);
+            $stmt->bindValue(':creador',    $usuario_creador, PDO::PARAM_INT);
 
             if ($stmt->execute()) {
                 return true;
@@ -46,13 +50,12 @@ class Acuse {
             return false;
 
         } catch (Exception $e) {
-            // Lanzar la excepción para que el controlador la capture y responda en formato JSON
             throw new Exception("Error al registrar acuse en PostgreSQL: " . $e->getMessage());
         }
     }
 
     /**
-     * Obtiene el historial de lecturas de un documento específico (Auditoría de Planta)
+     * Obtiene el historial de lecturas de un documento específico (Auditoría de Planta).
      */
     public function obtenerLecturasPorDocumento(int $id_documento): array {
         try {

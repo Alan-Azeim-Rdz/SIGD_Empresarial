@@ -23,10 +23,17 @@ class SyncController
 {
     private ?PDO $db;
 
-    public function __construct()
+    /**
+     * @param PDO|null $db  Inyección de dependencia para tests (null = usa Database::getConnection())
+     */
+    public function __construct(?PDO $db = null)
     {
-        $database    = new Database();
-        $this->db    = $database->getConnection();
+        if ($db !== null) {
+            $this->db = $db;
+        } else {
+            $database = new Database();
+            $this->db = $database->getConnection();
+        }
     }
 
     // ──────────────────────────────────────────────────────────
@@ -41,10 +48,9 @@ class SyncController
      */
     public function sincronizarDocumento(): void
     {
-        $jsonInput = file_get_contents('php://input');
-        $data      = json_decode($jsonInput, true);
-
+        $data  = $this->leerInput();
         $error = $this->validarPayload($data);
+
         if ($error) {
             http_response_code(400);
             echo json_encode(['status' => 'error', 'message' => $error]);
@@ -97,8 +103,7 @@ class SyncController
      */
     public function sincronizarBatch(): void
     {
-        $jsonInput = file_get_contents('php://input');
-        $lote      = json_decode($jsonInput, true);
+        $lote = $this->leerInput();
 
         if (!is_array($lote) || count($lote) === 0) {
             http_response_code(400);
@@ -110,7 +115,6 @@ class SyncController
         $exitosos   = 0;
         $fallidos   = 0;
 
-        // Transacción atómica: si el driver falla en algún UPSERT, todo revierte
         $this->db->beginTransaction();
 
         try {
@@ -169,6 +173,19 @@ class SyncController
     }
 
     // ──────────────────────────────────────────────────────────
+    // MÉTODOS PROTEGIDOS (sobreescribibles en tests)
+    // ──────────────────────────────────────────────────────────
+
+    /**
+     * Lee y decodifica el cuerpo JSON de la petición HTTP.
+     * Extraído para permitir su mock en tests sin necesitar php://input.
+     */
+    protected function leerInput(): ?array
+    {
+        return json_decode(file_get_contents('php://input'), true);
+    }
+
+    // ──────────────────────────────────────────────────────────
     // MÉTODOS PRIVADOS INTERNOS
     // ──────────────────────────────────────────────────────────
 
@@ -195,8 +212,6 @@ class SyncController
     /**
      * Ejecuta el UPSERT (INSERT … ON CONFLICT DO UPDATE) de un documento
      * en la tabla documento_vigente de PostgreSQL.
-     * Esta operación es idempotente: envíar el mismo documento dos veces
-     * produce el mismo estado final en la base de datos.
      *
      * @throws Exception Si la ejecución de la sentencia falla.
      */
@@ -246,8 +261,7 @@ class SyncController
     }
 
     /**
-     * Registra cada intento de sincronización en la tabla bitacora_sync
-     * para trazabilidad y diagnóstico de errores de integración.
+     * Registra cada intento de sincronización en la tabla bitacora_sync.
      * Si la tabla no existe o el INSERT falla, no interrumpe el flujo principal.
      */
     private function registrarEventoSync(int $idDocumento, string $estado, ?string $mensajeError): void

@@ -5,11 +5,23 @@
         "dompdf/dompdf": "^3.1",
         "monolog/monolog": "^3.0"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
     "autoload": {
         "psr-4": {
             "Config\\":      "config/",
             "Controllers\\": "controllers/",
             "Models\\":      "models/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test":          "phpunit --colors=always --coverage-text",
+        "test:coverage": "phpunit --coverage-html coverage"
     }
 }

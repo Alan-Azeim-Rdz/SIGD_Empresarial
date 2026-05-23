@@ -13,7 +13,7 @@ import pino from 'pino';
 // ── 1. LOGGER ────────────────────────────────────────
 // Prod (NODE_ENV=production): JSON puro en stdout, 1 línea por entrada.
 // Dev: pino-pretty con colores (instalado en devDependencies).
-const logger = pino({
+export const logger = pino({
   level: process.env['LOG_LEVEL'] ?? 'info',
   transport: process.env['NODE_ENV'] === 'production'
     ? undefined
@@ -21,8 +21,7 @@ const logger = pino({
 });
 
 // ── 2. CONFIGURACIÓN EXPRESS ──────────────────────────
-const app  = express();
-const PORT = 3000;
+export const app = express();
 
 app.use(express.json());
 
@@ -41,18 +40,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── 3. CONEXIÓN A MONGODB ─────────────────────────────
-const MONGO_URI = process.env['MONGO_URI'] ?? 'mongodb://localhost:27017/sigd';
-
-// Enmascara la contraseña del URI antes de loguearlo
-const maskUri = (uri: string): string =>
-  uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)[^@]+(@)/, '$1***$2');
-
-mongoose.connect(MONGO_URI)
-  .then(() => logger.info({ uri_masked: maskUri(MONGO_URI) }, 'mongodb_connected'))
-  .catch((err: unknown) => logger.error({ err }, 'mongodb_connection_failed'));
-
-// ── 4. MODELO DE DATOS ────────────────────────────────
+// ── 3. MODELO DE DATOS ────────────────────────────────
 // Esquema sincronizado con scripts/mongo/init_busqueda.js
 interface IMetadato extends Document {
   id_documento_sql:         number;
@@ -95,9 +83,11 @@ MetadatoSchema.index(
   { weights: { titulo: 10, tags: 5, contenido_extraido: 1 }, default_language: 'spanish', name: 'IDX_BusquedaGlobal_Text' }
 );
 
-const Metadato = mongoose.model<IMetadato>('DocumentosMetadata', MetadatoSchema);
+// Evita error "Cannot overwrite model" cuando Jest reimporta el módulo
+export const Metadato = (mongoose.models['DocumentosMetadata'] as ReturnType<typeof mongoose.model<IMetadato>>) ??
+  mongoose.model<IMetadato>('DocumentosMetadata', MetadatoSchema);
 
-// ── 5. OPENAPI / SWAGGER ──────────────────────────────
+// ── 4. OPENAPI / SWAGGER ──────────────────────────────
 // apis: [__filename] funciona en ts-node-dev (.ts) y en producción
 // compilada (.js) porque tsconfig no tiene removeComments: true.
 const swaggerSpec = swaggerJsdoc({
@@ -163,7 +153,7 @@ const swaggerSpec = swaggerJsdoc({
 app.use('/docs',      swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
 
-// ── 6. ENDPOINTS ──────────────────────────────────────
+// ── 5. ENDPOINTS ──────────────────────────────────────
 
 /**
  * @openapi
@@ -277,7 +267,7 @@ app.post('/indexar', async (req: Request, res: Response) => {
 // ── Helper: escapa metacaracteres regex para evitar ReDoS ──
 // Sin esto, un usuario podría enviar patrones como "(a+)+" que consumen
 // recursos exponencialmente (Denegación de Servicio por regex catastrófico).
-function escapeRegex(text: string): string {
+export function escapeRegex(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
@@ -438,13 +428,4 @@ app.get('/documento/:id', async (req: Request, res: Response) => {
     logger.error({ err: error, endpoint: 'GET /documento/:id', id: req.params['id'] }, 'request_failed');
     res.status(500).json({ success: false, mensaje: 'Error al obtener el documento', detalle: (error as Error).message });
   }
-});
-
-// ── 7. INICIAR EL SERVIDOR ────────────────────────────
-app.listen(PORT, () => {
-  logger.info({
-    port:      PORT,
-    endpoints: ['POST /indexar', 'GET /buscar', 'GET /documento/:id'],
-    docs_url:  `http://localhost:${PORT}/docs`
-  }, 'server_started');
 });
