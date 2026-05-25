@@ -83,8 +83,13 @@
                         @if (User.Identity!.IsAuthenticated)
                         {
                             <li class="nav-item">
-                                <span class="nav-link pe-0">
-                                    <i class="fas fa-user-circle me-1" style="color: var(--amber);"></i>@User.Identity.Name
+                                <span class="nav-link pe-0 d-flex flex-column align-items-start align-items-lg-end" style="line-height: 1.25; padding-top: 0; padding-bottom: 0;">
+                                    <span class="fw-semibold text-white">
+                                        <i class="fas fa-user-circle me-1" style="color: var(--amber);"></i>@User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value
+                                    </span>
+                                    <span class="text-white-50" style="font-size: 0.75rem; opacity: 0.7; font-weight: normal; padding-left: 20px;">
+                                        @User.Identity.Name
+                                    </span>
                                 </span>
                             </li>
                             <li class="nav-item">

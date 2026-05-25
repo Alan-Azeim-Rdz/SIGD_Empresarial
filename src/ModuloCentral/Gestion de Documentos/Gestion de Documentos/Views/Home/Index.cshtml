@@ -32,7 +32,12 @@ else
     <div class="d-flex align-items-center gap-2 mb-3 p-3 rounded-xl" style="background: rgba(30,61,89,.05); border: 1px solid var(--border);">
         <i class="fas fa-user-circle fa-2x" style="color: var(--sapphire);"></i>
         <div>
-            <div class="fw-bold" style="font-size: .95rem;">@User.Identity.Name</div>
+            <div class="fw-bold" style="font-size: .95rem;">
+                @User.FindFirst(ClaimTypes.GivenName)?.Value
+            </div>
+            <div class="text-muted" style="font-size: .78rem; opacity: 0.7; margin-bottom: 2px;">
+                @User.Identity.Name
+            </div>
             <div style="font-size: .78rem; color: var(--text-muted);">
                 <i class="fas fa-tag me-1"></i>
                 @string.Join(" · ", User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value))

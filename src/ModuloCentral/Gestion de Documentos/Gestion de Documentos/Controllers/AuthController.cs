@@ -50,6 +50,7 @@ namespace Gestion_de_Documentos.Controllers
                 {
                     new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                     new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, usuario.Correo),
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.GivenName, usuario.Nombre),
                 };
 
                 // Agregar roles desde la base de datos usando la propiedad mapeada
