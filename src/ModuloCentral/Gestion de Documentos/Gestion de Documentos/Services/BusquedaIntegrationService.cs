@@ -36,7 +36,7 @@ namespace Gestion_de_Documentos.Services
             var payload = await ConstruirPayloadAsync(idDocumento, idUsuarioCreacion);
             if (payload is null) return;
 
-            await EnviarPayloadAsync("/api/busqueda/sincronizar", payload);
+            await EnviarPayloadAsync("/indexar", payload);
         }
 
         private async Task<object?> ConstruirPayloadAsync(int idDocumento, int idUsuario)

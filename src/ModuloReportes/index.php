@@ -11,6 +11,8 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Config\Logger;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Controllers\DashboardController;
+use Controllers\ReporteController;
 
 $logger = Logger::getInstance();
 
@@ -226,6 +228,54 @@ if ($accion === 'descargar') {
         http_response_code(500);
         die('Error interno al generar el documento.');
     }
+    exit;
+}
+
+// ── 5.1. ACCIÓN: PORTAL DE OPERARIOS Y DASHBOARD DE REPORTES ───────────
+if ($accion === 'portal') {
+    require_once __DIR__ . '/views/portal_operario.php';
+    exit;
+}
+
+if ($accion === 'dashboard') {
+    $controller = new DashboardController();
+    $controller->mostrarDashboard();
+    exit;
+}
+
+if ($accion === 'api_kpis') {
+    $controller = new DashboardController();
+    $controller->obtenerKpis();
+    exit;
+}
+
+if ($accion === 'api_docs_por_depto') {
+    $controller = new DashboardController();
+    $controller->docsPorDepartamento();
+    exit;
+}
+
+if ($accion === 'api_evolucion') {
+    $controller = new DashboardController();
+    $controller->evolucionMensual();
+    exit;
+}
+
+if ($accion === 'api_recientes') {
+    $controller = new DashboardController();
+    $controller->documentosRecientes();
+    exit;
+}
+
+if ($accion === 'registrar_acuse') {
+    $controller = new ReporteController();
+    $controller->registrarAcuse();
+    exit;
+}
+
+if ($accion === 'clima_cumplimiento') {
+    $controller = new ReporteController();
+    $controller->obtenerClimaCumplimiento();
     exit;
 }
 

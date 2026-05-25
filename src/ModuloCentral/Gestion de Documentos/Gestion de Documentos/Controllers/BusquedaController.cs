@@ -36,7 +36,7 @@ namespace Gestion_de_Documentos.Controllers
                 var client  = _httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                var url      = $"{baseUrl}/api/busqueda/buscar?q={Uri.EscapeDataString(q)}";
+                var url      = $"{baseUrl}/buscar?q={Uri.EscapeDataString(q)}";
                 var response = await client.GetAsync(url);
                 var body     = await response.Content.ReadAsStringAsync();
 
