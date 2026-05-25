@@ -3,7 +3,7 @@
 // y el servidor HTTP. Separado de index.ts para que los tests puedan importar
 // la app sin conectar a la base de datos ni levantar el servidor.
 
-import { app, logger } from './index.js';
+import { app, logger } from './index';
 import mongoose from 'mongoose';
 
 const PORT      = 3000;

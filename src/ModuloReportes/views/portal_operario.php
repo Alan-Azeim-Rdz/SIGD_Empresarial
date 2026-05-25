@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-bs-theme="dark">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +7,254 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #121212; color: #e0e0e0; }
-        .card { background-color: #1e1e1e; border: 1px solid #333; }
-        .table-dark { --bs-table-bg: #1e1e1e; }
-        .navbar-custom { background-color: #1a1a1a; border-bottom: 1px solid #333; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            /* Paleta principal */
+            --sapphire:       #1E3D59;
+            --sapphire-light: #2d6a9f;
+            --sapphire-dark:  #132941;
+            --emerald:        #0F7A72;
+            --emerald-light:  #1a9e95;
+            --emerald-dark:   #0a5a54;
+            --amethyst:       #6B4C9A;
+            --amber:          #E8A020;
+            --crimson:        #C0392B;
+            --bg:             #F4F1EB;
+            --bg-card:        #FFFFFF;
+            --bg-hover:       #EEF2F7;
+            --text-primary:   #1C2B3A;
+            --text-secondary: #546E7A;
+            --text-muted:     #90A4AE;
+            --border:         #DDE3EA;
+            --radius-md:      .85rem;
+            --radius-sm:      .5rem;
+            --shadow-sm:      0 1px 4px rgba(30,61,89,.08);
+            --shadow-md:      0 4px 16px rgba(30,61,89,.12);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        h2 {
+            font-weight: 800;
+            color: var(--sapphire-dark);
+            letter-spacing: -.02em;
+        }
+
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--sapphire-dark) 0%, var(--sapphire) 100%);
+            box-shadow: 0 2px 12px rgba(0,0,0,.15);
+            padding: .6rem 1rem;
+            border-bottom: none;
+        }
+        .navbar-custom .navbar-brand {
+            font-weight: 800;
+            color: #fff !important;
+        }
+        .navbar-custom .navbar-brand span {
+            color: var(--amber);
+        }
+        .navbar-custom .nav-link {
+            color: rgba(255,255,255,.85) !important;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            transition: background .18s, color .18s;
+        }
+        .navbar-custom .nav-link:hover,
+        .navbar-custom .nav-link.active {
+            color: #fff !important;
+            background: rgba(255,255,255,.12);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow .2s;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: .85rem;
+            color: var(--text-primary);
+        }
+        .form-control {
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            background-color: #fff !important;
+            padding: .55rem .9rem;
+            transition: border-color .18s, box-shadow .18s;
+        }
+        .form-control:focus {
+            border-color: var(--sapphire-light);
+            box-shadow: 0 0 0 3px rgba(45,106,159,.18);
+        }
+
+        /* Tabla custom */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: .875rem;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .table thead th {
+            background: var(--sapphire) !important;
+            color: #fff !important;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: .75rem 1rem;
+            border: none;
+        }
+        .table tbody tr {
+            background-color: var(--bg-card);
+            transition: background .15s;
+        }
+        .table tbody tr:hover {
+            background-color: var(--bg-hover) !important;
+        }
+        .table tbody td {
+            padding: .75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+            color: var(--text-primary);
+        }
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Botones custom */
+        .btn-jewel-primary {
+            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-light) 100%);
+            color: #fff;
+            border: none;
+            box-shadow: 0 2px 8px rgba(15,122,114,.25);
+            font-weight: 600;
+        }
+        .btn-jewel-primary:hover {
+            background: linear-gradient(135deg, var(--emerald-dark) 0%, var(--emerald) 100%);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(15,122,114,.35);
+        }
+
+        .btn-outline-jewel {
+            border: 1.5px solid var(--sapphire);
+            color: var(--sapphire);
+            background: transparent;
+            font-weight: 600;
+        }
+        .btn-outline-jewel:hover {
+            background: var(--sapphire);
+            color: #fff;
+        }
+
+        .badge-version {
+            background: rgba(45,106,159,.12);
+            color: var(--sapphire-light);
+            border: 1px solid rgba(45,106,159,.2);
+            font-weight: 600;
+            padding: .3em .7em;
+            border-radius: 2rem;
+            font-size: .72rem;
+        }
+
+        .badge-codigo {
+            background: rgba(15,122,114,.12);
+            color: var(--emerald-dark);
+            border: 1px solid rgba(15,122,114,.2);
+            font-weight: 600;
+            padding: .3em .7em;
+            border-radius: 2rem;
+            font-size: .72rem;
+        }
+
+        /* Modales */
+        .modal-content {
+            border: none;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .modal-header {
+            background: linear-gradient(135deg, var(--sapphire) 0%, var(--sapphire-light) 100%);
+            color: #fff;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            padding: 1.1rem 1.5rem;
+            border-bottom: none;
+        }
+        .modal-header .modal-title { font-weight: 700; }
+        .modal-header .btn-close { filter: invert(1) brightness(2); }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
+
+        /* Alertas */
+        .alert {
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: .9rem;
+            padding: 1rem 1.25rem;
+        }
+        .alert-success { background: rgba(15,122,114,.06); color: var(--emerald-dark); border-left: 4px solid var(--emerald); }
+        .alert-danger  { background: rgba(192,57,43,.07); color: var(--crimson); border-left: 4px solid var(--crimson); }
+
+        /* Ajustes de Iframe */
+        body.in-iframe {
+            background-color: transparent !important;
+            padding: 0;
+        }
+        body.in-iframe .navbar-custom {
+            display: none !important;
+        }
+        body.in-iframe .container {
+            padding-top: 0.5rem;
+            max-width: 100%;
+        }
+
+        /* ── Page header hero ── */
+        .page-hero {
+            background: linear-gradient(135deg, var(--sapphire-dark) 0%, var(--sapphire) 55%, var(--sapphire-light) 100%);
+            border-radius: var(--radius-md);
+            padding: 2rem;
+            color: #fff;
+            margin-bottom: 1.75rem;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+        .page-hero::after {
+            content: '';
+            position: absolute;
+            right: -60px; top: -60px;
+            width: 220px; height: 220px;
+            background: rgba(255,255,255,.04);
+            border-radius: 50%;
+        }
+        .page-hero h1 { font-size: 1.7rem; font-weight: 800; color: #fff; margin-bottom: .3rem; }
+        .page-hero p  { color: rgba(255,255,255,.78); margin: 0; font-size: .95rem; }
+
+        body.in-iframe .page-hero {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
     <!-- Cabecera de Navegación -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4">
         <div class="container">
-            <span class="navbar-brand fw-bold text-primary"><i class="fas fa-industry me-2"></i>Portal Planta</span>
+            <span class="navbar-brand fw-bold"><i class="fas fa-industry me-2" style="color: var(--amber);"></i>Portal <span>Planta</span></span>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -32,12 +269,12 @@
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a id="lnk-modulo-central" class="btn btn-outline-info btn-sm" href="http://localhost:5000" target="_blank">
+                        <a id="lnk-modulo-central" class="btn btn-outline-jewel btn-sm" href="http://localhost:5000" target="_blank">
                             <i class="fas fa-arrow-up-right-from-square me-1"></i> Módulo Central C#
                         </a>
                     </li>
                     <li class="nav-item ms-2">
-                        <button class="btn btn-outline-secondary btn-sm text-light" data-bs-toggle="modal" data-bs-target="#modalConexiones" title="Configuración de Conexiones">
+                        <button class="btn btn-outline-jewel btn-sm" data-bs-toggle="modal" data-bs-target="#modalConexiones" title="Configuración de Conexiones">
                             <i class="fas fa-cog"></i>
                         </button>
                     </li>
@@ -47,17 +284,23 @@
     </nav>
 
     <div class="container">
-        <h2 class="mb-4 text-primary">📚 Portal de Documentos Vigentes</h2>
+        <div class="page-hero animate-fade-in">
+            <h1><i class="fas fa-book me-2"></i>Portal de Documentos Vigentes</h1>
+            <p>Consulta, descarga y confirma de forma rápida la lectura de normativas vigentes en planta.</p>
+        </div>
         
         <div class="card mb-4">
             <div class="card-body">
-                <label for="inputBusqueda" class="form-label">Buscar normativa por título o contenido clave (Full-Text Search):</label>
-                <input type="text" id="inputBusqueda" class="form-control bg-dark text-white border-secondary" placeholder="Ej. Manual de Calidad, ISO 9001, Soldadura...">
+                <label for="inputBusqueda" class="form-label mb-2">Buscar normativa por título o contenido clave (Full-Text Search):</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="inputBusqueda" class="form-control border-start-0 ps-1" placeholder="Ej. Manual de Calidad, ISO 9001, Soldadura...">
+                </div>
             </div>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-dark table-hover align-middle">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Código</th>
@@ -80,29 +323,29 @@
     <!-- Modal Configuración de Conexiones -->
     <div class="modal fade" id="modalConexiones" tabindex="-1" aria-labelledby="modalConexionesLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary" style="border-radius: 12px;">
-                <div class="modal-header border-secondary" style="background-color: #1a1a1a;">
-                    <h5 class="modal-title fw-bold text-primary" id="modalConexionesLabel"><i class="fas fa-network-wired me-2"></i> Configuración de Conexiones</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="modalConexionesLabel"><i class="fas fa-network-wired me-2"></i> Configuración de Conexiones</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p class="small text-muted mb-3">Define las URLs del ecosistema para la navegación del cliente y llamadas de API. De forma predeterminada, se detecta el host actual y cambia el puerto.</p>
                     <div class="mb-3">
-                        <label for="cfg_csharp" class="form-label fw-bold text-light">Módulo Central (C# - Puerto 5000)</label>
-                        <input type="text" id="cfg_csharp" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:5000" />
+                        <label for="cfg_csharp" class="form-label fw-bold">Módulo Central (C# - Puerto 5000)</label>
+                        <input type="text" id="cfg_csharp" class="form-control" placeholder="http://localhost:5000" />
                     </div>
                     <div class="mb-3">
-                        <label for="cfg_php" class="form-label fw-bold text-light">Módulo de Reportes/Portal (PHP - Puerto 8000)</label>
-                        <input type="text" id="cfg_php" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:8000" />
+                        <label for="cfg_php" class="form-label fw-bold">Módulo de Reportes/Portal (PHP - Puerto 8000)</label>
+                        <input type="text" id="cfg_php" class="form-control" placeholder="http://localhost:8000" />
                     </div>
                     <div class="mb-3">
-                        <label for="cfg_node" class="form-label fw-bold text-light">Buscador Global (Node.js - Puerto 3000)</label>
-                        <input type="text" id="cfg_node" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:3000" />
+                        <label for="cfg_node" class="form-label fw-bold">Buscador Global (Node.js - Puerto 3000)</label>
+                        <input type="text" id="cfg_node" class="form-control" placeholder="http://localhost:3000" />
                     </div>
                 </div>
-                <div class="modal-footer border-secondary" style="background-color: #1a1a1a;">
-                    <button type="button" class="btn btn-outline-light btn-sm" id="btnResetConexiones">Restablecer</button>
-                    <button type="button" class="btn btn-primary btn-sm" id="btnGuardarConexiones">Guardar Cambios</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-jewel btn-sm" id="btnResetConexiones">Restablecer</button>
+                    <button type="button" class="btn btn-jewel-primary btn-sm" id="btnGuardarConexiones">Guardar Cambios</button>
                 </div>
             </div>
         </div>
@@ -178,14 +421,14 @@
             documentos.forEach(doc => {
                 const fila = `
                     <tr>
-                        <td><span class="badge bg-secondary">${doc.codigo_interno}</span></td>
+                        <td><span class="badge badge-codigo">${doc.codigo_interno}</span></td>
                         <td><strong>${doc.titulo}</strong></td>
-                        <td><span class="badge bg-info text-dark">v${doc.version ?? 1}</span></td>
+                        <td><span class="badge badge-version">v${doc.version ?? 1}</span></td>
                         <td class="text-end">
-                            <a href="${resolvedUrls.csharp}/Documento/DescargarUltima/${doc.id_documento_sql}" class="btn btn-outline-info btn-sm me-2" target="_blank">
+                            <a href="${resolvedUrls.csharp}/Documento/DescargarUltima/${doc.id_documento_sql}" class="btn btn-outline-jewel btn-sm me-2" target="_blank">
                                 <i class="fas fa-download me-1"></i> Descargar PDF
                             </a>
-                            <button class="btn btn-success btn-sm" onclick="firmarLectura(${doc.id_documento_sql})">
+                            <button class="btn btn-jewel-primary btn-sm" onclick="firmarLectura(${doc.id_documento_sql})">
                                 <i class="fas fa-check me-1"></i> Confirmar Lectura
                             </button>
                         </td>
@@ -228,6 +471,11 @@
         }
 
         // Configuración modal
+        // Detectar si está dentro de un iframe
+        if (window.self !== window.top) {
+            document.body.classList.add('in-iframe');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             rewriteLinks();
             

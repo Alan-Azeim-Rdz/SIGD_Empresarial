@@ -8,26 +8,44 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
         :root {
-            --bg-dark:   #0d1117;
-            --bg-card:   #161b22;
-            --bg-card2:  #1c2128;
-            --accent1:   #58a6ff;
-            --accent2:   #3fb950;
-            --accent3:   #f78166;
-            --accent4:   #d2a8ff;
-            --border:    #30363d;
-            --text-main: #e6edf3;
-            --text-muted:#8b949e;
+            /* Paleta principal (Jewel Tones) */
+            --sapphire:       #1E3D59;
+            --sapphire-light: #2d6a9f;
+            --sapphire-dark:  #132941;
+            --emerald:        #0F7A72;
+            --emerald-light:  #1a9e95;
+            --emerald-dark:   #0a5a54;
+            --amethyst:       #6B4C9A;
+            --amethyst-light: #8b6bbf;
+            --amber:          #E8A020;
+            --crimson:        #C0392B;
+            --crimson-light:  #e74c3c;
+
+            /* Neutros */
+            --bg:             #F4F1EB;
+            --bg-card:        #FFFFFF;
+            --bg-hover:       #EEF2F7;
+            --text-primary:   #1C2B3A;
+            --text-secondary: #546E7A;
+            --text-muted:     #90A4AE;
+            --border:         #DDE3EA;
+            --radius-md:      .85rem;
+            --radius-sm:      .5rem;
+            --shadow-sm:      0 1px 4px rgba(30,61,89,.08);
+            --shadow-md:      0 4px 16px rgba(30,61,89,.12);
         }
 
         * { box-sizing: border-box; }
 
         body {
-            background: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
             min-height: 100vh;
+            line-height: 1.6;
         }
 
         /* ── Sidebar ── */
@@ -38,7 +56,7 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            padding: 1.5rem 1rem;
+            padding: 1.5rem 1.2rem;
             position: fixed;
             top: 0; left: 0;
             z-index: 100;
@@ -46,26 +64,27 @@
         .sidebar-logo {
             font-size: 1.15rem;
             font-weight: 800;
-            color: var(--accent1);
+            color: var(--sapphire-dark);
             margin-bottom: 2rem;
             letter-spacing: -.5px;
         }
-        .sidebar-logo span { color: var(--text-main); }
+        .sidebar-logo span { color: var(--amber); }
         .nav-link-side {
             display: flex;
             align-items: center;
             gap: .7rem;
-            color: var(--text-muted);
-            padding: .55rem .75rem;
-            border-radius: .5rem;
+            color: var(--text-secondary);
+            padding: .6rem .8rem;
+            border-radius: var(--radius-sm);
             text-decoration: none;
             font-size: .9rem;
+            font-weight: 500;
             transition: background .15s, color .15s;
-            margin-bottom: .2rem;
+            margin-bottom: .3rem;
         }
         .nav-link-side:hover, .nav-link-side.active {
-            background: rgba(88,166,255,.12);
-            color: var(--accent1);
+            background: var(--bg-hover);
+            color: var(--sapphire-light);
         }
         .sidebar-divider {
             border-top: 1px solid var(--border);
@@ -78,26 +97,40 @@
             padding: 2rem 2.5rem;
         }
 
-        /* ── Page header ── */
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2rem;
+        /* ── Page header hero ── */
+        .page-hero {
+            background: linear-gradient(135deg, var(--sapphire-dark) 0%, var(--sapphire) 55%, var(--sapphire-light) 100%);
+            border-radius: var(--radius-md);
+            padding: 2rem;
+            color: #fff;
+            margin-bottom: 1.75rem;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
         }
-        .page-header h1 {
-            font-size: 1.55rem;
-            font-weight: 700;
-            margin: 0;
+        .page-hero::after {
+            content: '';
+            position: absolute;
+            right: -60px; top: -60px;
+            width: 220px; height: 220px;
+            background: rgba(255,255,255,.04);
+            border-radius: 50%;
         }
-        .page-header .badge-live {
-            background: rgba(63,185,80,.15);
-            color: var(--accent2);
-            border: 1px solid rgba(63,185,80,.4);
+        .page-hero h1 { font-size: 1.7rem; font-weight: 800; color: #fff; margin-bottom: .3rem; }
+        .page-hero p  { color: rgba(255,255,255,.78); margin: 0; font-size: .95rem; }
+
+        .page-hero .badge-live {
+            background: rgba(255, 255, 255, .15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, .3);
             border-radius: 2rem;
             padding: .3rem .9rem;
             font-size: .8rem;
             font-weight: 600;
+        }
+
+        body.in-iframe .page-hero {
+            display: none !important;
         }
 
         /* ── KPI Cards ── */
@@ -110,14 +143,18 @@
         .kpi-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 1rem;
+            border-radius: var(--radius-md);
             padding: 1.3rem 1.5rem;
             display: flex;
             flex-direction: column;
             gap: .3rem;
+            box-shadow: var(--shadow-sm);
             transition: transform .15s, box-shadow .15s;
         }
-        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.3); }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
         .kpi-card .kpi-icon {
             width: 40px; height: 40px;
             border-radius: .7rem;
@@ -130,16 +167,16 @@
             font-weight: 800;
             line-height: 1;
         }
-        .kpi-card .kpi-label { font-size: .8rem; color: var(--text-muted); }
+        .kpi-card .kpi-label { font-size: .8rem; color: var(--text-secondary); font-weight: 500; }
 
-        .kpi-blue  .kpi-icon { background: rgba(88,166,255,.15);  color: var(--accent1); }
-        .kpi-green .kpi-icon { background: rgba(63,185,80,.15);   color: var(--accent2); }
-        .kpi-red   .kpi-icon { background: rgba(247,129,102,.15); color: var(--accent3); }
-        .kpi-purple.kpi-icon { background: rgba(210,168,255,.15); color: var(--accent4); }
-        .kpi-blue  .kpi-value { color: var(--accent1); }
-        .kpi-green .kpi-value { color: var(--accent2); }
-        .kpi-red   .kpi-value { color: var(--accent3); }
-        .kpi-purple .kpi-value { color: var(--accent4); }
+        .kpi-blue  .kpi-icon { background: rgba(45,106,159,.12);  color: var(--sapphire-light); }
+        .kpi-green .kpi-icon { background: rgba(15,122,114,.12);   color: var(--emerald); }
+        .kpi-red   .kpi-icon { background: rgba(192,57,43,.12); color: var(--crimson); }
+        .kpi-purple.kpi-icon { background: rgba(107,76,154,.12); color: var(--amethyst); }
+        .kpi-blue  .kpi-value { color: var(--sapphire-dark); }
+        .kpi-green .kpi-value { color: var(--emerald-dark); }
+        .kpi-red   .kpi-value { color: var(--crimson); }
+        .kpi-purple .kpi-value { color: var(--amethyst); }
 
         /* ── Chart containers ── */
         .charts-row {
@@ -151,68 +188,75 @@
         .chart-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
             padding: 1.4rem;
         }
         .chart-card h2 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-main);
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--sapphire-dark);
             margin-bottom: 1rem;
         }
-        .chart-card h2 i { color: var(--text-muted); margin-right: .4rem; }
+        .chart-card h2 i { color: var(--text-secondary); margin-right: .4rem; }
 
         /* ── Tabla de actividad ── */
         .activity-table {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 1rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
             padding: 1.4rem;
             margin-bottom: 2rem;
         }
         .activity-table h2 {
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--sapphire-dark);
             margin-bottom: 1rem;
         }
         table.sigd-table { width: 100%; border-collapse: collapse; }
         table.sigd-table th {
             text-align: left;
             font-size: .78rem;
-            color: var(--text-muted);
-            padding: .5rem .8rem;
-            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: .6rem .8rem;
+            border-bottom: 1.5px solid var(--border);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: .05em;
         }
         table.sigd-table td {
-            padding: .75rem .8rem;
+            padding: .85rem .8rem;
             font-size: .87rem;
-            border-bottom: 1px solid rgba(48,54,61,.6);
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
         }
         table.sigd-table tr:last-child td { border-bottom: none; }
-        table.sigd-table tr:hover td { background: rgba(255,255,255,.025); }
+        table.sigd-table tr:hover td { background: var(--bg-hover); }
 
         .badge-version {
-            background: rgba(88,166,255,.15);
-            color: var(--accent1);
+            background: rgba(45,106,159,.12);
+            color: var(--sapphire-light);
+            border: 1px solid rgba(45,106,159,.2);
             border-radius: .4rem;
             padding: .15rem .55rem;
             font-size: .75rem;
             font-weight: 700;
         }
         .badge-depto {
-            background: rgba(210,168,255,.12);
-            color: var(--accent4);
+            background: rgba(107,76,154,.12);
+            color: var(--amethyst);
+            border: 1px solid rgba(107,76,154,.2);
             border-radius: .4rem;
             padding: .15rem .55rem;
             font-size: .73rem;
+            font-weight: 600;
         }
 
         /* ── Spinner & Empty ── */
         .skeleton {
-            background: linear-gradient(90deg, var(--bg-card2) 25%, var(--bg-card) 50%, var(--bg-card2) 75%);
+            background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-card) 50%, var(--bg-hover) 75%);
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
             border-radius: .5rem;
@@ -225,20 +269,90 @@
 
         /* ── Portal link ── */
         .portal-btn {
-            background: linear-gradient(135deg, var(--accent1), var(--accent4));
+            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-light) 100%);
             color: #fff !important;
             border: none;
             border-radius: .6rem;
             padding: .55rem 1.2rem;
             font-size: .88rem;
             font-weight: 600;
+            box-shadow: 0 2px 8px rgba(15,122,114,.25);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: .5rem;
-            transition: opacity .2s;
+            transition: opacity .2s, transform .2s;
         }
-        .portal-btn:hover { opacity: .85; }
+        .portal-btn:hover {
+            box-shadow: 0 4px 14px rgba(15,122,114,.35);
+            transform: translateY(-1px);
+        }
+
+        /* Ajustes de Iframe */
+        body.in-iframe {
+            background-color: transparent !important;
+            padding: 0;
+        }
+        body.in-iframe .sidebar {
+            display: none !important;
+        }
+        body.in-iframe .main-content {
+            margin-left: 0 !important;
+            padding: 1rem !important;
+        }
+
+        /* Modales */
+        .modal-content {
+            border: none;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .modal-header {
+            background: linear-gradient(135deg, var(--sapphire) 0%, var(--sapphire-light) 100%);
+            color: #fff;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            padding: 1.1rem 1.5rem;
+            border-bottom: none;
+        }
+        .modal-header .modal-title { font-weight: 700; }
+        .modal-header .btn-close { filter: invert(1) brightness(2); }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
+        .btn-jewel-primary {
+            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-light) 100%);
+            color: #fff;
+            border: none;
+            box-shadow: 0 2px 8px rgba(15,122,114,.25);
+            font-weight: 600;
+        }
+        .btn-jewel-primary:hover {
+            background: linear-gradient(135deg, var(--emerald-dark) 0%, var(--emerald) 100%);
+            color: #fff;
+        }
+        .btn-outline-jewel {
+            border: 1.5px solid var(--sapphire);
+            color: var(--sapphire);
+            background: transparent;
+            font-weight: 600;
+        }
+        .btn-outline-jewel:hover {
+            background: var(--sapphire);
+            color: #fff;
+        }
+        .form-label {
+            font-weight: 600;
+            font-size: .85rem;
+            color: var(--text-primary);
+        }
+        .form-control {
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            background-color: #fff !important;
+            padding: .55rem .9rem;
+        }
 
         @media (max-width: 900px) {
             .sidebar { display: none; }
@@ -268,7 +382,7 @@
             <i class="fas fa-database fa-fw"></i> API Búsqueda
         </a>
         <div class="sidebar-divider"></div>
-        <a href="#" class="nav-link-side" data-bs-toggle="modal" data-bs-target="#modalConexiones" id="btn-config-conexiones" style="color: var(--accent1) !important;">
+        <a href="#" class="nav-link-side" data-bs-toggle="modal" data-bs-target="#modalConexiones" id="btn-config-conexiones" style="color: var(--sapphire-light) !important;">
             <i class="fas fa-cog fa-fw"></i> Conexiones
         </a>
     </nav>
@@ -278,16 +392,18 @@
 <div class="main-content">
 
     <!-- Header -->
-    <div class="page-header">
-        <div>
-            <h1><i class="fas fa-chart-bar me-2" style="color:var(--accent1)"></i>Dashboard de Reportes</h1>
-            <small style="color:var(--text-muted)">Métricas en tiempo real — Base de datos PostgreSQL</small>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-            <span class="badge-live"><i class="fas fa-circle me-1" style="font-size:.55rem"></i>En vivo</span>
-            <a href="?action=portal" class="portal-btn">
-                <i class="fas fa-users"></i> Portal Operario
-            </a>
+    <div class="page-hero animate-fade-in">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <h1><i class="fas fa-chart-bar me-2"></i>Dashboard de Reportes</h1>
+                <p>Monitorea y analiza métricas de publicación y acuses de lectura en tiempo real.</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge-live"><i class="fas fa-circle me-1" style="font-size:.55rem"></i>En vivo</span>
+                <a href="?action=portal" class="portal-btn">
+                    <i class="fas fa-users me-1"></i>Portal Operario
+                </a>
+            </div>
         </div>
     </div>
 
@@ -353,10 +469,15 @@
 </div><!-- /main-content -->
 
 <script>
+// Detectar si está en un iframe
+if (window.self !== window.top) {
+    document.body.classList.add('in-iframe');
+}
+
 const BASE = window.location.origin + window.location.pathname.replace(/\?.*/, '');
 
 // ── Paleta de colores Chart.js ──
-const COLORS = ['#58a6ff','#3fb950','#f78166','#d2a8ff','#ffa657','#79c0ff','#56d364','#ff7b72'];
+const COLORS = ['#1E3D59', '#0F7A72', '#6B4C9A', '#E8A020', '#C0392B', '#2d6a9f', '#1a9e95', '#8b6bbf'];
 
 // ── 1. KPIs ──
 fetch(`${BASE}?action=api_kpis`)
@@ -387,14 +508,14 @@ fetch(`${BASE}?action=api_docs_por_depto`)
             type: 'doughnut',
             data: {
                 labels,
-                datasets: [{ data, backgroundColor: COLORS, borderColor: '#161b22', borderWidth: 3 }]
+                datasets: [{ data, backgroundColor: COLORS, borderColor: '#ffffff', borderWidth: 3 }]
             },
             options: {
                 responsive: true,
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { color: '#8b949e', padding: 12, font: { size: 11 } }
+                        labels: { color: '#546E7A', padding: 12, font: { size: 11 } }
                     },
                     tooltip: {
                         callbacks: {
@@ -412,7 +533,7 @@ fetch(`${BASE}?action=api_evolucion`)
     .then(rows => {
         if (rows.error || rows.length === 0) {
             document.getElementById('chartEvolucion').parentElement.innerHTML +=
-                '<p style="color:var(--text-muted);text-align:center;font-size:.88rem">Sin datos en los últimos 12 meses. Los documentos aparecerán conforme sean aprobados.</p>';
+                '<p style="color:var(--text-secondary);text-align:center;font-size:.88rem">Sin datos en los últimos 12 meses. Los documentos aparecerán conforme sean aprobados.</p>';
             return;
         }
         const labels = rows.map(r => r.mes);
@@ -424,11 +545,11 @@ fetch(`${BASE}?action=api_evolucion`)
                 datasets: [{
                     label: 'Documentos publicados',
                     data,
-                    borderColor: '#58a6ff',
-                    backgroundColor: 'rgba(88,166,255,.08)',
+                    borderColor: '#1E3D59',
+                    backgroundColor: 'rgba(30,61,89,.08)',
                     fill: true,
                     tension: .35,
-                    pointBackgroundColor: '#58a6ff',
+                    pointBackgroundColor: '#1E3D59',
                     pointRadius: 5,
                     pointHoverRadius: 7,
                 }]
@@ -437,10 +558,10 @@ fetch(`${BASE}?action=api_evolucion`)
                 responsive: true,
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: { ticks: { color: '#8b949e', font: { size: 11 } }, grid: { color: '#30363d' } },
-                    y: { ticks: { color: '#8b949e', font: { size: 11 }, stepSize: 1 }, grid: { color: '#30363d' }, beginAtZero: true }
+                    x: { ticks: { color: '#546E7A', font: { size: 11 } }, grid: { color: '#DDE3EA' } },
+                    y: { ticks: { color: '#546E7A', font: { size: 11 }, stepSize: 1 }, grid: { color: '#DDE3EA' }, beginAtZero: true }
                 },
-                plugins: { legend: { labels: { color: '#e6edf3' } } }
+                plugins: { legend: { labels: { color: '#1C2B3A' } } }
             }
         });
     });
@@ -473,29 +594,29 @@ fetch(`${BASE}?action=api_recientes`)
     <!-- Modal Configuración de Conexiones -->
     <div class="modal fade" id="modalConexiones" tabindex="-1" aria-labelledby="modalConexionesLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary" style="border-radius: 12px;">
-                <div class="modal-header border-secondary" style="background-color: #1a1a1a;">
-                    <h5 class="modal-title fw-bold text-primary" id="modalConexionesLabel"><i class="fas fa-network-wired me-2"></i> Configuración de Conexiones</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="modalConexionesLabel"><i class="fas fa-network-wired me-2"></i> Configuración de Conexiones</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p class="small text-muted mb-3">Define las URLs del ecosistema para la navegación del cliente y llamadas de API. De forma predeterminada, se detecta el host actual y cambia el puerto.</p>
                     <div class="mb-3">
-                        <label for="cfg_csharp" class="form-label fw-bold text-light">Módulo Central (C# - Puerto 5000)</label>
-                        <input type="text" id="cfg_csharp" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:5000" />
+                        <label for="cfg_csharp" class="form-label fw-bold">Módulo Central (C# - Puerto 5000)</label>
+                        <input type="text" id="cfg_csharp" class="form-control" placeholder="http://localhost:5000" />
                     </div>
                     <div class="mb-3">
-                        <label for="cfg_php" class="form-label fw-bold text-light">Módulo de Reportes/Portal (PHP - Puerto 8000)</label>
-                        <input type="text" id="cfg_php" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:8000" />
+                        <label for="cfg_php" class="form-label fw-bold">Módulo de Reportes/Portal (PHP - Puerto 8000)</label>
+                        <input type="text" id="cfg_php" class="form-control" placeholder="http://localhost:8000" />
                     </div>
                     <div class="mb-3">
-                        <label for="cfg_node" class="form-label fw-bold text-light">Buscador Global (Node.js - Puerto 3000)</label>
-                        <input type="text" id="cfg_node" class="form-control bg-secondary text-white border-dark text-white" placeholder="http://localhost:3000" />
+                        <label for="cfg_node" class="form-label fw-bold">Buscador Global (Node.js - Puerto 3000)</label>
+                        <input type="text" id="cfg_node" class="form-control" placeholder="http://localhost:3000" />
                     </div>
                 </div>
-                <div class="modal-footer border-secondary" style="background-color: #1a1a1a;">
-                    <button type="button" class="btn btn-outline-light btn-sm" id="btnResetConexiones">Restablecer</button>
-                    <button type="button" class="btn btn-primary btn-sm" id="btnGuardarConexiones">Guardar Cambios</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-jewel btn-sm" id="btnResetConexiones">Restablecer</button>
+                    <button type="button" class="btn btn-jewel-primary btn-sm" id="btnGuardarConexiones">Guardar Cambios</button>
                 </div>
             </div>
         </div>

@@ -53,7 +53,9 @@ function estatusTexto(mixed $val): string
 }
 
 // ── 3. LÓGICA DE RUTAS ────────────────────────────────
-$accion = $_GET['accion'] ?? 'buscar';
+// Acepta tanto ?action= (usado por el iframe .NET y el JS del dashboard)
+// como ?accion= (rutas PHP legacy) para compatibilidad total.
+$accion = $_GET['action'] ?? $_GET['accion'] ?? 'buscar';
 
 // ── 4. ACCIÓN: GENERAR REPORTE PDF ───────────────────
 if ($accion === 'reporte') {

@@ -4,97 +4,186 @@
     ViewData["Title"] = "Inicio";
 }
 
-<div class="py-4">
-    <h1 class="display-5 text-center">Panel de Control</h1>
-    <p class="text-center text-muted">Bienvenido al Sistema Integral de Gestión Documental (SIGD)</p>
+<div class="page-hero animate-fade-up">
+    <div class="d-flex align-items-center gap-3">
+        <div>
+            <h1><i class="fas fa-th-large me-2"></i>Panel de Control</h1>
+            <p class="mb-0">Bienvenido al Sistema Integral de Gestión Documental (SIGD)</p>
+        </div>
+    </div>
 </div>
 
-@if (!User.Identity.IsAuthenticated)
+@if (!User.Identity!.IsAuthenticated)
 {
-    <div class="text-center">
-        <p>Por favor <a asp-controller="Auth" asp-action="Login">inicia sesión</a> para acceder a las funciones del sistema.</p>
+    <div class="text-center py-5">
+        <div class="card card-jewel p-5" style="max-width: 420px; margin: auto;">
+            <i class="fas fa-lock fa-3x mb-3" style="color: var(--sapphire);"></i>
+            <h3>Acceso Restringido</h3>
+            <p>Por favor <a asp-controller="Auth" asp-action="Login" class="fw-bold">inicia sesión</a> para acceder a las funciones del sistema.</p>
+            <a asp-controller="Auth" asp-action="Login" class="btn btn-jewel-primary mt-2">
+                <i class="fas fa-sign-in-alt me-1"></i>Iniciar Sesión
+            </a>
+        </div>
     </div>
 }
 else
 {
-    <div class="mb-3">
-        <strong>Usuario:</strong> @User.Identity.Name
-        <br />
-        <strong>Roles:</strong> @string.Join(", ", User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value))
-    </div>
-
-    <div class="row g-3">
-        @* Administrador *@
-        @if (User.IsInRole("Administrador"))
-        {
-            <div class="col-md-4">
-                <div class="card card-jewel p-3 h-100">
-                    <h5 class="card-title">Administración</h5>
-                    <p class="card-text">Gestiona usuarios, roles y parámetros del sistema.</p>
-                    <a class="btn btn-jewel-primary" asp-controller="Auth" asp-action="Usuarios">Gestionar Usuarios</a>
-                    <a class="btn btn-outline-secondary ms-2" asp-controller="Auth" asp-action="Registro">Crear Usuario</a>
-                </div>
-            </div>
-        }
-
-        @* Superior / Aprobador *@
-        @if (User.IsInRole("Superior") || User.IsInRole("Aprobador"))
-        {
-            <div class="col-md-4">
-                <div class="card card-jewel p-3 h-100">
-                    <h5 class="card-title">Aprobación y Revisión</h5>
-                    <p class="card-text">Revisa y aprueba documentos pendientes en tu bandeja.</p>
-                    <a class="btn btn-jewel-primary" asp-controller="Flujo" asp-action="Pendientes">Ver Pendientes</a>
-                </div>
-            </div>
-        }
-
-        @* Editor / Usuario *@
-        @if (User.IsInRole("Editor") || User.IsInRole("Usuario"))
-        {
-            <div class="col-md-4">
-                <div class="card card-jewel p-3 h-100">
-                    <h5 class="card-title">Gestión de Documentos</h5>
-                    <p class="card-text">Crea, edita y envía documentos para aprobación.</p>
-                    <a class="btn btn-jewel-primary" asp-controller="Documento" asp-action="Crear">Crear Documento</a>
-                    <a class="btn btn-outline-secondary ms-2" asp-controller="Documento" asp-action="Index">Mis Documentos</a>
-                </div>
-            </div>
-        }
-
-        @* Normativas *@
-        @if (User.IsInRole("Administrador") || User.IsInRole("Editor") || User.IsInRole("Usuario"))
-        {
-            <div class="col-md-4">
-                <div class="card card-jewel p-3 h-100">
-                    <h5 class="card-title">Portal de Normativas</h5>
-                    <p class="card-text">Consulta y firma normativas y procedimientos vigentes en planta.</p>
-                    <a class="btn btn-jewel-primary" href="http://localhost:8000/index.php?action=portal" target="_blank">Ir al Portal</a>
-                </div>
-            </div>
-        }
-
-        @* Reportes *@
-        @if (User.IsInRole("Administrador") || User.IsInRole("Auditor"))
-        {
-            <div class="col-md-4">
-                <div class="card card-jewel p-3 h-100">
-                    <h5 class="card-title">Reportes y KPIs</h5>
-                    <p class="card-text">Genera reportes de estado, flujo de aprobación y auditoría en tiempo real.</p>
-                    <a class="btn btn-jewel-primary" href="http://localhost:8000/index.php?action=dashboard" target="_blank">Ir a Reportes</a>
-                </div>
-            </div>
-        }
-
-        @* Bandeja general para cualquier usuario autenticado *@
-        <div class="col-md-4">
-            <div class="card card-jewel p-3 h-100">
-                <h5 class="card-title">Mis Documentos</h5>
-                <p class="card-text">Accede a tus documentos creados, borradores y versiones.</p>
-                <a class="btn btn-jewel-primary" asp-controller="Documento" asp-action="Index">Ir a Mis Documentos</a>
+    <!-- Info del usuario -->
+    <div class="d-flex align-items-center gap-2 mb-3 p-3 rounded-xl" style="background: rgba(30,61,89,.05); border: 1px solid var(--border);">
+        <i class="fas fa-user-circle fa-2x" style="color: var(--sapphire);"></i>
+        <div>
+            <div class="fw-bold" style="font-size: .95rem;">@User.Identity.Name</div>
+            <div style="font-size: .78rem; color: var(--text-muted);">
+                <i class="fas fa-tag me-1"></i>
+                @string.Join(" · ", User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value))
             </div>
         </div>
     </div>
-}
 
-<div class="mt-4 text-muted small">Si alguna opción no está visible es porque tu rol no tiene permiso para esa acción.</div>
+    <div class="row g-3">
+
+        @if (User.IsInRole("Administrador"))
+        {
+            <div class="col-md-4 animate-fade-up" style="animation-delay:.05s">
+                <div class="card card-jewel p-4 h-100">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-xl d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background:rgba(107,76,154,.12);">
+                            <i class="fas fa-users-cog" style="color:var(--amethyst);font-size:1.2rem;"></i>
+                        </div>
+                        <h5 class="mb-0">Administración</h5>
+                    </div>
+                    <p class="mb-3">Gestiona usuarios, roles y parámetros del sistema.</p>
+                    <div class="d-flex gap-2 mt-auto flex-wrap">
+                        <a class="btn btn-jewel-primary" asp-controller="Auth" asp-action="Usuarios">
+                            <i class="fas fa-users me-1"></i>Gestionar Usuarios
+                        </a>
+                        <a class="btn btn-outline-jewel" asp-controller="Auth" asp-action="Registro">
+                            <i class="fas fa-user-plus me-1"></i>Crear
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (User.IsInRole("Superior") || User.IsInRole("Aprobador"))
+        {
+            <div class="col-md-4 animate-fade-up" style="animation-delay:.1s">
+                <div class="card card-jewel p-4 h-100">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-xl d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background:rgba(232,160,32,.12);">
+                            <i class="fas fa-check-circle" style="color:var(--amber);font-size:1.2rem;"></i>
+                        </div>
+                        <h5 class="mb-0">Aprobación y Revisión</h5>
+                    </div>
+                    <p class="mb-3">Revisa y aprueba documentos pendientes en tu bandeja.</p>
+                    <a class="btn btn-jewel-primary mt-auto" asp-controller="Flujo" asp-action="Pendientes">
+                        <i class="fas fa-inbox me-1"></i>Ver Pendientes
+                    </a>
+                </div>
+            </div>
+        }
+
+        @if (User.IsInRole("Editor") || User.IsInRole("Usuario") || User.IsInRole("Administrador"))
+        {
+            <div class="col-md-4 animate-fade-up" style="animation-delay:.15s">
+                <div class="card card-jewel p-4 h-100">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-xl d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background:rgba(30,61,89,.1);">
+                            <i class="fas fa-file-alt" style="color:var(--sapphire);font-size:1.2rem;"></i>
+                        </div>
+                        <h5 class="mb-0">Gestión de Documentos</h5>
+                    </div>
+                    <p class="mb-3">Crea, edita y envía documentos para aprobación.</p>
+                    <div class="d-flex gap-2 mt-auto flex-wrap">
+                        <a class="btn btn-jewel-primary" asp-controller="Documento" asp-action="Crear">
+                            <i class="fas fa-plus me-1"></i>Crear
+                        </a>
+                        <a class="btn btn-outline-jewel" asp-controller="Documento" asp-action="Index">
+                            <i class="fas fa-list me-1"></i>Mis Docs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (User.IsInRole("Administrador") || User.IsInRole("Editor") || User.IsInRole("Usuario"))
+        {
+            <div class="col-md-4 animate-fade-up" style="animation-delay:.2s">
+                <div class="card card-jewel p-4 h-100">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-xl d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background:rgba(15,122,114,.1);">
+                            <i class="fas fa-book" style="color:var(--emerald);font-size:1.2rem;"></i>
+                        </div>
+                        <h5 class="mb-0">Portal de Normativas</h5>
+                    </div>
+                    <p class="mb-3">Consulta y firma normativas y procedimientos vigentes en planta.</p>
+                    <a class="btn btn-jewel-primary mt-auto" asp-controller="Modulos" asp-action="Portal">
+                        <i class="fas fa-external-link-alt me-1"></i>Ir al Portal
+                    </a>
+                </div>
+            </div>
+        }
+
+        @if (User.IsInRole("Administrador") || User.IsInRole("Auditor"))
+        {
+            <div class="col-md-4 animate-fade-up" style="animation-delay:.25s">
+                <div class="card card-jewel p-4 h-100">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-xl d-flex align-items-center justify-content-center"
+                             style="width:48px;height:48px;background:rgba(232,160,32,.12);">
+                            <i class="fas fa-chart-bar" style="color:var(--amber);font-size:1.2rem;"></i>
+                        </div>
+                        <h5 class="mb-0">Reportes y KPIs</h5>
+                    </div>
+                    <p class="mb-3">Genera reportes de estado, flujo de aprobación y auditoría en tiempo real.</p>
+                    <a class="btn btn-jewel-primary mt-auto" asp-controller="Modulos" asp-action="Dashboard">
+                        <i class="fas fa-chart-line me-1"></i>Ir a Reportes
+                    </a>
+                </div>
+            </div>
+        }
+
+        <!-- Buscador global — para todos -->
+        <div class="col-md-4 animate-fade-up" style="animation-delay:.3s">
+            <div class="card card-jewel p-4 h-100">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="rounded-xl d-flex align-items-center justify-content-center"
+                         style="width:48px;height:48px;background:rgba(107,76,154,.12);">
+                        <i class="fas fa-search" style="color:var(--amethyst);font-size:1.2rem;"></i>
+                    </div>
+                    <h5 class="mb-0">Buscador Global</h5>
+                </div>
+                <p class="mb-3">Busca documentos vigentes en tiempo real vía índice MongoDB.</p>
+                <a class="btn btn-jewel-primary mt-auto" asp-controller="Busqueda" asp-action="Global">
+                    <i class="fas fa-search me-1"></i>Abrir Buscador
+                </a>
+            </div>
+        </div>
+
+        <!-- Mis Documentos — para todos -->
+        <div class="col-md-4 animate-fade-up" style="animation-delay:.35s">
+            <div class="card card-jewel p-4 h-100">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="rounded-xl d-flex align-items-center justify-content-center"
+                         style="width:48px;height:48px;background:rgba(30,61,89,.1);">
+                        <i class="fas fa-folder-open" style="color:var(--sapphire);font-size:1.2rem;"></i>
+                    </div>
+                    <h5 class="mb-0">Mis Documentos</h5>
+                </div>
+                <p class="mb-3">Accede a tus documentos creados, borradores y versiones archivadas.</p>
+                <a class="btn btn-jewel-primary mt-auto" asp-controller="Documento" asp-action="Index">
+                    <i class="fas fa-folder me-1"></i>Ver Mis Documentos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <p class="mt-4 text-muted" style="font-size: .8rem;">
+        <i class="fas fa-info-circle me-1"></i>
+        Si alguna opción no es visible, tu rol no tiene permiso para esa acción.
+    </p>
+}

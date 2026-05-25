@@ -2,59 +2,119 @@
 
 @{
     ViewData["Title"] = "Pendientes de Aprobación";
+    var total = Model.Count();
 }
 
-<div class="card card-jewel mt-4">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h3 class="mb-0 text-dark">Bandeja de Aprobaciones</h3>
-        <span class="badge bg-warning text-dark p-2">@Model.Count() Pendientes</span>
-    </div>
-    <div class="card-body">
-        @if (!Model.Any())
+<div class="page-hero animate-fade-up">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h1><i class="fas fa-inbox me-2"></i>Bandeja de Aprobaciones</h1>
+            <p class="mb-0">Documentos que requieren tu revisión y decisión</p>
+        </div>
+        @if (total > 0)
         {
-            <div class="alert alert-info text-center">
-                No tienes documentos pendientes de aprobación. ¡Excelente trabajo!
-            </div>
-        }
-        else
-        {
-            <div class="row">
-                @foreach (var flujo in Model)
-                {
-                    <div class="col-md-6 mb-4">
-                        <div class="card h-100 shadow-sm border-0 bg-light">
-                            <div class="card-body">
-                                <h5 class="card-title text-jewel-sapphire">@flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.Titulo</h5>
-                                <h6 class="card-subtitle mb-2 text-muted">@flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.CodigoInterno</h6>
-                                
-                                <p class="card-text mt-3">
-                                    <strong>Versión:</strong> V@(flujo.IdVersionDocumentoNavigation.NumeroVersion)<br/>
-                                    <strong>Enviado por:</strong> Usuario ID @flujo.IdUsuarioCreacion<br/>
-                                    <strong>Fecha:</strong> @flujo.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")
-                                </p>
-                                
-                                <a asp-controller="Documento" asp-action="Detalle" asp-route-id="@flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.Id" class="btn btn-sm btn-outline-info mb-3 w-100" target="_blank">
-                                    Revisar Documento
-                                </a>
-
-                                <form asp-action="Responder" method="post">
-                                    <input type="hidden" name="idFlujo" value="@flujo.Id" />
-                                    
-                                    <div class="mb-3">
-                                        <label class="form-label">Comentarios (opcional)</label>
-                                        <textarea name="comentarios" class="form-control" rows="2" placeholder="Motivo de rechazo o nota de aprobación..."></textarea>
-                                    </div>
-                                    
-                                    <div class="d-flex gap-2">
-                                        <button type="submit" name="respuesta" value="Rechazar" class="btn btn-danger w-50">Rechazar</button>
-                                        <button type="submit" name="respuesta" value="Aprobar" class="btn btn-success w-50">Aprobar (Hacer Vigente)</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
+            <span class="badge" style="background: var(--amber); color: #fff; font-size: 1rem; padding: .5rem 1.1rem; border-radius: 2rem;">
+                <i class="fas fa-bell me-1"></i>@total Pendiente@(total != 1 ? "s" : "")
+            </span>
         }
     </div>
 </div>
+
+@if (!Model.Any())
+{
+    <div class="card card-jewel text-center py-5 animate-fade-in">
+        <div class="card-body">
+            <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-xl"
+                 style="width:72px;height:72px;background:rgba(15,122,114,.1);">
+                <i class="fas fa-check-circle fa-2x" style="color:var(--emerald);"></i>
+            </div>
+            <h4>¡Todo al día!</h4>
+            <p class="text-muted">No tienes documentos pendientes de aprobación. Excelente trabajo.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var flujo in Model)
+        {
+            var doc = flujo.IdVersionDocumentoNavigation?.IdDocumentoNavigation;
+            var ver = flujo.IdVersionDocumentoNavigation;
+            <div class="col-md-6 animate-fade-up">
+                <div class="card card-jewel h-100">
+                    <div class="card-body p-4">
+
+                        <!-- Encabezado del documento -->
+                        <div class="d-flex align-items-start gap-3 mb-3">
+                            <div class="d-flex align-items-center justify-content-center rounded-xl flex-shrink-0"
+                                 style="width:44px;height:44px;background:rgba(30,61,89,.08);">
+                                <i class="fas fa-file-pdf" style="color:var(--sapphire);font-size:1.1rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="mb-1" style="font-size: .98rem; color: var(--sapphire);">
+                                    @doc?.Titulo
+                                </h5>
+                                <code style="font-size: .78rem; color: var(--text-muted);">
+                                    @doc?.CodigoInterno
+                                </code>
+                            </div>
+                            <span class="badge badge-revision">
+                                <i class="fas fa-clock me-1"></i>En Revisión
+                            </span>
+                        </div>
+
+                        <!-- Metadatos -->
+                        <div class="p-3 mb-3 rounded-xl" style="background: var(--bg-hover); font-size: .83rem;">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div>
+                                    <span class="text-muted">Versión</span><br>
+                                    <strong>V@(ver?.NumeroVersion)</strong>
+                                </div>
+                                <div>
+                                    <span class="text-muted">Enviado por</span><br>
+                                    <strong>Usuario #@flujo.IdUsuarioCreacion</strong>
+                                </div>
+                                <div>
+                                    <span class="text-muted">Fecha</span><br>
+                                    <strong>@flujo.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón revisar -->
+                        <a asp-controller="Documento" asp-action="Detalle"
+                           asp-route-id="@doc?.Id"
+                           class="btn btn-outline-jewel btn-sm w-100 mb-3">
+                            <i class="fas fa-search me-1"></i>Revisar Documento
+                        </a>
+
+                        <!-- Formulario de respuesta -->
+                        <form asp-action="Responder" method="post">
+                            <input type="hidden" name="idFlujo" value="@flujo.Id" />
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-size: .82rem;">Comentarios (opcional)</label>
+                                <textarea name="comentarios" class="form-control" rows="2"
+                                          placeholder="Motivo de rechazo o nota de aprobación…"
+                                          style="font-size: .85rem; resize: none;"></textarea>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="respuesta" value="Rechazar"
+                                        class="btn btn-sm w-50"
+                                        style="background: rgba(192,57,43,.1); color: var(--crimson); border: 1px solid rgba(192,57,43,.25); font-weight: 600;">
+                                    <i class="fas fa-times me-1"></i>Rechazar
+                                </button>
+                                <button type="submit" name="respuesta" value="Aprobar"
+                                        class="btn btn-jewel-primary btn-sm w-50">
+                                    <i class="fas fa-check me-1"></i>Aprobar
+                                </button>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
