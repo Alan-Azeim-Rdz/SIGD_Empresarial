@@ -15,3 +15,9 @@ vendor/
 # SO
 .DS_Store
 Thumbs.db
+
+# Datos sensibles y scripts de carga generados
+scripts/seeder/mongodb_seed_data.json
+scripts/sqlserver/seed_demo_json.sql
+scripts/postgres/seed_demo_json.sql
+scripts/mongo/seed_demo_json.js

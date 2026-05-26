@@ -476,8 +476,22 @@
             document.body.classList.add('in-iframe');
         }
 
+        async function cargarDocumentosIniciales() {
+            try {
+                tablaResultados.innerHTML = '<tr><td colspan="4" class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando normativas vigentes...</td></tr>';
+                const response = await fetch(`${resolvedUrls.node}/buscar?q=PRO`);
+                if (!response.ok) throw new Error("Fallo en la respuesta del buscador");
+                const data = await response.json();
+                renderizarTabla(data.data || []);
+            } catch (error) {
+                console.error("Error al cargar documentos iniciales:", error);
+                tablaResultados.innerHTML = '<tr><td colspan="4" class="text-center text-danger"><i class="fas fa-exclamation-circle me-2"></i>No se pudieron cargar las normativas de forma automática. Verifica que el microservicio de búsqueda (Node.js en puerto 3000) esté activo o intenta buscar manualmente.</td></tr>';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             rewriteLinks();
+            cargarDocumentosIniciales();
             
             const inputCSharp = document.getElementById('cfg_csharp');
             const inputPHP = document.getElementById('cfg_php');

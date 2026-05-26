@@ -17,6 +17,27 @@
                     <li class="list-group-item"><strong>Tipo:</strong> @Model.IdTipoDocumentoNavigation?.Nombre</li>
                     <li class="list-group-item"><strong>Departamento:</strong> @Model.IdDepartamentoNavigation?.Nombre</li>
                     <li class="list-group-item"><strong>Fecha de Creación:</strong> @Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</li>
+                    @using System.Text.Json
+                    @if (!string.IsNullOrEmpty(Model.CamposPersonalizadosValores))
+                    {
+                        try
+                        {
+                            var valoresDict = JsonSerializer.Deserialize<Dictionary<string, string>>(Model.CamposPersonalizadosValores);
+                            if (valoresDict != null && valoresDict.Any())
+                            {
+                                <li class="list-group-item bg-light mt-2 fw-bold text-jewel-sapphire"><i class="fas fa-info-circle"></i> Datos Especiales</li>
+                                foreach (var kvp in valoresDict)
+                                {
+                                    var mostrarValor = kvp.Value;
+                                    if (mostrarValor == "true") mostrarValor = "Sí";
+                                    else if (mostrarValor == "false") mostrarValor = "No";
+                                    
+                                    <li class="list-group-item"><strong>@kvp.Key:</strong> @mostrarValor</li>
+                                }
+                            }
+                        }
+                        catch (Exception) {}
+                    }
                 </ul>
             </div>
             <div class="col-md-6 text-center mt-4">

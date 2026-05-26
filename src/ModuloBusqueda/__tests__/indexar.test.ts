@@ -31,6 +31,15 @@ describe('POST /indexar', () => {
     expect(res.body.mensaje).toMatch(/obligatorios/i);
   });
 
+  it('rechaza si falta id_empresa → 400', async () => {
+    const { id_empresa: _, ...sinEmpresa } = payloadIndexarValido;
+    const res = await request(app).post('/indexar').send(sinEmpresa);
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.mensaje).toMatch(/obligatorios/i);
+  });
+
   it('rechaza si falta codigo_interno → 400', async () => {
     const { codigo_interno: _, ...sinCodigo } = payloadIndexarValido;
     const res = await request(app).post('/indexar').send(sinCodigo);

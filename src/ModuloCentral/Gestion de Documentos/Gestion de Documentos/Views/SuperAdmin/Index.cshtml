@@ -1,0 +1,183 @@
+@model Gestion_de_Documentos.Controllers.SuperAdminStatsViewModel
+@{
+    ViewData["Title"] = "Panel Súper Administrador";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold" style="color: var(--jewel-sapphire);">
+                <i class="fas fa-user-shield"></i> Panel Súper Administrador
+            </h2>
+            <p class="text-muted mb-0">Consola de administración global y monitoreo multi-tenant</p>
+        </div>
+        <a asp-action="CrearEmpresa" class="btn btn-jewel-primary px-4 py-2">
+            <i class="fas fa-plus"></i> Registrar Nueva Empresa
+        </a>
+    </div>
+
+    <!-- Alert Success -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Stat Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm border-start border-5 h-100" style="border-color: var(--jewel-sapphire) !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted small mb-1">Total Empresas</h6>
+                            <h2 class="fw-bold mb-0">@Model.TotalEmpresas</h2>
+                        </div>
+                        <i class="fas fa-industry fa-2x text-muted" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm border-start border-5 h-100" style="border-color: var(--emerald) !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted small mb-1">Empresas Activas</h6>
+                            <h2 class="fw-bold mb-0 text-success">@Model.EmpresasActivas</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x text-success" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm border-start border-5 h-100" style="border-color: var(--amber) !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted small mb-1">Total Usuarios Global</h6>
+                            <h2 class="fw-bold mb-0">@Model.TotalUsuariosGlobal</h2>
+                        </div>
+                        <i class="fas fa-users fa-2x text-muted" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm border-start border-5 h-100" style="border-color: var(--amethyst) !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted small mb-1">Total Documentos Global</h6>
+                            <h2 class="fw-bold mb-0">@Model.TotalDocumentosGlobal</h2>
+                        </div>
+                        <i class="fas fa-file-pdf fa-2x text-muted" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="card card-jewel">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 text-dark fw-bold">
+                <i class="fas fa-list-ul me-1 text-jewel-sapphire"></i> Empresas Registradas
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-secondary">
+                        <tr>
+                            <th class="ps-4">Empresa</th>
+                            <th>Slug / Identificador</th>
+                            <th>RFC</th>
+                            <th>Contacto</th>
+                            <th>Fecha Registro</th>
+                            <th class="text-center">Usuarios</th>
+                            <th class="text-center">Documentos</th>
+                            <th class="text-center">Estatus</th>
+                            <th class="text-end pe-4" style="width: 180px;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Empresas.Any())
+                        {
+                            foreach (var empresa in Model.Empresas)
+                            {
+                                <tr class="@(!empresa.Estatus ? "table-light opacity-75" : "")">
+                                    <td class="ps-4 fw-bold text-dark">
+                                        @empresa.Nombre
+                                    </td>
+                                    <td>
+                                        <code class="px-2 py-1 bg-light rounded text-jewel-sapphire">@empresa.Slug</code>
+                                    </td>
+                                    <td>@(string.IsNullOrEmpty(empresa.RFC) ? "-" : empresa.RFC)</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(empresa.CorreoContacto))
+                                        {
+                                            <a href="mailto:@empresa.CorreoContacto" class="text-decoration-none text-muted small">
+                                                <i class="fas fa-envelope me-1"></i>@empresa.CorreoContacto
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </td>
+                                    <td>@empresa.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark border">@empresa.Usuarios.Count</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark border">@empresa.Documentos.Count</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (empresa.Estatus)
+                                        {
+                                            <span class="badge bg-success-light text-success px-2 py-1"><i class="fas fa-check me-1"></i>Activo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-light text-danger px-2 py-1"><i class="fas fa-ban me-1"></i>Desactivado</span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <form asp-action="ToggleEstatus" asp-route-id="@empresa.Id" method="post" class="d-inline-block">
+                                            @if (empresa.Estatus)
+                                            {
+                                                <button type="submit" class="btn btn-outline-danger btn-sm px-3" onclick="return confirm('¿Está seguro de desactivar esta empresa? Los usuarios no podrán iniciar sesión.');">
+                                                    <i class="fas fa-ban"></i> Desactivar
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn btn-outline-success btn-sm px-3">
+                                                    <i class="fas fa-check"></i> Activar
+                                                </button>
+                                            }
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="fas fa-industry fa-3x mb-3"></i>
+                                    <h5>No hay empresas registradas</h5>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

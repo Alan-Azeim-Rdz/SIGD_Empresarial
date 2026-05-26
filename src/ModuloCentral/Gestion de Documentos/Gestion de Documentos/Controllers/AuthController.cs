@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gestion_de_Documentos.Controllers
 {
@@ -44,42 +45,62 @@ namespace Gestion_de_Documentos.Controllers
 
             var hashContrasena = HashPassword(contrasena);
 
-            if (usuario != null && string.Equals(usuario.Contrasena.Trim(), hashContrasena.Trim(), StringComparison.OrdinalIgnoreCase))
+            if (usuario != null)
             {
-                var claims = new List<System.Security.Claims.Claim>
+                bool esCorrecto = string.Equals(usuario.Contrasena.Trim(), hashContrasena.Trim(), StringComparison.OrdinalIgnoreCase);
+
+                // Registrar el intento de acceso en la bitácora
+                var bitacora = new BitacoraAcceso
                 {
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, usuario.Correo),
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.GivenName, usuario.Nombre),
+                    IdUsuario = usuario.Id,
+                    FechaHoraIntento = DateTime.Now,
+                    DireccionIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+                    EstadoIntento = esCorrecto ? "Exitoso" : "Fallido",
+                    IdUsuarioCreacion = usuario.Id,
+                    Estatus = true
                 };
 
-                // Agregar roles desde la base de datos usando la propiedad mapeada
-                var rolesActivos = usuario.UsuarioRolIdUsuarioNavigations != null
-                    ? usuario.UsuarioRolIdUsuarioNavigations
-                        .Select(ur => ur.IdRolNavigation?.Nombre)
-                        .Where(r => !string.IsNullOrEmpty(r))
-                        .ToList()
-                    : new List<string>();
+                _context.BitacoraAccesos.Add(bitacora);
+                await _context.SaveChangesAsync();
 
-                if (rolesActivos.Any())
+                if (esCorrecto)
                 {
-                    foreach (var rol in rolesActivos)
+                    var claims = new List<System.Security.Claims.Claim>
                     {
-                        claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, rol));
+                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, usuario.Correo),
+                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.GivenName, usuario.Nombre),
+                        new System.Security.Claims.Claim("IdEmpresa", usuario.IdEmpresa?.ToString() ?? "0")
+                    };
+
+                    // Agregar roles desde la base de datos usando la propiedad mapeada
+                    var rolesActivos = usuario.UsuarioRolIdUsuarioNavigations != null
+                        ? usuario.UsuarioRolIdUsuarioNavigations
+                            .Select(ur => ur.IdRolNavigation?.Nombre)
+                            .Where(r => !string.IsNullOrEmpty(r))
+                            .ToList()
+                        : new List<string>();
+
+                    if (rolesActivos.Any())
+                    {
+                        foreach (var rol in rolesActivos)
+                        {
+                            claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, rol));
+                        }
                     }
+                    else
+                    {
+                        // Si no tiene roles asignados, asignar rol por defecto
+                        claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Usuario"));
+                    }
+
+                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var principal = new ClaimsPrincipal(identity);
+
+                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+                    return RedirectToAction("Index", "Home");
                 }
-                else
-                {
-                    // Si no tiene roles asignados, asignar rol por defecto
-                    claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Usuario"));
-                }
-
-                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var principal = new ClaimsPrincipal(identity);
-
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-
-                return RedirectToAction("Index", "Home");
             }
 
             ViewBag.Error = "El Username o la contraseña son incorrectos.";
@@ -91,7 +112,8 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador,Superior")]
         public IActionResult Registro()
         {
-            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
             return View();
         }
 
@@ -99,24 +121,26 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador,Superior")]
         public async Task<IActionResult> Registro(Usuario nuevoUsuario)
         {
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
             if (ModelState.IsValid)
             {
                 bool existe = await _context.Usuarios.AnyAsync(u => u.Correo == nuevoUsuario.Correo);
                 if (existe)
                 {
                     ViewBag.Error = "Este correo electrónico ya está registrado.";
-                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
                     return View(nuevoUsuario);
                 }
 
-                var departamentoExiste = await _context.Departamentos.AnyAsync(d => d.Id == nuevoUsuario.IdDepartamento && d.Estatus == true);
+                var departamentoExiste = await _context.Departamentos.AnyAsync(d => d.Id == nuevoUsuario.IdDepartamento && d.Estatus == true && d.IdEmpresa == empresaId);
                 if (!departamentoExiste)
                 {
                     ViewBag.Error = "El departamento seleccionado no es válido.";
-                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
                     return View(nuevoUsuario);
                 }
 
+                nuevoUsuario.IdEmpresa = empresaId;
                 nuevoUsuario.Estatus = true;
                 nuevoUsuario.FechaCreacion = DateTime.Now;
                 nuevoUsuario.IdUsuarioCreacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
@@ -128,11 +152,11 @@ namespace Gestion_de_Documentos.Controllers
 
                 ViewBag.Exito = "Usuario creado exitosamente. Deberá cambiar su contraseña en el primer acceso.";
                 ModelState.Clear();
-                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
                 return View(new Usuario()); // Limpia el formulario
             }
 
-            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
             return View(nuevoUsuario);
         }
 
@@ -140,11 +164,11 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Usuarios()
         {
-            // Usamos la propiedad de navegación correcta aquí también para evitar el error en la vista de lista
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
             var usuarios = await _context.Usuarios
                 .Include(u => u.UsuarioRolIdUsuarioNavigations)
                     .ThenInclude(ur => ur.IdRolNavigation)
-                .Where(u => u.Estatus == true)
+                .Where(u => u.Estatus == true && u.IdEmpresa == empresaId)
                 .ToListAsync();
             return View(usuarios);
         }
@@ -179,5 +203,196 @@ namespace Gestion_de_Documentos.Controllers
                 return builder.ToString();
             }
         }
+
+        // --- REGISTRO DE EMPRESA (PÚBLICO) ---
+        [HttpGet]
+        public IActionResult RegistroEmpresa()
+        {
+            if (User.Identity.IsAuthenticated) return RedirectToAction("Index", "Home");
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RegistroEmpresa(RegistroEmpresaViewModel model)
+        {
+            if (string.IsNullOrEmpty(model.SlugEmpresa))
+            {
+                model.SlugEmpresa = await GenerateUniqueSlugAsync(model.NombreEmpresa);
+            }
+            else
+            {
+                string baseSlug = model.SlugEmpresa.ToLowerInvariant().Replace(" ", "-");
+                string finalSlug = baseSlug;
+                int count = 1;
+                while (await _context.Empresas.AnyAsync(e => e.Slug == finalSlug))
+                {
+                    finalSlug = $"{baseSlug}-{count}";
+                    count++;
+                }
+                model.SlugEmpresa = finalSlug;
+            }
+
+            ModelState.Remove("SlugEmpresa");
+
+            if (ModelState.IsValid)
+            {
+                bool correoExiste = await _context.Usuarios.AnyAsync(u => u.Correo == model.CorreoAdmin);
+                if (correoExiste)
+                {
+                    ViewBag.Error = "El correo electrónico del administrador ya está registrado.";
+                    return View(model);
+                }
+
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        var nuevaEmpresa = new Empresa
+                        {
+                            Nombre = model.NombreEmpresa,
+                            Slug = model.SlugEmpresa,
+                            RFC = model.RFC,
+                            CorreoContacto = model.CorreoContacto,
+                            FechaRegistro = DateTime.Now,
+                            Estatus = true
+                        };
+                        _context.Empresas.Add(nuevaEmpresa);
+                        await _context.SaveChangesAsync();
+
+                        var deptoAdm = new Departamento
+                        {
+                            Nombre = "Administración",
+                            Abreviatura = "ADM",
+                            Estatus = true,
+                            FechaCreacion = DateTime.Now,
+                            IdEmpresa = nuevaEmpresa.Id
+                        };
+                        _context.Departamentos.Add(deptoAdm);
+                        await _context.SaveChangesAsync();
+
+                        var nuevoUsuario = new Usuario
+                        {
+                            IdDepartamento = deptoAdm.Id,
+                            IdEmpresa = nuevaEmpresa.Id,
+                            Nombre = model.NombreAdmin,
+                            ApellidoP = model.ApellidoAdminP,
+                            ApellidoM = model.ApellidoAdminM,
+                            Correo = model.CorreoAdmin,
+                            Contrasena = HashPassword(model.ContrasenaAdmin),
+                            FechaCreacion = DateTime.Now,
+                            Estatus = true
+                        };
+                        _context.Usuarios.Add(nuevoUsuario);
+                        await _context.SaveChangesAsync();
+
+                        var rolAdmin = await _context.Rols.FirstOrDefaultAsync(r => r.Nombre == "Administrador" && r.Estatus == true);
+                        if (rolAdmin == null)
+                        {
+                            rolAdmin = new Rol
+                            {
+                                Nombre = "Administrador",
+                                Descripcion = "Administrador de la Empresa",
+                                Estatus = true,
+                                FechaCreacion = DateTime.Now
+                            };
+                            _context.Rols.Add(rolAdmin);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        var usuarioRol = new UsuarioRol
+                        {
+                            IdUsuario = nuevoUsuario.Id,
+                            IdRol = rolAdmin.Id,
+                            FechaAsignacion = DateTime.Now,
+                            FechaCreacion = DateTime.Now,
+                            Estatus = true
+                        };
+                        _context.UsuarioRols.Add(usuarioRol);
+                        await _context.SaveChangesAsync();
+
+                        deptoAdm.IdUsuarioCreacion = nuevoUsuario.Id;
+                        _context.Update(deptoAdm);
+                        await _context.SaveChangesAsync();
+
+                        await transaction.CommitAsync();
+
+                        TempData["Exito"] = "Empresa registrada exitosamente. Ya puedes iniciar sesión.";
+                        return RedirectToAction("Login");
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        ViewBag.Error = "Ocurrió un error al registrar la empresa: " + ex.Message;
+                        return View(model);
+                    }
+                }
+            }
+
+            return View(model);
+        }
+
+        private async Task<string> GenerateUniqueSlugAsync(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "empresa";
+            
+            string slug = name.ToLowerInvariant();
+            byte[] tempBytes = System.Text.Encoding.GetEncoding("Cyrillic").GetBytes(slug);
+            slug = System.Text.Encoding.ASCII.GetString(tempBytes);
+            
+            slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\s-]", "");
+            slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s+", " ").Trim();
+            slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s", "-");
+            
+            if (string.IsNullOrEmpty(slug)) slug = "empresa";
+
+            string finalSlug = slug;
+            int count = 1;
+            while (await _context.Empresas.AnyAsync(e => e.Slug == finalSlug))
+            {
+                finalSlug = $"{slug}-{count}";
+                count++;
+            }
+            return finalSlug;
+        }
+    }
+
+    public class RegistroEmpresaViewModel
+    {
+        [Required(ErrorMessage = "El nombre de la empresa es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El nombre de la empresa no puede exceder los 100 caracteres.")]
+        public string NombreEmpresa { get; set; } = null!;
+
+        public string? SlugEmpresa { get; set; }
+
+        [Required(ErrorMessage = "El RFC es obligatorio.")]
+        [StringLength(20, ErrorMessage = "El RFC no puede exceder los 20 caracteres.")]
+        [RegularExpression(@"^[A-Z&Ññ]{3,4}[0-9]{6}[A-Z0-9]{3}$", ErrorMessage = "El formato de RFC no es válido (Ej: AME123456XX9).")]
+        public string RFC { get; set; } = null!;
+
+        [Required(ErrorMessage = "El correo de contacto es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El correo de contacto no tiene un formato válido.")]
+        [StringLength(150, ErrorMessage = "El correo de contacto no puede exceder los 150 caracteres.")]
+        public string CorreoContacto { get; set; } = null!;
+
+        [Required(ErrorMessage = "El nombre del administrador es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El nombre del administrador no puede exceder los 100 caracteres.")]
+        public string NombreAdmin { get; set; } = null!;
+
+        [Required(ErrorMessage = "El primer apellido es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El primer apellido no puede exceder los 100 caracteres.")]
+        public string ApellidoAdminP { get; set; } = null!;
+
+        [StringLength(100, ErrorMessage = "El segundo apellido no puede exceder los 100 caracteres.")]
+        public string? ApellidoAdminM { get; set; }
+
+        [Required(ErrorMessage = "El correo del administrador es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El correo del administrador no tiene un formato válido.")]
+        [StringLength(150, ErrorMessage = "El correo del administrador no puede exceder los 150 caracteres.")]
+        public string CorreoAdmin { get; set; } = null!;
+
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener entre 8 y 100 caracteres.")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$", ErrorMessage = "La contraseña debe tener al menos una letra mayúscula, una minúscula y un número.")]
+        public string ContrasenaAdmin { get; set; } = null!;
     }
 }

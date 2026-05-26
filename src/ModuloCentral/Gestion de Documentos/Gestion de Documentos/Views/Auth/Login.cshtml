@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Iniciar Sesión";
 }
 
@@ -15,6 +15,11 @@
                 {
                     <div class="alert alert-danger text-center shadow-sm">@ViewBag.Error</div>
                 }
+                
+                @if (TempData["Exito"] != null)
+                {
+                    <div class="alert alert-success text-center shadow-sm">@TempData["Exito"]</div>
+                }
 
                 <form asp-action="Login" method="post">
                     <div class="mb-3">
@@ -25,8 +30,11 @@
                         <label class="form-label fw-bold">Contraseña</label>
                         <input type="password" name="contrasena" class="form-control" required placeholder="••••••••" />
                     </div>
-                    <div class="d-grid">
+                    <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-jewel-primary btn-lg">Ingresar</button>
+                        <a asp-action="RegistroEmpresa" class="btn btn-link text-decoration-none text-center">
+                            ¿Tu empresa no está registrada? Regístrala aquí
+                        </a>
                     </div>
                 </form>
             </div>

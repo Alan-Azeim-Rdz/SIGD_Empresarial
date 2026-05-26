@@ -15,6 +15,7 @@ class SyncControllerTest extends TestCase
     {
         return [
             'id_documento'         => 1,
+            'id_empresa'           => 1,
             'codigo_interno'       => 'CAL-MAN-001',
             'titulo'               => 'Manual de Calidad',
             'id_tipo'              => 2,

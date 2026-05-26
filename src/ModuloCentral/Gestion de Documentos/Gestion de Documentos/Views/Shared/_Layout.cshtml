@@ -69,8 +69,21 @@
                                 </a>
                             </li>
                         }
+                        @if (User.IsInRole("Super Administrador"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="SuperAdmin" asp-action="Index">
+                                    <i class="fas fa-user-shield me-1"></i>Consola SúperAdmin
+                                </a>
+                            </li>
+                        }
                         @if (User.IsInRole("Administrador"))
                         {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Admin" asp-action="Index">
+                                    <i class="fas fa-cogs me-1"></i>Administración
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Auth" asp-action="Registro">
                                     <i class="fas fa-user-plus me-1" style="color: var(--amber);"></i>Crear Usuario

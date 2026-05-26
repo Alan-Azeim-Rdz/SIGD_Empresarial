@@ -1,0 +1,501 @@
+@{
+    ViewData["Title"] = "Portal de Normativas";
+}
+
+<style>
+    /* ── Variables del módulo ── */
+    :root {
+        --portal-accent: #0f7a72;
+        --portal-accent-light: rgba(15,122,114,.1);
+        --portal-header-grad: linear-gradient(135deg, #0f7a72 0%, #0a5450 100%);
+    }
+
+    /* ── Encabezado del módulo ── */
+    .portal-header {
+        background: var(--portal-header-grad);
+        border-radius: .85rem .85rem 0 0;
+        padding: 1.2rem 1.6rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .portal-header h1 { font-size: 1.25rem; font-weight: 700; margin: 0; }
+    .portal-header p  { font-size: .82rem; opacity: .82; margin: .2rem 0 0; }
+
+    .portal-toolbar {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        background: rgba(255,255,255,.12);
+        border-radius: .5rem;
+        padding: .35rem .7rem;
+    }
+    .portal-toolbar button {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,.88);
+        font-size: .82rem;
+        cursor: pointer;
+        padding: .2rem .6rem;
+        border-radius: .4rem;
+        transition: background .15s;
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+    }
+    .portal-toolbar button:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+    /* ── Cuerpo del módulo ── */
+    .portal-body {
+        background: var(--card-bg, #fff);
+        border: 1px solid rgba(30,61,89,.15);
+        border-top: none;
+        border-radius: 0 0 .85rem .85rem;
+        overflow: hidden;
+    }
+
+    /* ── Barra de búsqueda ── */
+    .portal-search {
+        padding: 1.1rem 1.4rem;
+        border-bottom: 1px solid rgba(30,61,89,.1);
+        display: flex;
+        gap: .8rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .portal-search input {
+        flex: 1;
+        min-width: 200px;
+        padding: .6rem 1rem;
+        border: 1.5px solid #d1d9e6;
+        border-radius: .55rem;
+        font-size: .9rem;
+        background: var(--input-bg, #f8fafc);
+        color: var(--text, #1e3d59);
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .portal-search input:focus {
+        outline: none;
+        border-color: var(--portal-accent);
+        box-shadow: 0 0 0 3px var(--portal-accent-light);
+    }
+    .btn-portal-search {
+        padding: .6rem 1.2rem;
+        border: none;
+        border-radius: .55rem;
+        background: var(--portal-accent);
+        color: #fff;
+        font-size: .88rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .2s, transform .15s;
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+    .btn-portal-search:hover { background: #0a5450; transform: translateY(-1px); }
+    .btn-portal-clear {
+        padding: .6rem 1rem;
+        border: 1.5px solid #d1d9e6;
+        border-radius: .55rem;
+        background: transparent;
+        color: var(--text-muted, #64748b);
+        font-size: .88rem;
+        cursor: pointer;
+        transition: border-color .2s;
+    }
+    .btn-portal-clear:hover { border-color: var(--portal-accent); color: var(--portal-accent); }
+
+    /* ── Info del resultado ── */
+    .portal-result-info {
+        padding: .6rem 1.4rem;
+        font-size: .8rem;
+        color: var(--text-muted, #64748b);
+        border-bottom: 1px solid rgba(30,61,89,.07);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    /* ── Tabla de documentos ── */
+    .portal-table-wrap {
+        overflow-x: auto;
+        min-height: 280px;
+    }
+    .portal-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .88rem;
+    }
+    .portal-table thead th {
+        background: #f1f5f9;
+        padding: .75rem 1rem;
+        text-align: left;
+        font-size: .75rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    .portal-table tbody td {
+        padding: .82rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: var(--text, #1e3d59);
+        vertical-align: middle;
+    }
+    .portal-table tbody tr { transition: background .15s; }
+    .portal-table tbody tr:hover { background: rgba(15,122,114,.04); }
+
+    /* ── Badges ── */
+    .badge-ver {
+        display: inline-block;
+        padding: .18rem .55rem;
+        border-radius: .9rem;
+        font-size: .74rem;
+        font-weight: 700;
+        background: rgba(15,122,114,.12);
+        color: var(--portal-accent);
+    }
+
+    /* ── Botón descargar ── */
+    .btn-descargar {
+        padding: .38rem .85rem;
+        border-radius: .45rem;
+        background: var(--portal-accent);
+        color: #fff;
+        font-size: .8rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: background .2s, transform .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        text-decoration: none;
+    }
+    .btn-descargar:hover { background: #0a5450; transform: translateY(-1px); color: #fff; }
+
+    /* ── Estados de carga / error / vacío ── */
+    .portal-state {
+        padding: 4rem 2rem;
+        text-align: center;
+        color: var(--text-muted, #64748b);
+    }
+    .portal-state i { font-size: 2.5rem; margin-bottom: 1rem; display: block; opacity: .4; }
+    .portal-state p { font-size: .95rem; margin: 0; }
+
+    .portal-spinner {
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 3px solid rgba(15,122,114,.2);
+        border-top-color: var(--portal-accent);
+        border-radius: 50%;
+        animation: spin .75s linear infinite;
+        margin: 0 auto 1rem;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Paginación ── */
+    .portal-pagination {
+        padding: .8rem 1.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .4rem;
+        border-top: 1px solid #f1f5f9;
+    }
+    .btn-page {
+        padding: .32rem .7rem;
+        border: 1.5px solid #d1d9e6;
+        border-radius: .4rem;
+        background: transparent;
+        color: var(--text, #1e3d59);
+        font-size: .82rem;
+        cursor: pointer;
+        transition: all .15s;
+    }
+    .btn-page:hover, .btn-page.active {
+        background: var(--portal-accent);
+        border-color: var(--portal-accent);
+        color: #fff;
+    }
+    .btn-page:disabled { opacity: .4; cursor: default; }
+
+    /* ── Toast de notificación ── */
+    #portal-toast {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        background: #1e293b;
+        color: #fff;
+        padding: .75rem 1.2rem;
+        border-radius: .65rem;
+        font-size: .85rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,.25);
+        transform: translateY(4rem);
+        opacity: 0;
+        transition: all .3s cubic-bezier(.34,1.56,.64,1);
+        z-index: 9999;
+        pointer-events: none;
+        max-width: 320px;
+    }
+    #portal-toast.show { transform: translateY(0); opacity: 1; }
+    #portal-toast.success { border-left: 4px solid #22c55e; }
+    #portal-toast.error   { border-left: 4px solid #ef4444; }
+</style>
+
+<div class="py-3 animate-fade-up">
+    <!-- Encabezado -->
+    <div class="portal-header">
+        <div>
+            <h1><i class="fas fa-book me-2"></i>Portal de Normativas</h1>
+            <p>Consulta documentos y normativas vigentes en planta</p>
+        </div>
+        <div class="portal-toolbar">
+            <button id="btn-reload" onclick="portalApp.reload()" title="Recargar">
+                <i class="fas fa-sync-alt"></i>Recargar
+            </button>
+        </div>
+    </div>
+
+    <!-- Cuerpo -->
+    <div class="portal-body">
+        <!-- Barra de búsqueda -->
+        <div class="portal-search">
+            <input type="text"
+                   id="portal-input"
+                   placeholder="Escribe el nombre del documento..."
+                   autocomplete="off"
+                   maxlength="200">
+            <button class="btn-portal-search" onclick="portalApp.buscar()">
+                <i class="fas fa-search"></i>Buscar
+            </button>
+            <button class="btn-portal-clear" id="btn-clear" onclick="portalApp.limpiar()" style="display:none;">
+                <i class="fas fa-times me-1"></i>Limpiar
+            </button>
+        </div>
+
+        <!-- Info del resultado -->
+        <div class="portal-result-info" id="portal-result-info" style="display:none;">
+            <span id="portal-result-text"></span>
+        </div>
+
+        <!-- Área de contenido principal -->
+        <div class="portal-table-wrap" id="portal-content">
+            <div class="portal-state">
+                <div class="portal-spinner"></div>
+                <p>Cargando documentos…</p>
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        <div class="portal-pagination" id="portal-pagination" style="display:none;"></div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="portal-toast"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    const PAGE_SIZE = 15;
+
+    const state = {
+        documentos: [],
+        query: '',
+        pagina: 1,
+        cargando: false,
+    };
+
+    const els = {
+        content:    document.getElementById('portal-content'),
+        input:      document.getElementById('portal-input'),
+        btnClear:   document.getElementById('btn-clear'),
+        resultInfo: document.getElementById('portal-result-info'),
+        resultText: document.getElementById('portal-result-text'),
+        pagination: document.getElementById('portal-pagination'),
+        toast:      document.getElementById('portal-toast'),
+    };
+
+    // ── API ───────────────────────────────────────────────────────────────────
+    async function fetchDocumentos(q = '') {
+        const url = `/Modulos/ApiPortal?action=buscar&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { credentials: 'same-origin' });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function renderTabla(documentos) {
+        if (!documentos.length) {
+            els.content.innerHTML = `
+                <div class="portal-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>No se encontraron documentos${state.query ? ` para "<strong>${esc(state.query)}</strong>"` : ''}.</p>
+                </div>`;
+            return;
+        }
+
+        const inicio  = (state.pagina - 1) * PAGE_SIZE;
+        const pagDocs = documentos.slice(inicio, inicio + PAGE_SIZE);
+
+        const filas = pagDocs.map(doc => `
+            <tr>
+                <td><span style="font-size:.8rem;color:#94a3b8;">${esc(doc.codigo_interno)}</span></td>
+                <td><strong>${esc(doc.titulo)}</strong></td>
+                <td><span class="badge-ver">v${parseInt(doc.version_actual)}</span></td>
+                <td>${esc(doc.fecha_publicacion ?? '—')}</td>
+                <td>
+                    <a href="http://${location.hostname}:8000/index.php?accion=descargar&id=${parseInt(doc.id_documento)}"
+                       class="btn-descargar"
+                       target="_blank"
+                       rel="noopener"
+                       title="Descargar PDF del documento">
+                        <i class="fas fa-download"></i>PDF
+                    </a>
+                </td>
+            </tr>`).join('');
+
+        els.content.innerHTML = `
+            <table class="portal-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Título del Documento</th>
+                        <th>Versión</th>
+                        <th>Fecha Publicación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>${filas}</tbody>
+            </table>`;
+
+        renderPaginacion(documentos.length);
+    }
+
+    function renderPaginacion(total) {
+        const totalPaginas = Math.ceil(total / PAGE_SIZE);
+        if (totalPaginas <= 1) { els.pagination.style.display = 'none'; return; }
+
+        let html = `<button class="btn-page" onclick="portalApp.irPagina(${state.pagina - 1})"
+                     ${state.pagina === 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>`;
+
+        for (let i = 1; i <= totalPaginas; i++) {
+            html += `<button class="btn-page ${i === state.pagina ? 'active' : ''}"
+                              onclick="portalApp.irPagina(${i})">${i}</button>`;
+        }
+
+        html += `<button class="btn-page" onclick="portalApp.irPagina(${state.pagina + 1})"
+                  ${state.pagina === totalPaginas ? 'disabled' : ''}>
+                     <i class="fas fa-chevron-right"></i>
+                 </button>`;
+
+        els.pagination.innerHTML = html;
+        els.pagination.style.display = 'flex';
+    }
+
+    function setLoading() {
+        els.content.innerHTML = `
+            <div class="portal-state">
+                <div class="portal-spinner"></div>
+                <p>Cargando documentos…</p>
+            </div>`;
+        els.pagination.style.display = 'none';
+        els.resultInfo.style.display  = 'none';
+    }
+
+    function setError(msg) {
+        els.content.innerHTML = `
+            <div class="portal-state">
+                <i class="fas fa-exclamation-triangle" style="color:#ef4444;opacity:1;"></i>
+                <p style="color:#ef4444;">${esc(msg)}</p>
+            </div>`;
+    }
+
+    function esc(str) {
+        return String(str ?? '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, tipo = 'success') {
+        clearTimeout(toastTimer);
+        els.toast.textContent = msg;
+        els.toast.className   = `show ${tipo}`;
+        toastTimer = setTimeout(() => { els.toast.className = ''; }, 3200);
+    }
+
+    // ── Carga de datos ────────────────────────────────────────────────────────
+    async function cargar(q = '') {
+        if (state.cargando) return;
+        state.cargando = true;
+        state.query    = q;
+        state.pagina   = 1;
+
+        setLoading();
+        els.btnClear.style.display = q ? 'inline-flex' : 'none';
+
+        try {
+            const data = await fetchDocumentos(q);
+            state.documentos = data.documentos ?? [];
+
+            // Info del resultado
+            const total = state.documentos.length;
+            els.resultText.innerHTML = q
+                ? `Resultados para <strong>"${esc(q)}"</strong> — ${total} documento(s)`
+                : `${total} documento(s) vigente(s)`;
+            els.resultInfo.style.display = 'flex';
+
+            renderTabla(state.documentos);
+
+            if (q && total === 0) showToast('No se encontraron documentos para esa búsqueda.', 'error');
+        } catch (err) {
+            setError('Error al conectar con el módulo de reportes. Intenta recargar.');
+            showToast('Error de conexión con el módulo de reportes.', 'error');
+            console.error('[Portal]', err);
+        } finally {
+            state.cargando = false;
+        }
+    }
+
+    // ── API pública del componente ─────────────────────────────────────────────
+    window.portalApp = {
+        buscar() {
+            cargar(els.input.value.trim());
+        },
+        limpiar() {
+            els.input.value = '';
+            cargar('');
+        },
+        reload() {
+            cargar(state.query);
+        },
+        irPagina(n) {
+            const total = Math.ceil(state.documentos.length / PAGE_SIZE);
+            if (n < 1 || n > total) return;
+            state.pagina = n;
+            renderTabla(state.documentos);
+            els.content.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+    };
+
+    // ── Evento Enter en el input ──────────────────────────────────────────────
+    els.input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') portalApp.buscar();
+    });
+
+    // ── Carga inicial ─────────────────────────────────────────────────────────
+    cargar();
+})();
+</script>

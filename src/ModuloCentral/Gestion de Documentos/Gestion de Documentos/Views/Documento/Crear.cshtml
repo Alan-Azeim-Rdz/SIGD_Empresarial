@@ -46,6 +46,56 @@
                 </div>
             </div>
 
+            @if (ViewBag.CamposPersonalizados != null && !string.IsNullOrEmpty(ViewBag.CamposPersonalizados as string))
+            {
+                <div class="card bg-light mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light border-0 pb-0">
+                        <h5 class="text-jewel-sapphire mb-0 fw-bold"><i class="fas fa-sliders-h"></i> Campos Personalizados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @using System.Text.Json
+                            @{
+                                var jsonStr = ViewBag.CamposPersonalizados as string;
+                                try
+                                {
+                                    using var docJson = JsonDocument.Parse(jsonStr);
+                                    foreach (var campo in docJson.RootElement.EnumerateArray())
+                                    {
+                                        var nombre = campo.GetProperty("Nombre").GetString() ?? "";
+                                        var tipo = campo.GetProperty("Tipo").GetString() ?? "Texto";
+                                        var requerido = campo.GetProperty("Requerido").GetBoolean();
+                                        
+                                        var inputType = "text";
+                                        if (tipo == "Numero") inputType = "number";
+                                        else if (tipo == "Fecha") inputType = "date";
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">@nombre @(requerido ? "*" : "")</label>
+                                            @if (tipo == "Booleano")
+                                            {
+                                                <div class="form-check form-switch mt-2">
+                                                    <input type="checkbox" name="CP_@nombre" value="true" class="form-check-input" id="CP_@nombre" />
+                                                    <label class="form-check-label text-muted" for="CP_@nombre">Sí / No</label>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <input type="@inputType" name="CP_@nombre" class="form-control" placeholder="Ingrese @nombre" @(requerido ? "required" : "") />
+                                            }
+                                        </div>
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    <div class="col-12 text-danger">Error al cargar la definición de campos personalizados.</div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
             <div class="mb-4">
                 <label class="form-label fw-bold">Archivo Físico (Solo PDF)</label>
                 <input type="file" name="archivoPdf" class="form-control" accept=".pdf,application/pdf" required />
