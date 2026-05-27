@@ -1,0 +1,134 @@
+@model Gestion_de_Documentos.Controllers.RegistroEmpresaViewModel
+@{
+    ViewData["Title"] = "Registro de Nueva Empresa";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card card-jewel animate-fade-up">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold text-jewel">
+                        <i class="fas fa-building me-2"></i>Registra tu Empresa
+                    </h2>
+                    <p class="text-muted">
+                        Crea una cuenta para tu empresa e inicia la gestión documental inteligente
+                    </p>
+                </div>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger shadow-sm mb-4">
+                        <i class="fas fa-exclamation-triangle me-2"></i>@ViewBag.Error
+                    </div>
+                }
+
+                <form asp-action="RegistroEmpresa" method="post">
+                    <!-- SECTION 1: Datos de la Empresa -->
+                    <h5 class="fw-bold mb-3 pb-2 border-bottom text-emerald">
+                        <i class="fas fa-city me-1"></i>1. Datos de la Empresa
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Nombre Comercial de la Empresa</label>
+                            <input asp-for="NombreEmpresa" class="form-control" placeholder="Ej: Aceros de México S.A." required autocomplete="off" id="txtNombreEmpresa" />
+                            <span asp-validation-for="NombreEmpresa" class="text-danger small d-block"></span>
+                            <span class="form-text">El nombre público de tu empresa (el identificador web se generará automáticamente).</span>
+                        </div>
+                        <input asp-for="SlugEmpresa" type="hidden" id="txtSlugEmpresa" />
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">RFC / Identificación Fiscal</label>
+                            <input asp-for="RFC" class="form-control" placeholder="Ej: AME123456XX9" required autocomplete="off" />
+                            <span asp-validation-for="RFC" class="text-danger small d-block"></span>
+                            <span class="form-text">Requerido para validación y facturación.</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Correo de Contacto Institucional</label>
+                            <input asp-for="CorreoContacto" type="email" class="form-control" placeholder="contacto@empresa.com" required autocomplete="off" />
+                            <span asp-validation-for="CorreoContacto" class="text-danger small d-block"></span>
+                            <span class="form-text">Donde se enviarán notificaciones administrativas.</span>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Datos del Administrador -->
+                    <h5 class="fw-bold mb-3 pb-2 border-bottom text-emerald">
+                        <i class="fas fa-user-tie me-1"></i>2. Cuenta del Administrador General
+                    </h5>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Nombre(s)</label>
+                            <input asp-for="NombreAdmin" class="form-control" placeholder="Ej: Juan" required autocomplete="off" />
+                            <span asp-validation-for="NombreAdmin" class="text-danger small d-block"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Apellido Paterno</label>
+                            <input asp-for="ApellidoAdminP" class="form-control" placeholder="Ej: Pérez" required autocomplete="off" />
+                            <span asp-validation-for="ApellidoAdminP" class="text-danger small d-block"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Apellido Materno (Opcional)</label>
+                            <input asp-for="ApellidoAdminM" class="form-control" placeholder="Ej: Gómez" autocomplete="off" />
+                            <span asp-validation-for="ApellidoAdminM" class="text-danger small d-block"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Correo Electrónico (Para iniciar sesión)</label>
+                            <input asp-for="CorreoAdmin" type="email" class="form-control" placeholder="admin@empresa.com" required autocomplete="off" />
+                            <span asp-validation-for="CorreoAdmin" class="text-danger small d-block"></span>
+                            <span class="form-text">Será tu nombre de usuario para acceder al sistema.</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Contraseña</label>
+                            <input asp-for="ContrasenaAdmin" type="password" class="form-control" placeholder="••••••••" required />
+                            <span asp-validation-for="ContrasenaAdmin" class="text-danger small d-block"></span>
+                            <span class="form-text">Debe tener al menos 8 caracteres.</span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-jewel-primary btn-lg">
+                            <i class="fas fa-check-circle me-1"></i>Registrar Empresa y Cuenta
+                        </button>
+                        <a asp-action="Login" class="btn btn-link text-decoration-none text-center">
+                            ¿Ya tienes una cuenta registrada? Inicia sesión aquí
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const txtNombre = document.getElementById("txtNombreEmpresa");
+            const txtSlug = document.getElementById("txtSlugEmpresa");
+
+            txtNombre.addEventListener("input", function () {
+                txtSlug.value = generateSlug(txtNombre.value);
+            });
+
+            function generateSlug(text) {
+                return text
+                    .toString()
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/\s+/g, "-")
+                    .replace(/[^\w\-]+/g, "")
+                    .replace(/\-\-+/g, "-")
+                    .replace(/^-+/, "")
+                    .replace(/-+$/, "");
+            }
+        });
+    </script>
+}

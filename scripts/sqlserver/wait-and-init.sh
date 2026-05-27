@@ -24,6 +24,17 @@ for i in $(seq 1 $MAX_RETRIES); do
             $SQLCMD -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -i /scripts/init_Central.sql
             if [ $? -eq 0 ]; then
                 echo "[INIT] ✅ Base de datos inicializada exitosamente."
+                
+                # Ejecutar script semilla de JSON si existe
+                if [ -f /scripts/seed_demo_json.sql ]; then
+                    echo "[INIT] Detectado seed_demo_json.sql. Sembrando datos..."
+                    $SQLCMD -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -i /scripts/seed_demo_json.sql
+                    if [ $? -eq 0 ]; then
+                        echo "[INIT] ✅ Datos semilla de SQL Server cargados exitosamente."
+                    else
+                        echo "[INIT] ❌ Error al cargar los datos semilla de SQL Server."
+                    fi
+                fi
             else
                 echo "[INIT] ❌ Error al ejecutar el script de inicialización."
             fi

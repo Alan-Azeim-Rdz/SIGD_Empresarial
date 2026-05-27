@@ -198,7 +198,7 @@ class SyncController
         if (empty($data)) {
             return 'Payload JSON vacío o mal formado.';
         }
-        $requeridos = ['id_documento', 'codigo_interno', 'titulo', 'id_tipo', 'id_departamento',
+        $requeridos = ['id_documento', 'id_empresa', 'codigo_interno', 'titulo', 'id_tipo', 'id_departamento',
                        'version_actual', 'fecha_publicacion', 'ruta_archivo_descarga', 'id_usuario_creacion'];
 
         foreach ($requeridos as $campo) {
@@ -219,17 +219,18 @@ class SyncController
     {
         $query = "
             INSERT INTO documento_vigente (
-                id_documento, codigo_interno, titulo, id_tipo, id_departamento,
+                id_documento, id_empresa, codigo_interno, titulo, id_tipo, id_departamento,
                 version_actual, fecha_publicacion, ruta_archivo_descarga, hash_verificacion,
                 estatus, fecha_creacion, id_usuario_creacion
             )
             VALUES (
-                :id, :codigo, :titulo, :id_tipo, :id_depto,
+                :id, :id_empresa, :codigo, :titulo, :id_tipo, :id_depto,
                 :version, :fecha_pub, :ruta, :hash_v,
                 true, CURRENT_TIMESTAMP, :usuario_creador
             )
             ON CONFLICT (id_documento)
             DO UPDATE SET
+                id_empresa              = EXCLUDED.id_empresa,
                 titulo                  = EXCLUDED.titulo,
                 codigo_interno          = EXCLUDED.codigo_interno,
                 id_tipo                 = EXCLUDED.id_tipo,
@@ -245,6 +246,7 @@ class SyncController
         $stmt = $this->db->prepare($query);
 
         $stmt->bindValue(':id',              (int)$data['id_documento'],         PDO::PARAM_INT);
+        $stmt->bindValue(':id_empresa',      (int)$data['id_empresa'],           PDO::PARAM_INT);
         $stmt->bindValue(':codigo',          $data['codigo_interno'],             PDO::PARAM_STR);
         $stmt->bindValue(':titulo',          $data['titulo'],                     PDO::PARAM_STR);
         $stmt->bindValue(':id_tipo',         (int)$data['id_tipo'],               PDO::PARAM_INT);

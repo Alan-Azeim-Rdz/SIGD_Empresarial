@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sistema Integral de Gestión Documental Empresarial" />
+    <title>@ViewData["Title"] - SIGD Empresarial</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-jewel mb-0" id="main-nav">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-shield-alt me-2" style="color: var(--amber);"></i>SIGD <span>Empresarial</span>
+                </a>
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                        aria-controls="navbarContent" aria-expanded="false" aria-label="Abrir menú">
+                    <i class="fas fa-bars" style="color: #fff;"></i>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarContent">
+                    <ul class="navbar-nav me-auto gap-1">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-home me-1"></i>Inicio
+                            </a>
+                        </li>
+
+                        @if (User.Identity!.IsAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Documento" asp-action="Index">
+                                    <i class="fas fa-file-alt me-1"></i>Mis Documentos
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Busqueda" asp-action="Global">
+                                    <i class="fas fa-search me-1"></i>Buscador Global
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="ddModulos" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-network-wired me-1"></i>Módulos Planta
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="ddModulos">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Modulos" asp-action="Dashboard">
+                                            <i class="fas fa-chart-bar me-2" style="color: var(--amber);"></i>Dashboard Reportes
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Modulos" asp-action="Portal">
+                                            <i class="fas fa-book me-2" style="color: var(--emerald-light);"></i>Portal de Normativas
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+
+                        @if (User.IsInRole("Administrador") || User.IsInRole("Superior"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Flujo" asp-action="Pendientes">
+                                    <i class="fas fa-bell me-1" style="color: var(--amber);"></i>Aprobaciones
+                                </a>
+                            </li>
+                        }
+                        @if (User.IsInRole("Administrador"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Auth" asp-action="Registro">
+                                    <i class="fas fa-user-plus me-1" style="color: var(--amber);"></i>Crear Usuario
+                                </a>
+                            </li>
+                        }
+                    </ul>
+
+                    <ul class="navbar-nav align-items-center gap-1">
+                        @if (User.Identity!.IsAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <span class="nav-link pe-0 d-flex flex-column align-items-start align-items-lg-end" style="line-height: 1.25; padding-top: 0; padding-bottom: 0;">
+                                    <span class="fw-semibold text-white">
+                                        <i class="fas fa-user-circle me-1" style="color: var(--amber);"></i>@User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value
+                                    </span>
+                                    <span class="text-white-50" style="font-size: 0.75rem; opacity: 0.7; font-weight: normal; padding-left: 20px;">
+                                        @User.Identity.Name
+                                    </span>
+                                </span>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modalConexiones"
+                                   title="Configurar Conexiones" id="btn-config-conexiones">
+                                    <i class="fas fa-cog"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Auth" asp-action="Logout">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Salir
+                                </a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Auth" asp-action="Login">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Iniciar Sesión
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Barra de navegación de migajas (breadcrumb) -->
+        <div class="bg-white border-bottom" style="padding: .4rem 0;">
+            <div class="container">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0" style="font-size: .78rem;">
+                        <li class="breadcrumb-item">
+                            <a asp-controller="Home" asp-action="Index" class="text-decoration-none" style="color: var(--sapphire);">
+                                <i class="fas fa-home me-1"></i>SIGD
+                            </a>
+                        </li>
+                        @if (ViewData["Title"]?.ToString() != "Inicio")
+                        {
+                            <li class="breadcrumb-item active text-muted">@ViewData["Title"]</li>
+                        }
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mt-3">
+        <main role="main" class="pb-4">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Modal Configuración de Conexiones -->
+    <div class="modal fade" id="modalConexiones" tabindex="-1" aria-labelledby="modalConexionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalConexionesLabel">
+                        <i class="fas fa-network-wired me-2"></i>Configuración de Conexiones
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small mb-3" style="color: var(--text-secondary);">
+                        Define las URLs del ecosistema. Por defecto se usa el host actual con el puerto de cada servicio.
+                    </p>
+                    <div class="mb-3">
+                        <label for="cfg_csharp" class="form-label">
+                            <i class="fas fa-server me-1" style="color: var(--sapphire);"></i>Módulo Central (C# · Puerto 5000)
+                        </label>
+                        <input type="text" id="cfg_csharp" class="form-control" placeholder="http://localhost:5000" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="cfg_php" class="form-label">
+                            <i class="fas fa-chart-bar me-1" style="color: var(--emerald);"></i>Módulo Reportes/Portal (PHP · Puerto 8000)
+                        </label>
+                        <input type="text" id="cfg_php" class="form-control" placeholder="http://localhost:8000" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="cfg_node" class="form-label">
+                            <i class="fas fa-search me-1" style="color: var(--amethyst);"></i>Buscador Global (Node.js · Puerto 3000)
+                        </label>
+                        <input type="text" id="cfg_node" class="form-control" placeholder="http://localhost:3000" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-jewel" id="btnResetConexiones">
+                        <i class="fas fa-undo me-1"></i>Restablecer
+                    </button>
+                    <button type="button" class="btn btn-jewel-primary" id="btnGuardarConexiones">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <script>
+        (function () {
+            const currentHost = window.location.hostname;
+            const resolvedUrls = {
+                csharp: localStorage.getItem('cfg_url_csharp') || window.location.origin,
+                php:    localStorage.getItem('cfg_url_php')    || `http://${currentHost}:8000`,
+                node:   localStorage.getItem('cfg_url_node')   || `http://${currentHost}:3000`
+            };
+
+            // Highlight active nav link
+            document.addEventListener('DOMContentLoaded', function () {
+                const path = window.location.pathname.toLowerCase();
+                document.querySelectorAll('.navbar-nav .nav-link').forEach(el => {
+                    const href = el.getAttribute('href') || '';
+                    if (href !== '#' && href !== '/' && path.startsWith(href.toLowerCase())) {
+                        el.classList.add('active');
+                    }
+                });
+
+                // Modal conexiones
+                const inputCSharp = document.getElementById('cfg_csharp');
+                const inputPHP    = document.getElementById('cfg_php');
+                const inputNode   = document.getElementById('cfg_node');
+
+                if (inputCSharp) inputCSharp.value = resolvedUrls.csharp;
+                if (inputPHP)    inputPHP.value    = resolvedUrls.php;
+                if (inputNode)   inputNode.value   = resolvedUrls.node;
+
+                const btnGuardar = document.getElementById('btnGuardarConexiones');
+                if (btnGuardar) {
+                    btnGuardar.addEventListener('click', () => {
+                        localStorage.setItem('cfg_url_csharp', inputCSharp.value.trim());
+                        localStorage.setItem('cfg_url_php',    inputPHP.value.trim());
+                        localStorage.setItem('cfg_url_node',   inputNode.value.trim());
+                        location.reload();
+                    });
+                }
+
+                const btnReset = document.getElementById('btnResetConexiones');
+                if (btnReset) {
+                    btnReset.addEventListener('click', () => {
+                        localStorage.removeItem('cfg_url_csharp');
+                        localStorage.removeItem('cfg_url_php');
+                        localStorage.removeItem('cfg_url_node');
+                        location.reload();
+                    });
+                }
+            });
+        })();
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
