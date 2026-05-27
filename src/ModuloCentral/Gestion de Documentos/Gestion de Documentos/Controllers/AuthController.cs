@@ -33,7 +33,7 @@ namespace Gestion_de_Documentos.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(string username, string contrasena)
+        public async Task<IActionResult> Login(string username, string contrasena, bool recordarme = false)
         {
             // 1 y 2. Buscamos al usuario y sus roles en una sola consulta optimizada, 
             // usando la propiedad de navegación que el Scaffold mapeó correctamente: UsuarioRolIdUsuarioNavigations
@@ -77,7 +77,16 @@ namespace Gestion_de_Documentos.Controllers
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
 
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = recordarme,
+                    ExpiresUtc = recordarme
+                        ? DateTimeOffset.UtcNow.AddDays(30)
+                        : DateTimeOffset.UtcNow.AddHours(2),
+                    AllowRefresh = true
+                };
+
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
                 return RedirectToAction("Index", "Home");
             }

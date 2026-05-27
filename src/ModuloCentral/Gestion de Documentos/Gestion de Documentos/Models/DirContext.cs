@@ -633,11 +633,6 @@ public partial class DirContext : DbContext
         OnModelCreatingPartial(modelBuilder);
     }
 
-    internal async Task SaveChangesAsync()
-    {
-        throw new NotImplementedException();
-    }
-
     private void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
     }
