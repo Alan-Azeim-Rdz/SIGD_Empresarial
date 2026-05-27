@@ -1,35 +1,904 @@
-﻿@{
+@{
+    Layout = null;
     ViewData["Title"] = "Iniciar Sesión";
 }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Iniciar Sesión — SIGD Empresarial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5">
-        <div class="card card-jewel">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <h2 class="fw-bold" style="color: var(--jewel-sapphire);">Acceso al Sistema</h2>
-                    <p class="text-muted">Ingresa tus credenciales operativas</p>
+        :root {
+            --bg:        #0A0E1A;
+            --surface:   #141A2A;
+            --border:    #1E2538;
+            --accent:    #3B82F6;
+            --accent2:   #06B6D4;
+            --text:      #F8FAFC;
+            --muted:     #94A3B8;
+            --success:   #10B981;
+            --err:       #EF4444;
+            --err-bg:    rgba(239,68,68,0.10);
+            --err-txt:   #FCA5A5;
+        }
+
+        .login-page-v2 {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ─── Dot grid background ─── */
+        .login-page-v2::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle, #1E2538 1px, transparent 1px);
+            background-size: 32px 32px;
+            opacity: 0.45;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ─── Vignette ─── */
+        .lp-vignette {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(10,14,26,0.75) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ─── Orbs ─── */
+        .lp-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .lp-orb-1 {
+            width: 480px; height: 480px;
+            background: radial-gradient(circle, rgba(59,130,246,0.22), transparent 70%);
+            top: -120px; left: -120px;
+            animation: lp-float 12s ease-in-out infinite;
+        }
+        .lp-orb-2 {
+            width: 360px; height: 360px;
+            background: radial-gradient(circle, rgba(6,182,212,0.18), transparent 70%);
+            bottom: -80px; right: 30%;
+            animation: lp-float 9s ease-in-out infinite reverse;
+        }
+        .lp-orb-3 {
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(59,130,246,0.13), transparent 70%);
+            top: 40%; right: -60px;
+            animation: lp-float 14s ease-in-out infinite 2s;
+        }
+
+        @@keyframes lp-float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            33%       { transform: translateY(-28px) translateX(12px); }
+            66%       { transform: translateY(16px) translateX(-10px); }
+        }
+
+        /* ─── Layout ─── */
+        .lp-wrap {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ═══════════════════════════════
+           COLUMNA IZQUIERDA
+        ═══════════════════════════════ */
+        .lp-left {
+            flex: 0 0 55%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 3.5rem 4rem;
+            border-right: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        /* — Badge "Sistema operativo" — */
+        .lp-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(16,185,129,0.08);
+            border: 1px solid rgba(16,185,129,0.2);
+            border-radius: 100px;
+            padding: 5px 12px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: #6ee7b7;
+            letter-spacing: 0.03em;
+            margin-bottom: 2rem;
+            width: fit-content;
+        }
+        .lp-badge-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: lp-pulse-dot 2s ease-in-out infinite;
+        }
+        @@keyframes lp-pulse-dot {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+            50%       { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+        }
+
+        /* — Logo — */
+        .lp-brand {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 1rem;
+        }
+        .lp-shield-wrap {
+            position: relative;
+            width: 64px; height: 64px;
+            flex-shrink: 0;
+        }
+        .lp-shield-wrap svg {
+            position: relative;
+            z-index: 1;
+        }
+        .lp-shield-glow {
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(6,182,212,0.25), transparent 70%);
+            animation: lp-pulse-glow 3s ease-in-out infinite;
+        }
+        @@keyframes lp-pulse-glow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50%       { opacity: 1;   transform: scale(1.15); }
+        }
+        .lp-brand-text {
+            line-height: 1.1;
+        }
+        .lp-brand-name {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+        .lp-brand-sub {
+            font-size: 3rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* — Tagline — */
+        .lp-tagline {
+            font-size: 0.95rem;
+            color: var(--muted);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        /* — Window mockup — */
+        .lp-window {
+            background: rgba(20,26,42,0.7);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(8px);
+        }
+        .lp-window-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: rgba(30,37,56,0.8);
+            border-bottom: 1px solid var(--border);
+        }
+        .lp-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .lp-dot-r { background: #EF4444; }
+        .lp-dot-y { background: #F59E0B; }
+        .lp-dot-g { background: #10B981; }
+        .lp-window-url {
+            flex: 1;
+            margin-left: 8px;
+            background: rgba(10,14,26,0.6);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 3px 10px;
+            font-size: 0.72rem;
+            color: var(--muted);
+            font-family: 'Inter', monospace;
+        }
+        .lp-window-body {
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .lp-log-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.73rem;
+            font-family: 'Inter', monospace;
+        }
+        .lp-log-time { color: #4a5568; min-width: 44px; }
+        .lp-log-badge {
+            font-size: 0.65rem;
+            padding: 1px 7px;
+            border-radius: 4px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        .lp-log-ok  { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+        .lp-log-inf { background: rgba(59,130,246,0.15); color: #93c5fd; }
+        .lp-log-wrn { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        .lp-log-txt { color: var(--muted); }
+
+        /* — Features 2x2 — */
+        .lp-features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 2rem;
+        }
+        .lp-feat {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            background: rgba(20,26,42,0.5);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 13px;
+        }
+        .lp-feat-icon {
+            flex-shrink: 0;
+            width: 34px; height: 34px;
+            border-radius: 8px;
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .lp-feat-icon svg {
+            width: 16px; height: 16px;
+            stroke: var(--accent);
+        }
+        .lp-feat-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.3;
+        }
+        .lp-feat-desc {
+            font-size: 0.73rem;
+            color: var(--muted);
+            line-height: 1.4;
+            margin-top: 2px;
+        }
+
+        /* — Stats row — */
+        .lp-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 2rem;
+            padding: 16px;
+            background: rgba(20,26,42,0.4);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+        .lp-stat {
+            text-align: center;
+        }
+        .lp-stat-num {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+        .lp-stat-lbl {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* — Footer columna — */
+        .lp-left-footer {
+            font-size: 0.7rem;
+            color: #3d4d6b;
+        }
+
+        /* ═══════════════════════════════
+           COLUMNA DERECHA
+        ═══════════════════════════════ */
+        .lp-right {
+            flex: 0 0 45%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 2.5rem;
+        }
+
+        .lp-card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(20,26,42,0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(59,130,246,0.05);
+            animation: lp-fadein 0.4s ease both;
+        }
+
+        @@keyframes lp-fadein {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* — Card header — */
+        .lp-card-header {
+            text-align: center;
+            margin-bottom: 1.75rem;
+        }
+        .lp-lock-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            background: rgba(59,130,246,0.12);
+            border: 1px solid rgba(59,130,246,0.25);
+            margin-bottom: 1rem;
+        }
+        .lp-lock-wrap svg {
+            width: 22px; height: 22px;
+            stroke: var(--accent);
+        }
+        .lp-card-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.2;
+            margin-bottom: 0.35rem;
+        }
+        .lp-card-sub {
+            font-size: 0.875rem;
+            color: var(--muted);
+        }
+
+        /* — Error block — */
+        .lp-error {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--err-bg);
+            border-left: 3px solid var(--err);
+            border-radius: 8px;
+            padding: 11px 14px;
+            margin-bottom: 1.5rem;
+            color: var(--err-txt);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            animation: lp-slidein 0.25s ease both;
+        }
+        @@keyframes lp-slidein {
+            from { opacity: 0; transform: translateX(-8px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        .lp-error svg {
+            flex-shrink: 0;
+            margin-top: 1px;
+            width: 16px; height: 16px;
+            stroke: var(--err);
+        }
+
+        /* — Inputs — */
+        .lp-field {
+            margin-bottom: 1.1rem;
+        }
+        .lp-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+        .lp-input-wrap {
+            position: relative;
+        }
+        .lp-input-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px; height: 16px;
+            stroke: #3d4d6b;
+            pointer-events: none;
+            transition: stroke 0.18s;
+        }
+        .lp-input {
+            width: 100%;
+            background: rgba(20,26,42,0.8);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.93rem;
+            padding: 12px 14px 12px 40px;
+            outline: none;
+            transition: border-color 0.18s, box-shadow 0.18s;
+        }
+        .lp-input::placeholder { color: #2d3a52; }
+        .lp-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+        .lp-input:focus ~ .lp-input-icon,
+        .lp-input-wrap:focus-within .lp-input-icon { stroke: var(--accent); }
+        .lp-eye-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            color: #3d4d6b;
+            transition: color 0.18s;
+            display: flex;
+            align-items: center;
+        }
+        .lp-eye-btn:hover { color: var(--muted); }
+        .lp-eye-btn svg { width: 16px; height: 16px; stroke: currentColor; }
+        .lp-input-pw { padding-right: 40px; }
+
+        /* — Remember + forgot — */
+        .lp-row-aux {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.4rem;
+        }
+        .lp-remember {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.8rem;
+            color: var(--muted);
+            cursor: pointer;
+            user-select: none;
+        }
+        .lp-checkbox {
+            width: 15px; height: 15px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        .lp-forgot {
+            font-size: 0.8rem;
+            color: var(--accent);
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.15s;
+        }
+        .lp-forgot:hover { opacity: 1; }
+
+        /* — Submit button con shimmer — */
+        .lp-btn {
+            position: relative;
+            width: 100%;
+            padding: 13px 20px;
+            border: none;
+            border-radius: 9px;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            overflow: hidden;
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-bottom: 1.5rem;
+        }
+        .lp-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+            transform: skewX(-20deg);
+            transition: left 0s;
+        }
+        .lp-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(6,182,212,0.35);
+        }
+        .lp-btn:hover::after {
+            left: 160%;
+            transition: left 0.45s ease;
+        }
+        .lp-btn:active {
+            transform: scale(0.98);
+            box-shadow: none;
+        }
+        .lp-btn svg { width: 16px; height: 16px; stroke: #fff; }
+
+        /* — Divider — */
+        .lp-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1.25rem;
+        }
+        .lp-divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .lp-divider-txt {
+            font-size: 0.72rem;
+            color: #3d4d6b;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        /* — Trust badges — */
+        .lp-trust {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .lp-trust-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            padding: 6px 10px;
+            font-size: 0.69rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .lp-trust-badge svg {
+            width: 12px; height: 12px;
+            stroke: var(--accent2);
+            flex-shrink: 0;
+        }
+
+        /* ─── Responsive ─── */
+        @@media (max-width: 1024px) {
+            .lp-left { display: none; }
+            .lp-right { flex: 1; }
+        }
+        @@media (max-width: 480px) {
+            .lp-right { padding: 1.5rem 1.25rem; }
+            .lp-card  { padding: 28px 22px; }
+            .lp-trust { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body class="login-page-v2">
+
+    <div class="lp-orb lp-orb-1"></div>
+    <div class="lp-orb lp-orb-2"></div>
+    <div class="lp-orb lp-orb-3"></div>
+    <div class="lp-vignette"></div>
+
+    <div class="lp-wrap">
+
+        <!-- ═══ COLUMNA IZQUIERDA ═══ -->
+        <div class="lp-left">
+
+            <!-- Badge estado -->
+            <div class="lp-badge">
+                <div class="lp-badge-dot"></div>
+                Sistema operativo
+            </div>
+
+            <!-- Logo -->
+            <div class="lp-brand">
+                <div class="lp-shield-wrap">
+                    <div class="lp-shield-glow"></div>
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="64" height="64" rx="16" fill="rgba(59,130,246,0.10)" />
+                        <path d="M32 10L48 17v14c0 10-7 19-16 22C13 50 8 41 8 31V17L32 10z"
+                              fill="none" stroke="url(#sg1)" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M24 32l5 5 10-10" stroke="url(#sg1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="sg1" x1="8" y1="10" x2="48" y2="54" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#3B82F6"/>
+                                <stop offset="1" stop-color="#06B6D4"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="lp-brand-text">
+                    <div class="lp-brand-name">SIGD</div>
+                    <div class="lp-brand-sub">Empresarial</div>
+                </div>
+            </div>
+
+            <!-- Tagline -->
+            <p class="lp-tagline">
+                Sistema Integral de Gestión Documental.<br>
+                Control total sobre tus documentos corporativos.
+            </p>
+
+            <!-- Window mockup -->
+            <div class="lp-window">
+                <div class="lp-window-bar">
+                    <div class="lp-dot lp-dot-r"></div>
+                    <div class="lp-dot lp-dot-y"></div>
+                    <div class="lp-dot lp-dot-g"></div>
+                    <div class="lp-window-url">sigd.empresa.com/documentos</div>
+                </div>
+                <div class="lp-window-body">
+                    <div class="lp-log-line">
+                        <span class="lp-log-time">12:41</span>
+                        <span class="lp-log-badge lp-log-ok">OK</span>
+                        <span class="lp-log-txt">Documento aprobado por Ana M. — Contrato_2026.pdf</span>
+                    </div>
+                    <div class="lp-log-line">
+                        <span class="lp-log-time">12:39</span>
+                        <span class="lp-log-badge lp-log-inf">INFO</span>
+                        <span class="lp-log-txt">Nueva versión cargada por Carlos R. — v3.1</span>
+                    </div>
+                    <div class="lp-log-line">
+                        <span class="lp-log-time">12:35</span>
+                        <span class="lp-log-badge lp-log-wrn">AUDIT</span>
+                        <span class="lp-log-txt">Acceso desde IP 10.0.1.42 — usuario jperez</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features 2x2 -->
+            <div class="lp-features">
+                <div class="lp-feat">
+                    <div class="lp-feat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 12h6M9 16h6M9 8h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2h-5L12 2H7a2 2 0 00-2 2v16a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="lp-feat-title">Control de versiones</div>
+                        <div class="lp-feat-desc">Historial completo de cambios</div>
+                    </div>
+                </div>
+                <div class="lp-feat">
+                    <div class="lp-feat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="lp-feat-title">Flujo de aprobación</div>
+                        <div class="lp-feat-desc">Multi-rol y trazable</div>
+                    </div>
+                </div>
+                <div class="lp-feat">
+                    <div class="lp-feat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="lp-feat-title">Auditoría 360°</div>
+                        <div class="lp-feat-desc">Cada acción queda registrada</div>
+                    </div>
+                </div>
+                <div class="lp-feat">
+                    <div class="lp-feat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="lp-feat-title">Búsqueda inteligente</div>
+                        <div class="lp-feat-desc">Encuentra todo al instante</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="lp-stats">
+                <div class="lp-stat">
+                    <div class="lp-stat-num">+500</div>
+                    <div class="lp-stat-lbl">Documentos</div>
+                </div>
+                <div class="lp-stat">
+                    <div class="lp-stat-num">99.9%</div>
+                    <div class="lp-stat-lbl">Uptime</div>
+                </div>
+                <div class="lp-stat">
+                    <div class="lp-stat-num">24/7</div>
+                    <div class="lp-stat-lbl">Disponibilidad</div>
+                </div>
+            </div>
+
+            <!-- Footer columna -->
+            <div class="lp-left-footer">
+                v2.0.1 &middot; &copy; 2026 SIGD Empresarial &middot; Powered by .NET 10
+            </div>
+
+        </div><!-- /lp-left -->
+
+        <!-- ═══ COLUMNA DERECHA ═══ -->
+        <div class="lp-right">
+            <div class="lp-card">
+
+                <!-- Header card -->
+                <div class="lp-card-header">
+                    <div class="lp-lock-wrap">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0110 0v4"/>
+                        </svg>
+                    </div>
+                    <div class="lp-card-title">Bienvenido de vuelta</div>
+                    <div class="lp-card-sub">Inicia sesión para continuar a tu panel</div>
                 </div>
 
+                <!-- Error -->
                 @if (ViewBag.Error != null)
                 {
-                    <div class="alert alert-danger text-center shadow-sm">@ViewBag.Error</div>
+                    <div class="lp-error">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        @ViewBag.Error
+                    </div>
                 }
 
+                <!-- Formulario -->
                 <form asp-action="Login" method="post">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Username</label>
-                        <input type="text" name="username" class="form-control" required placeholder="Ej: admin_sistema" autocomplete="off" />
+
+                    <div class="lp-field">
+                        <label class="lp-label" for="username">Username</label>
+                        <div class="lp-input-wrap">
+                            <svg class="lp-input-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            <input id="username"
+                                   type="text"
+                                   name="username"
+                                   class="lp-input"
+                                   required
+                                   placeholder="Ej: admin_sistema"
+                                   autocomplete="username" />
+                        </div>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Contraseña</label>
-                        <input type="password" name="contrasena" class="form-control" required placeholder="••••••••" />
+
+                    <div class="lp-field">
+                        <label class="lp-label" for="contrasena">Contraseña</label>
+                        <div class="lp-input-wrap">
+                            <svg class="lp-input-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0110 0v4"/>
+                            </svg>
+                            <input id="contrasena"
+                                   type="password"
+                                   name="contrasena"
+                                   class="lp-input lp-input-pw"
+                                   required
+                                   placeholder="••••••••"
+                                   autocomplete="current-password" />
+                            <button type="button" class="lp-eye-btn" id="lp-eye-toggle" aria-label="Mostrar contraseña">
+                                <svg id="lp-eye-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-jewel-primary btn-lg">Ingresar</button>
+
+                    <!-- Remember -->
+                    <div class="lp-row-aux" style="justify-content: flex-start;">
+                        <label class="lp-remember">
+                            <input type="checkbox" name="recordarme" value="true" class="lp-checkbox" />
+                            Recuérdame
+                        </label>
                     </div>
+
+                    <!-- Botón -->
+                    <button type="submit" class="lp-btn">
+                        Ingresar
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
+
                 </form>
+
+                <!-- Divider -->
+                <div class="lp-divider">
+                    <div class="lp-divider-line"></div>
+                    <span class="lp-divider-txt">Protección activada</span>
+                    <div class="lp-divider-line"></div>
+                </div>
+
+                <!-- Trust badges -->
+                <div class="lp-trust">
+                    <div class="lp-trust-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        Conexión cifrada
+                    </div>
+                    <div class="lp-trust-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 12h6M9 16h6M9 8h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2h-5L12 2H7a2 2 0 00-2 2v16a2 2 0 002 2z"/>
+                            <path d="M15 2v4h4"/>
+                            <path d="M9 12l2 2 4-4"/>
+                        </svg>
+                        Acceso registrado
+                    </div>
+                    <div class="lp-trust-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="2"/>
+                            <path d="M16.24 7.76a6 6 0 010 8.49"/><path d="M7.76 16.24a6 6 0 010-8.49"/>
+                            <path d="M20.07 4.93a10 10 0 010 14.14"/><path d="M3.93 19.07a10 10 0 010-14.14"/>
+                        </svg>
+                        Monitoreo activo
+                    </div>
+                </div>
+
             </div>
-        </div>
-    </div>
-</div>
+        </div><!-- /lp-right -->
+
+    </div><!-- /lp-wrap -->
+
+    <script>
+        (function () {
+            var btn   = document.getElementById('lp-eye-toggle');
+            var input = document.getElementById('contrasena');
+            var icon  = document.getElementById('lp-eye-icon');
+
+            var eyeOpen   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+            var eyeClosed = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+            if (btn && input && icon) {
+                btn.addEventListener('click', function () {
+                    var showing = input.type === 'text';
+                    input.type = showing ? 'password' : 'text';
+                    icon.innerHTML = showing ? eyeOpen : eyeClosed;
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
