@@ -40,7 +40,7 @@ else
         {
             var doc = flujo.IdVersionDocumentoNavigation?.IdDocumentoNavigation;
             var ver = flujo.IdVersionDocumentoNavigation;
-            <div class="col-md-6 animate-fade-up">
+            <div class="col-12 animate-fade-up">
                 <div class="card card-jewel h-100">
                     <div class="card-body p-4">
 
@@ -72,7 +72,7 @@ else
                                 </div>
                                 <div>
                                     <span class="text-muted">Enviado por</span><br>
-                                    <strong>Usuario #@flujo.IdUsuarioCreacion</strong>
+                                    <strong>@(flujo.IdUsuarioCreacionNavigation?.Nombre ?? "Usuario #" + flujo.IdUsuarioCreacion)</strong>
                                 </div>
                                 <div>
                                     <span class="text-muted">Fecha</span><br>

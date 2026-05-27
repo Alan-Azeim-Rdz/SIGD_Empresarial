@@ -98,6 +98,7 @@ namespace Gestion_de_Documentos.Controllers
             var flujosPendientes = await _context.FlujoAprobacions
                 .Include(f => f.IdVersionDocumentoNavigation)
                     .ThenInclude(v => v.IdDocumentoNavigation)
+                .Include(f => f.IdUsuarioCreacionNavigation)
                 .Where(f => f.IdUsuarioAsignado == userId && f.EstadoFirma == "Pendiente" && f.Estatus == true)
                 .OrderBy(f => f.FechaCreacion)
                 .ToListAsync();
