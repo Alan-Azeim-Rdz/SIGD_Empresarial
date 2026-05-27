@@ -11,31 +11,31 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         :root {
-            /* Paleta principal (Jewel Tones) */
-            --sapphire:       #1E3D59;
-            --sapphire-light: #2d6a9f;
-            --sapphire-dark:  #132941;
-            --emerald:        #0F7A72;
-            --emerald-light:  #1a9e95;
-            --emerald-dark:   #0a5a54;
-            --amethyst:       #6B4C9A;
-            --amethyst-light: #8b6bbf;
-            --amber:          #E8A020;
-            --crimson:        #C0392B;
-            --crimson-light:  #e74c3c;
+            /* Paleta principal — moderno oscuro */
+            --sapphire:       #3B82F6;
+            --sapphire-light: #60A5FA;
+            --sapphire-dark:  #1E40AF;
+            --emerald:        #06B6D4;
+            --emerald-light:  #22D3EE;
+            --emerald-dark:   #0891B2;
+            --amethyst:       #8B5CF6;
+            --amethyst-light: #A78BFA;
+            --amber:          #F59E0B;
+            --crimson:        #EF4444;
+            --crimson-light:  #F87171;
 
             /* Neutros */
-            --bg:             #F4F1EB;
-            --bg-card:        #FFFFFF;
-            --bg-hover:       #EEF2F7;
-            --text-primary:   #1C2B3A;
-            --text-secondary: #546E7A;
-            --text-muted:     #90A4AE;
-            --border:         #DDE3EA;
+            --bg:             #0A0E1A;
+            --bg-card:        #141A2A;
+            --bg-hover:       #1E2538;
+            --text-primary:   #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted:     #64748B;
+            --border:         #1E2538;
             --radius-md:      .85rem;
             --radius-sm:      .5rem;
-            --shadow-sm:      0 1px 4px rgba(30,61,89,.08);
-            --shadow-md:      0 4px 16px rgba(30,61,89,.12);
+            --shadow-sm:      0 1px 4px rgba(0,0,0,.4);
+            --shadow-md:      0 4px 16px rgba(0,0,0,.4);
         }
 
         * { box-sizing: border-box; }
@@ -64,7 +64,7 @@
         .sidebar-logo {
             font-size: 1.15rem;
             font-weight: 800;
-            color: var(--sapphire-dark);
+            color: var(--text-primary);
             margin-bottom: 2rem;
             letter-spacing: -.5px;
         }
@@ -169,12 +169,12 @@
         }
         .kpi-card .kpi-label { font-size: .8rem; color: var(--text-secondary); font-weight: 500; }
 
-        .kpi-blue  .kpi-icon { background: rgba(45,106,159,.12);  color: var(--sapphire-light); }
-        .kpi-green .kpi-icon { background: rgba(15,122,114,.12);   color: var(--emerald); }
-        .kpi-red   .kpi-icon { background: rgba(192,57,43,.12); color: var(--crimson); }
-        .kpi-purple.kpi-icon { background: rgba(107,76,154,.12); color: var(--amethyst); }
-        .kpi-blue  .kpi-value { color: var(--sapphire-dark); }
-        .kpi-green .kpi-value { color: var(--emerald-dark); }
+        .kpi-blue  .kpi-icon { background: rgba(59,130,246,.15);  color: var(--sapphire-light); }
+        .kpi-green .kpi-icon { background: rgba(6,182,212,.15);   color: var(--emerald); }
+        .kpi-red   .kpi-icon { background: rgba(239,68,68,.15); color: var(--crimson); }
+        .kpi-purple .kpi-icon { background: rgba(139,92,246,.15); color: var(--amethyst); }
+        .kpi-blue  .kpi-value { color: var(--sapphire-light); }
+        .kpi-green .kpi-value { color: var(--emerald-light); }
         .kpi-red   .kpi-value { color: var(--crimson); }
         .kpi-purple .kpi-value { color: var(--amethyst); }
 
@@ -195,7 +195,7 @@
         .chart-card h2 {
             font-size: 1.05rem;
             font-weight: 700;
-            color: var(--sapphire-dark);
+            color: var(--text-primary);
             margin-bottom: 1rem;
         }
         .chart-card h2 i { color: var(--text-secondary); margin-right: .4rem; }
@@ -212,7 +212,7 @@
         .activity-table h2 {
             font-size: 1.05rem;
             font-weight: 700;
-            color: var(--sapphire-dark);
+            color: var(--text-primary);
             margin-bottom: 1rem;
         }
         table.sigd-table { width: 100%; border-collapse: collapse; }
@@ -236,18 +236,18 @@
         table.sigd-table tr:hover td { background: var(--bg-hover); }
 
         .badge-version {
-            background: rgba(45,106,159,.12);
+            background: rgba(59,130,246,.15);
             color: var(--sapphire-light);
-            border: 1px solid rgba(45,106,159,.2);
+            border: 1px solid rgba(59,130,246,.25);
             border-radius: .4rem;
             padding: .15rem .55rem;
             font-size: .75rem;
             font-weight: 700;
         }
         .badge-depto {
-            background: rgba(107,76,154,.12);
+            background: rgba(139,92,246,.15);
             color: var(--amethyst);
-            border: 1px solid rgba(107,76,154,.2);
+            border: 1px solid rgba(139,92,246,.25);
             border-radius: .4rem;
             padding: .15rem .55rem;
             font-size: .73rem;
@@ -269,14 +269,14 @@
 
         /* ── Portal link ── */
         .portal-btn {
-            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-light) 100%);
+            background: linear-gradient(135deg, var(--sapphire) 0%, var(--emerald) 100%);
             color: #fff !important;
             border: none;
             border-radius: .6rem;
             padding: .55rem 1.2rem;
             font-size: .88rem;
             font-weight: 600;
-            box-shadow: 0 2px 8px rgba(15,122,114,.25);
+            box-shadow: 0 2px 8px rgba(59,130,246,.25);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
@@ -284,7 +284,7 @@
             transition: opacity .2s, transform .2s;
         }
         .portal-btn:hover {
-            box-shadow: 0 4px 14px rgba(15,122,114,.35);
+            box-shadow: 0 4px 14px rgba(59,130,246,.35);
             transform: translateY(-1px);
         }
 
@@ -321,19 +321,21 @@
         .modal-body { padding: 1.5rem; }
         .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
         .btn-jewel-primary {
-            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-light) 100%);
+            background: linear-gradient(135deg, var(--sapphire) 0%, var(--emerald) 100%);
             color: #fff;
             border: none;
-            box-shadow: 0 2px 8px rgba(15,122,114,.25);
+            box-shadow: 0 2px 8px rgba(59,130,246,.25);
             font-weight: 600;
         }
         .btn-jewel-primary:hover {
-            background: linear-gradient(135deg, var(--emerald-dark) 0%, var(--emerald) 100%);
+            background: linear-gradient(135deg, var(--sapphire-dark) 0%, var(--sapphire) 100%);
             color: #fff;
+            box-shadow: 0 4px 14px rgba(59,130,246,.35);
+            transform: translateY(-1px);
         }
         .btn-outline-jewel {
             border: 1.5px solid var(--sapphire);
-            color: var(--sapphire);
+            color: var(--sapphire-light);
             background: transparent;
             font-weight: 600;
         }
@@ -347,11 +349,17 @@
             color: var(--text-primary);
         }
         .form-control {
-            border: 1.5px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             color: var(--text-primary);
-            background-color: #fff !important;
+            background-color: #0A0E1A !important;
             padding: .55rem .9rem;
+        }
+        .form-control:focus {
+            border-color: var(--sapphire);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+            background-color: #0A0E1A !important;
+            color: var(--text-primary);
         }
 
         @media (max-width: 900px) {
@@ -378,8 +386,8 @@
         <a href="http://localhost:5000" target="_blank" class="nav-link-side">
             <i class="fas fa-arrow-up-right-from-square fa-fw"></i> Módulo Central
         </a>
-        <a href="http://localhost:3000" target="_blank" class="nav-link-side">
-            <i class="fas fa-database fa-fw"></i> API Búsqueda
+        <a href="http://localhost:5000/Busqueda/Global" target="_blank" class="nav-link-side">
+            <i class="fas fa-search fa-fw"></i> Buscador Global
         </a>
         <div class="sidebar-divider"></div>
         <a href="#" class="nav-link-side" data-bs-toggle="modal" data-bs-target="#modalConexiones" id="btn-config-conexiones" style="color: var(--sapphire-light) !important;">
@@ -477,7 +485,7 @@ if (window.self !== window.top) {
 const BASE = window.location.origin + window.location.pathname.replace(/\?.*/, '');
 
 // ── Paleta de colores Chart.js ──
-const COLORS = ['#1E3D59', '#0F7A72', '#6B4C9A', '#E8A020', '#C0392B', '#2d6a9f', '#1a9e95', '#8b6bbf'];
+const COLORS = ['#3B82F6', '#06B6D4', '#8B5CF6', '#F59E0B', '#EF4444', '#60A5FA', '#22D3EE', '#A78BFA'];
 
 // ── 1. KPIs ──
 fetch(`${BASE}?action=api_kpis`)
@@ -508,14 +516,14 @@ fetch(`${BASE}?action=api_docs_por_depto`)
             type: 'doughnut',
             data: {
                 labels,
-                datasets: [{ data, backgroundColor: COLORS, borderColor: '#ffffff', borderWidth: 3 }]
+                datasets: [{ data, backgroundColor: COLORS, borderColor: '#141A2A', borderWidth: 3 }]
             },
             options: {
                 responsive: true,
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: { color: '#546E7A', padding: 12, font: { size: 11 } }
+                        labels: { color: '#94A3B8', padding: 12, font: { size: 11 } }
                     },
                     tooltip: {
                         callbacks: {
@@ -545,11 +553,11 @@ fetch(`${BASE}?action=api_evolucion`)
                 datasets: [{
                     label: 'Documentos publicados',
                     data,
-                    borderColor: '#1E3D59',
-                    backgroundColor: 'rgba(30,61,89,.08)',
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59,130,246,.08)',
                     fill: true,
                     tension: .35,
-                    pointBackgroundColor: '#1E3D59',
+                    pointBackgroundColor: '#3B82F6',
                     pointRadius: 5,
                     pointHoverRadius: 7,
                 }]
@@ -558,10 +566,10 @@ fetch(`${BASE}?action=api_evolucion`)
                 responsive: true,
                 interaction: { mode: 'index', intersect: false },
                 scales: {
-                    x: { ticks: { color: '#546E7A', font: { size: 11 } }, grid: { color: '#DDE3EA' } },
-                    y: { ticks: { color: '#546E7A', font: { size: 11 }, stepSize: 1 }, grid: { color: '#DDE3EA' }, beginAtZero: true }
+                    x: { ticks: { color: '#94A3B8', font: { size: 11 } }, grid: { color: 'rgba(30,37,56,0.5)' } },
+                    y: { ticks: { color: '#94A3B8', font: { size: 11 }, stepSize: 1 }, grid: { color: 'rgba(30,37,56,0.5)' }, beginAtZero: true }
                 },
-                plugins: { legend: { labels: { color: '#1C2B3A' } } }
+                plugins: { legend: { labels: { color: '#F8FAFC' } } }
             }
         });
     });

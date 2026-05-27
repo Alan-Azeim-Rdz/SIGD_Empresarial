@@ -57,6 +57,10 @@ function estatusTexto(mixed $val): string
 // como ?accion= (rutas PHP legacy) para compatibilidad total.
 $accion = $_GET['action'] ?? $_GET['accion'] ?? 'buscar';
 
+$pagina    = max(1, (int)($_GET['pagina'] ?? 1));
+$porPagina = 10;
+$offset    = ($pagina - 1) * $porPagina;
+
 // ── 4. ACCIÓN: GENERAR REPORTE PDF ───────────────────
 if ($accion === 'reporte') {
     if (!$pdo) {
@@ -303,7 +307,12 @@ if ($pdo) {
             $stmt->execute([':q' => "%$busqueda%"]);
             $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            $stmt = $pdo->query("
+            // Total para paginado
+            $stmtTotal = $pdo->query("SELECT COUNT(*) FROM documento_vigente WHERE estatus = true");
+            $totalDocs = (int)$stmtTotal->fetchColumn();
+            $totalPaginas = (int)ceil($totalDocs / $porPagina);
+
+            $stmt = $pdo->prepare("
                 SELECT id_documento,
                        titulo,
                        codigo_interno,
@@ -313,7 +322,11 @@ if ($pdo) {
                 FROM documento_vigente
                 WHERE estatus = true
                 ORDER BY titulo
+                LIMIT :limite OFFSET :offset
             ");
+            $stmt->bindValue(':limite', $porPagina, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset,    PDO::PARAM_INT);
+            $stmt->execute();
             $documentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     } catch (\Throwable $e) {
@@ -598,6 +611,38 @@ if ($pdo) {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        <?php endif; ?>
+
+        <?php if (isset($totalPaginas) && $totalPaginas > 1): ?>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:0 4px;">
+            <span style="color:#888; font-size:13px;">
+                Página <?= $pagina ?> de <?= $totalPaginas ?>
+                (<?= $totalDocs ?> documentos en total)
+            </span>
+            <div style="display:flex; gap:6px;">
+                <?php if ($pagina > 1): ?>
+                    <a href="?<?= http_build_query(array_merge($_GET, ['pagina' => $pagina - 1])) ?>"
+                       class="btn" style="background:#e2e8f0; color:#333; padding:8px 16px;">
+                        ← Anterior
+                    </a>
+                <?php endif; ?>
+
+                <?php for ($i = 1; $i <= $totalPaginas; $i++): ?>
+                    <a href="?<?= http_build_query(array_merge($_GET, ['pagina' => $i])) ?>"
+                       class="btn"
+                       style="padding:8px 14px; <?= $i === $pagina ? 'background:#1a56db; color:white;' : 'background:#e2e8f0; color:#333;' ?>">
+                        <?= $i ?>
+                    </a>
+                <?php endfor; ?>
+
+                <?php if ($pagina < $totalPaginas): ?>
+                    <a href="?<?= http_build_query(array_merge($_GET, ['pagina' => $pagina + 1])) ?>"
+                       class="btn" style="background:#e2e8f0; color:#333; padding:8px 16px;">
+                        Siguiente →
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
         <?php endif; ?>
     </div>
 </main>
