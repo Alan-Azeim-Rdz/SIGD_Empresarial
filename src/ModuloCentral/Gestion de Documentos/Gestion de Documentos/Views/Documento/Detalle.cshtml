@@ -90,5 +90,51 @@
                 </tbody>
             </table>
         </div>
+
+        <h4 class="mt-5 mb-3 text-jewel-sapphire">Historial de Aprobaciones</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Acción</th>
+                        <th>Revisor</th>
+                        <th>Estado Firma</th>
+                        <th>Comentarios</th>
+                        <th>Fecha</th>
+                        <th>Origen (IP)</th>
+                        <th>Deshacer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var version in Model.DocumentoVersions)
+                    {
+                        foreach(var flujo in version.FlujoAprobacions.OrderBy(f => f.FechaCreacion))
+                        {
+                            <tr>
+                                <td>@flujo.TipoAccion (V@(version.NumeroVersion).@version.VersionMinor)</td>
+                                <td>@flujo.IdUsuarioAsignadoNavigation?.Nombre @flujo.IdUsuarioAsignadoNavigation?.ApellidoP</td>
+                                <td>
+                                    @if(flujo.EstadoFirma == "Firmado") { <span class="badge bg-success">Aprobado</span> }
+                                    else if(flujo.EstadoFirma == "Rechazado") { <span class="badge bg-danger">Rechazado</span> }
+                                    else { <span class="badge bg-warning text-dark">Pendiente</span> }
+                                </td>
+                                <td><small>@flujo.Comentarios</small></td>
+                                <td>@flujo.FechaModificacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><small>@flujo.IpOrigenFirmante</small></td>
+                                <td>
+                                    @if(flujo.EstadoFirma != "Pendiente" && Model.EstadoActual != "Vigente")
+                                    {
+                                        <form asp-controller="Flujo" asp-action="DeshacerRespuesta" method="post" style="display:inline;">
+                                            <input type="hidden" name="idFlujo" value="@flujo.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Deshacer decisión"><i class="fas fa-undo"></i></button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

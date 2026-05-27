@@ -249,6 +249,27 @@ app.post('/indexar', async (req: Request, res: Response) => {
       return;
     }
 
+    const docExistente = await Metadato.findOne({ id_documento_sql });
+    if (docExistente) {
+      docExistente.id_empresa = id_empresa;
+      docExistente.codigo_interno = codigo_interno;
+      docExistente.titulo = titulo;
+      docExistente.tags = tags || [];
+      docExistente.version = version ?? docExistente.version;
+      docExistente.contenido_extraido = contenido_extraido ?? docExistente.contenido_extraido;
+      docExistente.id_usuario_creacion = id_usuario_creacion;
+      docExistente.estatus = true;
+      docExistente.fecha_modificacion = new Date();
+      await docExistente.save();
+
+      res.status(200).json({
+        success: true,
+        mensaje: 'Documento indexado (actualizado) correctamente',
+        data: docExistente
+      });
+      return;
+    }
+
     const nuevoMetadato = new Metadato({
       id_documento_sql,
       id_empresa,

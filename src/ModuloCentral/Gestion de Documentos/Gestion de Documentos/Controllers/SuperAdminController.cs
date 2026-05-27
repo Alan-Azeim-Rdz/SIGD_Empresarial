@@ -221,9 +221,16 @@ namespace Gestion_de_Documentos.Controllers
         {
             if (string.IsNullOrEmpty(name)) return "empresa";
             
-            string slug = name.ToLowerInvariant();
-            byte[] tempBytes = System.Text.Encoding.GetEncoding("Cyrillic").GetBytes(slug);
-            slug = System.Text.Encoding.ASCII.GetString(tempBytes);
+            // Normalizar a FormD para separar los caracteres base de sus acentos/diacríticos
+            string normalized = name.Normalize(System.Text.NormalizationForm.FormD);
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in normalized)
+            {
+                var uc = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
+                    sb.Append(c);
+            }
+            string slug = sb.ToString().Normalize(System.Text.NormalizationForm.FormC).ToLowerInvariant();
             
             slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\s-]", "");
             slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s+", " ").Trim();

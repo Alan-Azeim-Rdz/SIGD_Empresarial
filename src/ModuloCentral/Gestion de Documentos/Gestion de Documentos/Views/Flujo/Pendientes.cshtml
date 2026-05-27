@@ -78,43 +78,98 @@ else
                                     <span class="text-muted">Fecha</span><br>
                                     <strong>@flujo.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</strong>
                                 </div>
+                                <div>
+                                    <span class="text-muted">Origen (IP)</span><br>
+                                    <strong>@(string.IsNullOrEmpty(flujo.IpOrigenRemitente) ? "Desconocida" : flujo.IpOrigenRemitente)</strong>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Botón revisar -->
-                        <a asp-controller="Documento" asp-action="Detalle"
-                           asp-route-id="@doc?.Id"
-                           class="btn btn-outline-jewel btn-sm w-100 mb-3">
-                            <i class="fas fa-search me-1"></i>Revisar Documento
-                        </a>
+                        <div class="d-flex gap-2 mb-3">
+                            <a asp-controller="Documento" asp-action="Detalle"
+                               asp-route-id="@doc?.Id"
+                               class="btn btn-outline-jewel btn-sm w-50">
+                                <i class="fas fa-info-circle me-1"></i>Ver Detalles
+                            </a>
+                            <button type="button" class="btn btn-jewel-secondary btn-sm w-50" data-bs-toggle="modal" data-bs-target="#pdfModal-@flujo.Id">
+                                <i class="fas fa-file-pdf me-1"></i>Previsualizar PDF
+                            </button>
+                        </div>
 
                         <!-- Formulario de respuesta -->
-                        <form asp-action="Responder" method="post">
+                        <form asp-action="Responder" method="post" id="formAprobacion-@flujo.Id">
                             <input type="hidden" name="idFlujo" value="@flujo.Id" />
 
-                            <div class="mb-3">
-                                <label class="form-label" style="font-size: .82rem;">Comentarios (opcional)</label>
+                            <div class="mb-2">
+                                <label class="form-label" style="font-size: .82rem;">Comentarios (Obligatorio para rechazar/aprobar)</label>
                                 <textarea name="comentarios" class="form-control" rows="2"
-                                          placeholder="Motivo de rechazo o nota de aprobación…"
-                                          style="font-size: .85rem; resize: none;"></textarea>
+                                          placeholder="Añade tus observaciones aquí..."
+                                          style="font-size: .85rem; resize: none;" required></textarea>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input check-leido" type="checkbox" id="checkLeido-@flujo.Id" data-target="btnGroup-@flujo.Id">
+                                <label class="form-check-label text-muted" for="checkLeido-@flujo.Id" style="font-size: 0.85rem;">
+                                    Confirmo que he previsualizado y leído el documento.
+                                </label>
                             </div>
 
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2" id="btnGroup-@flujo.Id">
                                 <button type="submit" name="respuesta" value="Rechazar"
-                                        class="btn btn-sm w-50"
+                                        class="btn btn-sm w-50 btn-action" disabled
                                         style="background: rgba(192,57,43,.1); color: var(--crimson); border: 1px solid rgba(192,57,43,.25); font-weight: 600;">
                                     <i class="fas fa-times me-1"></i>Rechazar
                                 </button>
                                 <button type="submit" name="respuesta" value="Aprobar"
-                                        class="btn btn-jewel-primary btn-sm w-50">
+                                        class="btn btn-jewel-primary btn-sm w-50 btn-action" disabled>
                                     <i class="fas fa-check me-1"></i>Aprobar
                                 </button>
                             </div>
                         </form>
+
+                        <!-- Modal de Previsualización PDF -->
+                        <div class="modal fade" id="pdfModal-@flujo.Id" tabindex="-1" aria-labelledby="pdfModalLabel-@flujo.Id" aria-hidden="true">
+                          <div class="modal-dialog modal-xl modal-dialog-centered">
+                            <div class="modal-content">
+                              <div class="modal-header bg-light">
+                                <h5 class="modal-title" id="pdfModalLabel-@flujo.Id"><i class="fas fa-file-pdf me-2 text-danger"></i>Previsualización: @doc?.Titulo</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                              </div>
+                              <div class="modal-body p-0" style="height: 75vh;">
+                                  <iframe src="@Url.Action("Descargar", "Documento", new { versionId = ver?.Id })" width="100%" height="100%" style="border: none;"></iframe>
+                              </div>
+                              <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar Visor</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>>
 
                     </div>
                 </div>
             </div>
         }
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Habilitar/deshabilitar botones según el checkbox de "leído"
+            const checks = document.querySelectorAll('.check-leido');
+            checks.forEach(check => {
+                check.addEventListener('change', function () {
+                    const targetId = this.getAttribute('data-target');
+                    const btnGroup = document.getElementById(targetId);
+                    if (btnGroup) {
+                        const buttons = btnGroup.querySelectorAll('.btn-action');
+                        buttons.forEach(btn => {
+                            btn.disabled = !this.checked;
+                        });
+                    }
+                });
+            });
+        });
+    </script>
 }

@@ -94,6 +94,11 @@
                         <a asp-action="CamposPersonalizados" class="list-group-item list-group-item-action">
                             <i class="fas fa-sliders-h me-2"></i> Configurar Campos Personalizados
                         </a>
+                        <form asp-action="SincronizarBasesDeDatos" method="post" class="m-0 p-0">
+                            <button type="submit" class="list-group-item list-group-item-action text-start w-100 border-0" onclick="return confirm('¿Está seguro de querer sincronizar todos los documentos vigentes hacia Búsqueda y Reportes?');">
+                                <i class="fas fa-sync-alt me-2 text-primary"></i> Sincronizar Bases de Datos
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>

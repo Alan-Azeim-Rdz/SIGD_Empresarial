@@ -74,7 +74,16 @@
                                     }
                                     else
                                     {
-                                        <span class="badge badge-rechaz">@item.EstadoActual</span>
+                                        <span class="badge badge-rechaz"><i class="fas fa-times me-1"></i>Rechazado</span>
+                                    }
+                                    
+                                    @{
+                                        var ultimaV = item.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ThenByDescending(v => v.VersionMinor).FirstOrDefault();
+                                        var ultimoFlujo = ultimaV?.FlujoAprobacions.OrderByDescending(f => f.FechaModificacion).FirstOrDefault();
+                                        if (ultimoFlujo != null && !string.IsNullOrEmpty(ultimoFlujo.Comentarios) && (item.EstadoActual == "Rechazado" || item.EstadoActual == "Vigente"))
+                                        {
+                                            <i class="fas fa-info-circle ms-2" style="color: var(--sapphire); cursor: help;" data-bs-toggle="tooltip" title="@ultimoFlujo.Comentarios"></i>
+                                        }
                                     }
                                 </td>
                                 <td class="text-muted" style="font-size: .82rem;">
@@ -94,3 +103,14 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+    </script>
+}

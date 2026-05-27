@@ -90,7 +90,7 @@ namespace Gestion_de_Documentos.Services
             var documentos = await _context.Documentos
                 .Include(d => d.DocumentoVersions)
                 .Include(d => d.IdTipoDocumentoNavigation)
-                .Where(d => d.Estatus == true && d.EstadoActual == "Publicado")
+                .Where(d => d.Estatus == true && d.EstadoActual == "Vigente")
                 .ToListAsync();
 
             if (documentos.Count == 0)

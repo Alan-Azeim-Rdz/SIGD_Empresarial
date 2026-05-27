@@ -41,6 +41,9 @@ namespace Gestion_de_Documentos.Controllers
             var documentos = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
+                .Include(d => d.DocumentoVersions)
+                    .ThenInclude(v => v.FlujoAprobacions)
+                        .ThenInclude(f => f.IdUsuarioAsignadoNavigation)
                 .Where(d => d.Estatus == true && d.IdEmpresa == empresaId)
                 .OrderByDescending(d => d.FechaCreacion)
                 .ToListAsync();
@@ -114,6 +117,11 @@ namespace Gestion_de_Documentos.Controllers
             ModelState.Remove("IdUsuarioModificacionNavigation");
             ModelState.Remove("IdUsuarioEliminacionNavigation");
             ModelState.Remove("IdUsuarioPropietarioNavigation");
+            ModelState.Remove("IdEmpresaNavigation");
+            ModelState.Remove("EstadoActual");
+            ModelState.Remove("BitacoraControlDocumentos");
+            ModelState.Remove("BitacoraTransaccionals");
+            ModelState.Remove("DocumentoVersions");
 
             if (ModelState.IsValid)
             {
@@ -133,6 +141,7 @@ namespace Gestion_de_Documentos.Controllers
                 doc.Estatus = true;
                 doc.FechaCreacion = DateTime.Now;
                 doc.IdUsuarioCreacion = userId;
+                doc.IdUsuarioPropietario = userId;
                 
                 _context.Documentos.Add(doc);
                 await _context.SaveChangesAsync(); // Para obtener el doc.Id
@@ -234,6 +243,11 @@ namespace Gestion_de_Documentos.Controllers
             ModelState.Remove("IdUsuarioModificacionNavigation");
             ModelState.Remove("IdUsuarioEliminacionNavigation");
             ModelState.Remove("IdUsuarioPropietarioNavigation");
+            ModelState.Remove("IdEmpresaNavigation");
+            ModelState.Remove("EstadoActual");
+            ModelState.Remove("BitacoraControlDocumentos");
+            ModelState.Remove("BitacoraTransaccionals");
+            ModelState.Remove("DocumentoVersions");
 
             if (ModelState.IsValid)
             {
@@ -266,8 +280,8 @@ namespace Gestion_de_Documentos.Controllers
                 .Include(d => d.DocumentoVersions)
                 .FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
 
-            if (doc == null || doc.EstadoActual != "Borrador")
-                return NotFound("Documento no válido o no se encuentra en estado Borrador.");
+            if (doc == null || (doc.EstadoActual != "Borrador" && doc.EstadoActual != "Rechazado"))
+                return NotFound("Documento no válido o no se puede modificar en su estado actual.");
 
             return View(doc);
         }
@@ -282,8 +296,8 @@ namespace Gestion_de_Documentos.Controllers
                 .Include(d => d.DocumentoVersions)
                 .FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
 
-            if (doc == null || doc.EstadoActual != "Borrador")
-                return NotFound("Documento no válido o no se encuentra en estado Borrador.");
+            if (doc == null || (doc.EstadoActual != "Borrador" && doc.EstadoActual != "Rechazado"))
+                return NotFound("Documento no válido o no se puede modificar en su estado actual.");
 
             if (archivoPdf == null || archivoPdf.Length == 0)
             {
@@ -296,11 +310,23 @@ namespace Gestion_de_Documentos.Controllers
 
             if (ModelState.IsValid)
             {
-                // Determinar el número de versión (máximo actual + 1)
+                // Determinar el número de versión (Manejo de versiones decimales)
                 int nuevaVersionNum = 1;
+                int nuevoMinor = 0;
+                
                 if (doc.DocumentoVersions.Any())
                 {
-                    nuevaVersionNum = doc.DocumentoVersions.Max(v => v.NumeroVersion) + 1;
+                    var ultimaVersion = doc.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ThenByDescending(v => v.VersionMinor).First();
+                    if (doc.EstadoActual == "Rechazado")
+                    {
+                        nuevaVersionNum = ultimaVersion.NumeroVersion;
+                        nuevoMinor = ultimaVersion.VersionMinor + 1;
+                    }
+                    else
+                    {
+                        nuevaVersionNum = ultimaVersion.NumeroVersion + 1;
+                        nuevoMinor = 0;
+                    }
                 }
 
                 // 1. Guardar el archivo en MongoDB GridFS
@@ -318,6 +344,7 @@ namespace Gestion_de_Documentos.Controllers
                 {
                     IdDocumento = doc.Id,
                     NumeroVersion = nuevaVersionNum,
+                    VersionMinor = nuevoMinor,
                     RutaArchivoFisico = objectIdStr,
                     HashDocumento = hashString,
                     IdUsuarioSube = userId,
@@ -351,6 +378,8 @@ namespace Gestion_de_Documentos.Controllers
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
                 .Include(d => d.DocumentoVersions)
+                    .ThenInclude(v => v.FlujoAprobacions)
+                        .ThenInclude(f => f.IdUsuarioAsignadoNavigation)
                 .FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
 
             if (doc == null)
@@ -369,6 +398,8 @@ namespace Gestion_de_Documentos.Controllers
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
                 .Include(d => d.DocumentoVersions)
+                    .ThenInclude(v => v.FlujoAprobacions)
+                        .ThenInclude(f => f.IdUsuarioAsignadoNavigation)
                 .FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
 
             if (doc == null)

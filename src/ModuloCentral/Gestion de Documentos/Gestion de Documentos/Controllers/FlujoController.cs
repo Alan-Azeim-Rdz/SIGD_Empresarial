@@ -35,11 +35,15 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null || doc.EstadoActual != "Borrador")
                 return NotFound("Documento no válido o no se encuentra en estado Borrador.");
 
-            // Obtener lista de usuarios que son 'Administrador' o 'Superior'
+            // Obtener lista de usuarios que son 'Administrador' o 'Superior' de la MISMA empresa y departamento
             var revisores = await _context.UsuarioRols
                 .Include(ur => ur.IdUsuarioNavigation)
                 .Include(ur => ur.IdRolNavigation)
-                .Where(ur => (ur.IdRolNavigation.Nombre == "Administrador" || ur.IdRolNavigation.Nombre == "Superior") && ur.Estatus == true && ur.IdUsuarioNavigation.Estatus == true)
+                .Where(ur => (ur.IdRolNavigation.Nombre == "Administrador" || ur.IdRolNavigation.Nombre == "Superior") 
+                          && ur.Estatus == true 
+                          && ur.IdUsuarioNavigation.Estatus == true
+                          && ur.IdUsuarioNavigation.IdEmpresa == doc.IdEmpresa
+                          && ur.IdUsuarioNavigation.IdDepartamento == doc.IdDepartamento)
                 .Select(ur => new { ur.IdUsuarioNavigation.Id, ur.IdUsuarioNavigation.Nombre, ApellidoP = ur.IdUsuarioNavigation.ApellidoP, ApellidoM = ur.IdUsuarioNavigation.ApellidoM, Rol = ur.IdRolNavigation.Nombre })
                 .ToListAsync();
 
@@ -79,7 +83,8 @@ namespace Gestion_de_Documentos.Controllers
                 Orden = 1,
                 IdUsuarioCreacion = GetCurrentUserId(),
                 FechaCreacion = DateTime.Now,
-                Estatus = true
+                Estatus = true,
+                IpOrigenRemitente = HttpContext.Connection.RemoteIpAddress?.ToString()
             };
 
             doc.EstadoActual = "En Revision";
@@ -119,12 +124,18 @@ namespace Gestion_de_Documentos.Controllers
 
             var userId = GetCurrentUserId();
 
+            if (string.IsNullOrWhiteSpace(comentarios))
+            {
+                return BadRequest("Los comentarios son obligatorios para aprobar o rechazar el documento.");
+            }
+
             // Modificar el registro de flujo actual en lugar de crear un detalle
             flujo.EstadoFirma = respuesta == "Aprobar" ? "Firmado" : "Rechazado";
             flujo.Comentarios = comentarios;
             flujo.FechaFirma = DateTime.Now;
             flujo.IdUsuarioModificacion = userId;
             flujo.FechaModificacion = DateTime.Now;
+            flujo.IpOrigenFirmante = HttpContext.Connection.RemoteIpAddress?.ToString();
 
             if (respuesta == "Aprobar")
             {
@@ -142,12 +153,41 @@ namespace Gestion_de_Documentos.Controllers
             }
             else
             {
-                // El documento vuelve a borrador para ser corregido
-                flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.EstadoActual = "Borrador";
+                // El documento vuelve a estado Rechazado
+                flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.EstadoActual = "Rechazado";
                 await _context.SaveChangesAsync();
             }
 
             return RedirectToAction(nameof(Pendientes));
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrador, Superior")]
+        public async Task<IActionResult> DeshacerRespuesta(int idFlujo)
+        {
+            var flujo = await _context.FlujoAprobacions
+                .Include(f => f.IdVersionDocumentoNavigation)
+                    .ThenInclude(v => v.IdDocumentoNavigation)
+                .FirstOrDefaultAsync(f => f.Id == idFlujo);
+
+            if (flujo == null || (flujo.EstadoFirma != "Firmado" && flujo.EstadoFirma != "Rechazado"))
+                return NotFound("Flujo no válido o no se puede deshacer.");
+
+            var userId = GetCurrentUserId();
+
+            // Revertir a Pendiente
+            flujo.EstadoFirma = "Pendiente";
+            flujo.Comentarios = null;
+            flujo.FechaFirma = null;
+            flujo.IpOrigenFirmante = null;
+            flujo.IdUsuarioModificacion = userId;
+            flujo.FechaModificacion = DateTime.Now;
+
+            // El documento vuelve a En Revision
+            flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.EstadoActual = "En Revision";
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Detalle", "Documento", new { id = flujo.IdVersionDocumentoNavigation.IdDocumento });
         }
     }
 }

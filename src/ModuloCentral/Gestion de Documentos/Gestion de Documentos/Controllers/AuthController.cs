@@ -122,6 +122,19 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> Registro(Usuario nuevoUsuario)
         {
             var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+
+            // Remover propiedades de navegación y campos que el controlador asigna
+            // para evitar errores falsos de ModelState
+            ModelState.Remove("IdDepartamentoNavigation");
+            ModelState.Remove("IdEmpresaNavigation");
+            ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioModificacionNavigation");
+            ModelState.Remove("IdUsuarioEliminacionNavigation");
+            ModelState.Remove("IdEmpresa");
+            ModelState.Remove("Estatus");
+            ModelState.Remove("FechaCreacion");
+            ModelState.Remove("IdUsuarioCreacion");
+
             if (ModelState.IsValid)
             {
                 bool existe = await _context.Usuarios.AnyAsync(u => u.Correo == nuevoUsuario.Correo);
@@ -156,6 +169,14 @@ namespace Gestion_de_Documentos.Controllers
                 return View(new Usuario()); // Limpia el formulario
             }
 
+            // Debug: mostrar errores de ModelState en el ViewBag si hay problemas
+            var errores = ModelState.Where(x => x.Value.Errors.Count > 0)
+                .ToDictionary(k => k.Key, v => v.Value.Errors.Select(e => e.ErrorMessage).ToList());
+            if (errores.Any())
+            {
+                ViewBag.Error = "Datos inválidos: " + string.Join("; ", errores.SelectMany(e => e.Value));
+            }
+
             ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
             return View(nuevoUsuario);
         }
@@ -171,6 +192,79 @@ namespace Gestion_de_Documentos.Controllers
                 .Where(u => u.Estatus == true && u.IdEmpresa == empresaId)
                 .ToListAsync();
             return View(usuarios);
+        }
+
+        // --- EDITAR USUARIO ---
+        [HttpGet]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EditarUsuario(int id)
+        {
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
+            if (usuario == null) return NotFound();
+            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+            return View(usuario);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EditarUsuario(int id, string nombre, string apellidoP, string? apellidoM, string correo, int idDepartamento, string? nuevaContrasena)
+        {
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
+            if (usuario == null) return NotFound();
+
+            // Verificar correo único
+            bool correoEnUso = await _context.Usuarios.AnyAsync(u => u.Correo == correo && u.Id != id);
+            if (correoEnUso)
+            {
+                ViewBag.Error = "El correo electrónico ya está en uso por otro usuario.";
+                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                return View(usuario);
+            }
+
+            var deptoValido = await _context.Departamentos.AnyAsync(d => d.Id == idDepartamento && d.Estatus == true && d.IdEmpresa == empresaId);
+            if (!deptoValido)
+            {
+                ViewBag.Error = "El departamento seleccionado no es válido.";
+                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                return View(usuario);
+            }
+
+            usuario.Nombre = nombre;
+            usuario.ApellidoP = apellidoP;
+            usuario.ApellidoM = apellidoM;
+            usuario.Correo = correo;
+            usuario.IdDepartamento = idDepartamento;
+            usuario.FechaModificacion = DateTime.Now;
+            usuario.IdUsuarioModificacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+
+            if (!string.IsNullOrWhiteSpace(nuevaContrasena))
+            {
+                usuario.Contrasena = HashPassword(nuevaContrasena);
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Exito"] = "Usuario actualizado correctamente.";
+            return RedirectToAction("Usuarios");
+        }
+
+        // --- ELIMINAR USUARIO (Soft Delete) ---
+        [HttpPost]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EliminarUsuario(int id)
+        {
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
+            if (usuario != null)
+            {
+                usuario.Estatus = false;
+                usuario.FechaEliminacion = DateTime.Now;
+                usuario.IdUsuarioEliminacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                await _context.SaveChangesAsync();
+                TempData["Exito"] = $"Usuario '{usuario.Nombre} {usuario.ApellidoP}' eliminado correctamente.";
+            }
+            return RedirectToAction("Usuarios");
         }
 
         // --- LOGOUT ---
@@ -335,9 +429,20 @@ namespace Gestion_de_Documentos.Controllers
         {
             if (string.IsNullOrEmpty(name)) return "empresa";
             
-            string slug = name.ToLowerInvariant();
-            byte[] tempBytes = System.Text.Encoding.GetEncoding("Cyrillic").GetBytes(slug);
-            slug = System.Text.Encoding.ASCII.GetString(tempBytes);
+            // Normalizar a FormD para separar los caracteres base de sus acentos/diacríticos
+            string normalized = name.Normalize(NormalizationForm.FormD);
+            var sb = new StringBuilder();
+            foreach (char c in normalized)
+            {
+                var uc = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+                // Filtrar los caracteres que son acentos/diacríticos
+                if (uc != System.Globalization.UnicodeCategory.NonSpacingMark)
+                {
+                    sb.Append(c);
+                }
+            }
+            // Volver a normalizar a FormC y pasar a minúsculas
+            string slug = sb.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
             
             slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\s-]", "");
             slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s+", " ").Trim();

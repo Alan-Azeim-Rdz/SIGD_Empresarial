@@ -655,7 +655,10 @@ public partial class DirContext : DbContext
         {
             entity.HasKey(e => e.Id);
 
-            entity.ToTable("Empresa");
+            entity.ToTable("Empresa", tb =>
+            {
+                tb.HasTrigger("TRG_AutoFechaMod_Empresa");
+            });
 
             entity.HasIndex(e => e.Slug, "UQ_Empresa_Slug").IsUnique();
 
@@ -678,6 +681,27 @@ public partial class DirContext : DbContext
                 .HasDefaultValueSql("1");
             entity.Property(e => e.CamposPersonalizados)
                 .IsUnicode(true);
+
+            // Campos de auditoría
+            entity.Property(e => e.FechaCreacion).HasColumnType("datetime");
+            entity.Property(e => e.FechaModificacion).HasColumnType("datetime");
+            entity.Property(e => e.FechaEliminacion).HasColumnType("datetime");
+
+            // Relaciones de auditoría
+            entity.HasOne(d => d.IdUsuarioCreacionNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.IdUsuarioCreacion)
+                .HasConstraintName("FK_Empresa_UsuCrea");
+
+            entity.HasOne(d => d.IdUsuarioModificacionNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.IdUsuarioModificacion)
+                .HasConstraintName("FK_Empresa_UsuMod");
+
+            entity.HasOne(d => d.IdUsuarioEliminacionNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.IdUsuarioEliminacion)
+                .HasConstraintName("FK_Empresa_UsuEli");
         });
 
         OnModelCreatingPartial(modelBuilder);

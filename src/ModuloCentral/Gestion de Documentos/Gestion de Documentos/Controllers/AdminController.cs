@@ -9,10 +9,17 @@ namespace Gestion_de_Documentos.Controllers
     public class AdminController : Controller
     {
         private readonly DirContext _context;
+        private readonly Gestion_de_Documentos.Services.BusquedaIntegrationService _busquedaService;
+        private readonly Gestion_de_Documentos.Services.ReportesIntegrationService _reportesService;
 
-        public AdminController(DirContext context)
+        public AdminController(
+            DirContext context,
+            Gestion_de_Documentos.Services.BusquedaIntegrationService busquedaService,
+            Gestion_de_Documentos.Services.ReportesIntegrationService reportesService)
         {
             _context = context;
+            _busquedaService = busquedaService;
+            _reportesService = reportesService;
         }
 
         private int GetCurrentUserId()
@@ -38,6 +45,23 @@ namespace Gestion_de_Documentos.Controllers
                 TotalTiposDocumento = _context.TipoDocumentos.Where(t => t.Estatus == true && t.IdEmpresa == empresaId).Count()
             };
             return View(stats);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SincronizarBasesDeDatos()
+        {
+            var userId = GetCurrentUserId();
+            try
+            {
+                await _busquedaService.SincronizarTodosAsync(userId);
+                await _reportesService.SincronizarTodosAsync(userId);
+                TempData["Exito"] = "Sincronización completada hacia MongoDB y PostgreSQL.";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Ocurrió un error al sincronizar: {ex.Message}";
+            }
+            return RedirectToAction(nameof(Index));
         }
         #endregion
 
@@ -156,6 +180,12 @@ namespace Gestion_de_Documentos.Controllers
         [HttpPost]
         public async Task<IActionResult> CrearRol(Rol rol)
         {
+            ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioEliminacionNavigation");
+            ModelState.Remove("IdUsuarioModificacionNavigation");
+            ModelState.Remove("RolPermisos");
+            ModelState.Remove("UsuarioRols");
+
             if (ModelState.IsValid)
             {
                 var existe = await _context.Rols
@@ -190,6 +220,12 @@ namespace Gestion_de_Documentos.Controllers
         [HttpPost]
         public async Task<IActionResult> EditarRol(Rol rol)
         {
+            ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioEliminacionNavigation");
+            ModelState.Remove("IdUsuarioModificacionNavigation");
+            ModelState.Remove("RolPermisos");
+            ModelState.Remove("UsuarioRols");
+
             if (ModelState.IsValid)
             {
                 var existe = await _context.Rols

@@ -39,6 +39,19 @@ namespace Gestion_de_Documentos.Services
             await EnviarPayloadAsync("/indexar", payload);
         }
 
+        public async Task SincronizarTodosAsync(int idUsuarioCreacion)
+        {
+            var documentosVigentes = await _context.Documentos
+                .Where(d => d.Estatus == true && d.EstadoActual == "Vigente")
+                .Select(d => d.Id)
+                .ToListAsync();
+
+            foreach (var docId in documentosVigentes)
+            {
+                await SincronizarDocumentoAsync(docId, idUsuarioCreacion);
+            }
+        }
+
         private async Task<object?> ConstruirPayloadAsync(int idDocumento, int idUsuario)
         {
             var doc = await _context.Documentos
