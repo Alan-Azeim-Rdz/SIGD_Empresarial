@@ -24,27 +24,15 @@ namespace Gestion_de_Documentos.Controllers
             return int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         }
 
-        public async Task<IActionResult> Index(int pagina = 1)
+        public async Task<IActionResult> Index()
         {
             var userId = GetCurrentUserId();
-            const int porPagina = 10;
-
-            var total = await _context.Documentos
-                .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true)
-                .CountAsync();
-
             var documentos = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
                 .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true)
                 .OrderByDescending(d => d.FechaCreacion)
-                .Skip((pagina - 1) * porPagina)
-                .Take(porPagina)
                 .ToListAsync();
-
-            ViewBag.PaginaActual  = pagina;
-            ViewBag.TotalPaginas  = (int)Math.Ceiling(total / (double)porPagina);
-            ViewBag.TotalDocs     = total;
 
             return View(documentos);
         }
@@ -68,13 +56,6 @@ namespace Gestion_de_Documentos.Controllers
                 ModelState.AddModelError("", "Solo se permiten archivos en formato PDF.");
             }
 
-            ModelState.Remove("IdUsuarioPropietario");
-            ModelState.Remove("EstadoActual");
-            ModelState.Remove("IdDepartamentoNavigation");
-            ModelState.Remove("IdTipoDocumentoNavigation");
-            ModelState.Remove("IdUsuarioCreacionNavigation");
-            ModelState.Remove("IdUsuarioPropietarioNavigation");
-
             if (ModelState.IsValid)
             {
                 var userId = GetCurrentUserId();
@@ -94,8 +75,7 @@ namespace Gestion_de_Documentos.Controllers
                 doc.Estatus = true;
                 doc.FechaCreacion = DateTime.Now;
                 doc.IdUsuarioCreacion = userId;
-                doc.IdUsuarioPropietario = userId;
-
+                
                 _context.Documentos.Add(doc);
                 await _context.SaveChangesAsync(); // Para obtener el doc.Id
 
@@ -152,12 +132,9 @@ namespace Gestion_de_Documentos.Controllers
                 return NotFound("Documento no válido o no se encuentra en estado Borrador.");
 
             // Remover validaciones innecesarias del ModelState (Navigation properties)
-            ModelState.Remove("IdUsuarioPropietario");
-            ModelState.Remove("EstadoActual");
             ModelState.Remove("IdDepartamentoNavigation");
             ModelState.Remove("IdTipoDocumentoNavigation");
             ModelState.Remove("IdUsuarioCreacionNavigation");
-            ModelState.Remove("IdUsuarioPropietarioNavigation");
             ModelState.Remove("IdUsuarioModificacionNavigation");
             ModelState.Remove("IdUsuarioEliminacionNavigation");
 
@@ -198,7 +175,7 @@ namespace Gestion_de_Documentos.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubirNuevaVersion(int id, IFormFile archivoPdf, string? motivoCambio)
+        public async Task<IActionResult> SubirNuevaVersion(int id, IFormFile archivoPdf)
         {
             var userId = GetCurrentUserId();
             var doc = await _context.Documentos
@@ -250,12 +227,11 @@ namespace Gestion_de_Documentos.Controllers
                     MimeType = "application/pdf",
                     TamanoBytes = archivoPdf.Length,
                     IdUsuarioCreacion = userId,
-                    MotivoCambio = motivoCambio,
                     FechaCreacion = DateTime.Now
                 };
 
                 _context.DocumentoVersions.Add(nuevaVersion);
-
+                
                 doc.FechaModificacion = DateTime.Now;
                 doc.IdUsuarioModificacion = userId;
                 
@@ -270,9 +246,6 @@ namespace Gestion_de_Documentos.Controllers
         [HttpGet]
         public async Task<IActionResult> Historial(int id)
         {
-            var userId = GetCurrentUserId();
-            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
-
             var doc = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
@@ -282,9 +255,6 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null)
                 return NotFound("Documento no válido.");
 
-            if (!esAdmin && doc.IdUsuarioCreacion != userId)
-                return RedirectToAction("AccesoDenegado", "Auth");
-
             // Ordenamos versiones descendentemente
             doc.DocumentoVersions = doc.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ToList();
 
@@ -293,9 +263,6 @@ namespace Gestion_de_Documentos.Controllers
 
         public async Task<IActionResult> Detalle(int id)
         {
-            var userId = GetCurrentUserId();
-            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
-
             var doc = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
@@ -305,9 +272,6 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null)
                 return NotFound();
 
-            if (!esAdmin && doc.IdUsuarioCreacion != userId)
-                return RedirectToAction("AccesoDenegado", "Auth");
-
             // Ordenamos versiones descendentemente
             doc.DocumentoVersions = doc.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ToList();
 
@@ -316,18 +280,9 @@ namespace Gestion_de_Documentos.Controllers
 
         public async Task<IActionResult> Descargar(int versionId)
         {
-            var userId = GetCurrentUserId();
-            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
-
-            var version = await _context.DocumentoVersions
-                .Include(v => v.IdDocumentoNavigation)
-                .FirstOrDefaultAsync(v => v.Id == versionId);
-
+            var version = await _context.DocumentoVersions.FindAsync(versionId);
             if (version == null || string.IsNullOrEmpty(version.RutaArchivoFisico))
                 return NotFound();
-
-            if (!esAdmin && version.IdDocumentoNavigation?.IdUsuarioCreacion != userId)
-                return RedirectToAction("AccesoDenegado", "Auth");
 
             try
             {

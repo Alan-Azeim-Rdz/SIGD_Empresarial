@@ -61,7 +61,6 @@ namespace Gestion_de_Documentos.Services
             return new
             {
                 id_documento_sql = doc.Id,
-                id_empresa = doc.IdEmpresa ?? 0,
                 codigo_interno = doc.CodigoInterno,
                 titulo = doc.Titulo,
                 tags = new string[] { doc.IdTipoDocumentoNavigation?.Nombre ?? "General" },

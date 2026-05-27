@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Gestion_de_Documentos.Models;
@@ -10,12 +10,6 @@ public partial class Documento
     public string CodigoInterno { get; set; } = null!;
 
     public string Titulo { get; set; } = null!;
-
-    public int? IdEmpresa { get; set; }
-
-    public string? CamposPersonalizadosValores { get; set; }
-
-    public virtual Empresa? IdEmpresaNavigation { get; set; }
 
     public int IdDepartamento { get; set; }
 

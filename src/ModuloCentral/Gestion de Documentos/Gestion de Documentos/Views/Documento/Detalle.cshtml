@@ -1,143 +1,73 @@
 @model Gestion_de_Documentos.Models.Documento
+
 @{
     ViewData["Title"] = "Detalle del Documento";
 }
 
-@* ── Hero del documento ── *@
-<div class="d-flex align-items-start justify-content-between mb-4 gap-3 flex-wrap">
-    <div>
-        <h2 class="mb-1 fw-bold" style="font-size:1.5rem;">
-            <i class="fas fa-file-alt me-2" style="color:var(--accent);"></i>@Model.Titulo
-        </h2>
-        <span class="text-muted" style="font-size:.85rem;">
-            <code style="color:var(--accent2);">@Model.CodigoInterno</code>
-            &nbsp;·&nbsp; creado el @Model.FechaCreacion?.ToString("dd/MM/yyyy 'a las' HH:mm")
-        </span>
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0 text-dark">Detalle: @Model.Titulo</h3>
+        <span class="badge bg-secondary p-2">Estado: @Model.EstadoActual</span>
     </div>
-    @{
-        var (badgeClass, badgeIcon) = Model.EstadoActual switch {
-            "Borrador"   => ("badge-borrador", "fa-pencil-alt"),
-            "En Revision"=> ("badge-revision", "fa-clock"),
-            "Vigente"    => ("badge-aprobado", "fa-check-circle"),
-            _            => ("badge bg-secondary", "fa-circle")
-        };
-    }
-    <span class="badge @badgeClass fs-6 px-3 py-2">
-        <i class="fas @badgeIcon me-1"></i>@Model.EstadoActual
-    </span>
-</div>
-
-@* ── Fila principal ── *@
-<div class="row g-4">
-
-    @* Columna izquierda — Info *@
-    <div class="col-lg-5">
-        <div class="sigd-card h-100">
-            <h6 class="text-muted text-uppercase fw-600 mb-3" style="font-size:.75rem; letter-spacing:.06em;">
-                <i class="fas fa-info-circle me-1"></i>Información del Documento
-            </h6>
-            <dl class="row mb-0" style="font-size:.9rem;">
-                <dt class="col-5 text-muted fw-normal">Código</dt>
-                <dd class="col-7"><code style="color:var(--accent2);">@Model.CodigoInterno</code></dd>
-
-                <dt class="col-5 text-muted fw-normal">Tipo</dt>
-                <dd class="col-7">@(Model.IdTipoDocumentoNavigation?.Nombre ?? "—")</dd>
-
-                <dt class="col-5 text-muted fw-normal">Departamento</dt>
-                <dd class="col-7">@(Model.IdDepartamentoNavigation?.Nombre ?? "—")</dd>
-
-                <dt class="col-5 text-muted fw-normal">Creado</dt>
-                <dd class="col-7">@Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</dd>
-
-                <dt class="col-5 text-muted fw-normal">Versiones</dt>
-                <dd class="col-7">
-                    <span class="badge bg-primary">@Model.DocumentoVersions.Count versión(es)</span>
-                </dd>
-            </dl>
-        </div>
-    </div>
-
-    @* Columna derecha — Acciones *@
-    <div class="col-lg-7">
-        <div class="sigd-card h-100">
-            <h6 class="text-muted text-uppercase fw-600 mb-3" style="font-size:.75rem; letter-spacing:.06em;">
-                <i class="fas fa-bolt me-1"></i>Acciones Disponibles
-            </h6>
-            <div class="d-flex flex-column gap-2">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Código Interno:</strong> @Model.CodigoInterno</li>
+                    <li class="list-group-item"><strong>Tipo:</strong> @Model.IdTipoDocumentoNavigation?.Nombre</li>
+                    <li class="list-group-item"><strong>Departamento:</strong> @Model.IdDepartamentoNavigation?.Nombre</li>
+                    <li class="list-group-item"><strong>Fecha de Creación:</strong> @Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</li>
+                </ul>
+            </div>
+            <div class="col-md-6 text-center mt-4">
                 @if (Model.EstadoActual == "Borrador")
                 {
-                    <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary">
-                        <i class="fas fa-edit me-2"></i>Editar Metadatos
+                    <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                        <i class="fas fa-edit"></i> Editar Metadatos
                     </a>
-                    <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success">
-                        <i class="fas fa-file-upload me-2"></i>Subir Nueva Versión
+                    <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success btn-lg w-100 mb-2">
+                        <i class="fas fa-file-upload"></i> Subir Nueva Versión
                     </a>
-                    <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id"
-                       class="btn btn-warning">
-                        <i class="fas fa-paper-plane me-2"></i>Enviar a Revisión
-                    </a>
-                }
-                @if (Model.EstadoActual == "Vigente")
-                {
-                    <a asp-action="Descargar" asp-route-versionId="@(Model.DocumentoVersions.FirstOrDefault()?.Id ?? 0)"
-                       class="btn btn-success">
-                        <i class="fas fa-download me-2"></i>Descargar Versión Vigente
+                    <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id" class="btn btn-warning text-dark btn-lg w-100 mb-2">
+                        <i class="fas fa-paper-plane"></i> Asignar a Revisión
                     </a>
                 }
-                <a asp-action="Historial" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
-                    <i class="fas fa-history me-2"></i>Ver Historial Completo
+                <a asp-action="Historial" asp-route-id="@Model.Id" class="btn btn-outline-info w-100 mb-2">
+                    <i class="fas fa-history"></i> Ver Historial Completo
                 </a>
-                <a asp-action="Index" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Volver a Mis Documentos
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-arrow-left"></i> Volver a Mis Documentos
                 </a>
             </div>
         </div>
-    </div>
-</div>
 
-@* ── Historial de Versiones ── *@
-<div class="sigd-card mt-4">
-    <h6 class="text-muted text-uppercase fw-600 mb-3" style="font-size:.75rem; letter-spacing:.06em;">
-        <i class="fas fa-history me-1"></i>Historial de Versiones
-    </h6>
-    <div class="table-responsive">
-        <table class="table mb-0">
-            <thead>
-                <tr>
-                    <th style="width:80px;">Versión</th>
-                    <th>Fecha Subida</th>
-                    <th>Hash SHA-256</th>
-                    <th style="width:120px;" class="text-center">Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var version in Model.DocumentoVersions)
-                {
-                    var hash = version.HashDocumento ?? "";
-                    var hashCorto = hash.Length > 16
-                        ? hash.Substring(0, 8) + "..." + hash.Substring(hash.Length - 8)
-                        : hash;
+        <h4 class="mt-5 mb-3 text-jewel-sapphire">Historial de Versiones</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
                     <tr>
-                        <td>
-                            <span class="badge bg-primary">V@(version.NumeroVersion)</span>
-                        </td>
-                        <td style="font-size:.85rem;">
-                            @version.FechaSubida?.ToString("dd/MM/yyyy HH:mm")
-                        </td>
-                        <td>
-                            <code style="font-size:.75rem; color:var(--text-muted);" title="@hash">
-                                @hashCorto
-                            </code>
-                        </td>
-                        <td class="text-center">
-                            <a asp-action="Descargar" asp-route-versionId="@version.Id"
-                               class="btn btn-sm btn-primary">
-                                <i class="fas fa-download me-1"></i>PDF
-                            </a>
-                        </td>
+                        <th>Versión</th>
+                        <th>Fecha Subida</th>
+                        <th>Hash (SHA-256)</th>
+                        <th>Almacenamiento (GridFS ID)</th>
+                        <th>Acción</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach(var version in Model.DocumentoVersions)
+                    {
+                        <tr>
+                            <td>V@(version.NumeroVersion)</td>
+                            <td>@version.FechaSubida?.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td><small class="text-muted">@version.HashDocumento</small></td>
+                            <td><small>@version.RutaArchivoFisico</small></td>
+                            <td>
+                                <a asp-action="Descargar" asp-route-versionId="@version.Id" class="btn btn-sm btn-jewel-primary">Descargar PDF</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

@@ -165,7 +165,6 @@ namespace Gestion_de_Documentos.Services
             return new DocumentoSyncPayload
             {
                 IdDocumento          = doc.Id,
-                IdEmpresa            = doc.IdEmpresa ?? 0,
                 CodigoInterno        = doc.CodigoInterno,
                 Titulo               = doc.Titulo,
                 IdTipo               = doc.IdTipoDocumento ?? 0,
@@ -274,7 +273,6 @@ namespace Gestion_de_Documentos.Services
     public record DocumentoSyncPayload
     {
         public int    IdDocumento         { get; init; }
-        public int    IdEmpresa           { get; init; }
         public string CodigoInterno       { get; init; } = string.Empty;
         public string Titulo              { get; init; } = string.Empty;
         public int    IdTipo              { get; init; }

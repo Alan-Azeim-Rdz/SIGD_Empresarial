@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Gestion_de_Documentos.Models;
@@ -8,10 +8,6 @@ public partial class Departamento
     public int Id { get; set; }
 
     public string Nombre { get; set; } = null!;
-
-    public int? IdEmpresa { get; set; }
-
-    public virtual Empresa? IdEmpresaNavigation { get; set; }
 
     public string Abreviatura { get; set; } = null!;
 

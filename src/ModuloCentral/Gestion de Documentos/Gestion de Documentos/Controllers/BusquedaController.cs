@@ -24,12 +24,6 @@ namespace Gestion_de_Documentos.Controllers
             return View();
         }
 
-        private int GetCurrentUserEmpresaId()
-        {
-            var claim = User.FindFirst("IdEmpresa")?.Value;
-            return int.TryParse(claim, out var empId) ? empId : 0;
-        }
-
         [HttpGet]
         public async Task<IActionResult> Buscar(string q)
         {
@@ -42,8 +36,7 @@ namespace Gestion_de_Documentos.Controllers
                 var client  = _httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                var empresaId = GetCurrentUserEmpresaId();
-                var url      = $"{baseUrl}/buscar?q={Uri.EscapeDataString(q)}&id_empresa={empresaId}";
+                var url      = $"{baseUrl}/buscar?q={Uri.EscapeDataString(q)}";
                 var response = await client.GetAsync(url);
                 var body     = await response.Content.ReadAsStringAsync();
 
