@@ -28,8 +28,39 @@
 
             <div class="d-flex justify-content-between">
                 <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-success"><i class="fas fa-upload"></i> Subir Versión @nuevaVersion</button>
+                <button type="button" class="btn btn-success" id="btnSubirVersion">
+                    <i class="fas fa-upload me-1"></i>Subir Nueva Versión
+                </button>
             </div>
+<div class="modal fade" id="modalConfirmarSubir" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Confirmar Nueva Versión</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas subir una nueva versión?</p>
+                <p class="text-warning small"><i class="fas fa-exclamation-circle me-1"></i>La versión anterior quedará en el historial y esta nueva será la vigente.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnConfirmarSubir">
+                    <i class="fas fa-upload me-1"></i>Sí, Subir Versión
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('btnSubirVersion').addEventListener('click', function() {
+    var modal = new bootstrap.Modal(document.getElementById('modalConfirmarSubir'));
+    modal.show();
+});
+document.getElementById('btnConfirmarSubir').addEventListener('click', function() {
+    document.querySelector('form').submit();
+});
+</script>
         </form>
     </div>
 </div>

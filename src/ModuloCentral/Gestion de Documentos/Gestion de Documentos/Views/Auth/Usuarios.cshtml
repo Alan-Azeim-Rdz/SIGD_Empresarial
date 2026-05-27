@@ -47,9 +47,10 @@
                                 <tbody>
                                     @foreach (var usuario in Model)
                                     {
-                                        var rolesAsignados = usuario.UsuarioRols
+                                        var rolesAsignados = usuario.UsuarioRolIdUsuarioNavigations
                                             .Where(ur => ur.Estatus == true)
-                                            .Select(ur => ur.IdRolNavigation.Nombre)
+                                            .Select(ur => ur.IdRolNavigation?.Nombre ?? "")
+                                            .Where(r => !string.IsNullOrEmpty(r))
                                             .ToList();
 
                                         <tr>

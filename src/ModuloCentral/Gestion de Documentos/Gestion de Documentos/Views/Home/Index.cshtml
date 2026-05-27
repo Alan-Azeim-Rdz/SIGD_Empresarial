@@ -169,19 +169,19 @@ else
             </div>
         </div>
 
-        <!-- Mis Documentos — para todos -->
+        <!-- Documentos Vigentes — para todos -->
         <div class="col-md-4 animate-fade-up" style="animation-delay:.35s">
             <div class="card card-jewel p-4 h-100">
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <div class="rounded-xl d-flex align-items-center justify-content-center"
-                         style="width:48px;height:48px;background:rgba(30,61,89,.1);">
-                        <i class="fas fa-folder-open" style="color:var(--sapphire);font-size:1.2rem;"></i>
+                         style="width:48px;height:48px;background:rgba(16,185,129,.1);">
+                        <i class="fas fa-check-double" style="color:var(--success);font-size:1.2rem;"></i>
                     </div>
-                    <h5 class="mb-0">Mis Documentos</h5>
+                    <h5 class="mb-0">Documentos Vigentes</h5>
                 </div>
-                <p class="mb-3">Accede a tus documentos creados, borradores y versiones archivadas.</p>
-                <a class="btn btn-jewel-primary mt-auto" asp-controller="Documento" asp-action="Index">
-                    <i class="fas fa-folder me-1"></i>Ver Mis Documentos
+                <p class="mb-3">Consulta todos los documentos aprobados y vigentes del sistema.</p>
+                <a class="btn btn-jewel-primary mt-auto" asp-controller="Busqueda" asp-action="Global">
+                    <i class="fas fa-check-double me-1"></i>Ver Vigentes
                 </a>
             </div>
         </div>

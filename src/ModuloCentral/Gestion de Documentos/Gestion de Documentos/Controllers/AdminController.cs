@@ -396,7 +396,7 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> AsignarRolesUsuario(int id)
         {
             var usuario = await _context.Usuarios
-                .Include(u => u.UsuarioRols)
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
                 .ThenInclude(ur => ur.IdRolNavigation)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
@@ -411,7 +411,7 @@ namespace Gestion_de_Documentos.Controllers
             {
                 Usuario = usuario,
                 RolesDisponibles = rolesDisponibles,
-                RolesAsignados = usuario.UsuarioRols
+                RolesAsignados = usuario.UsuarioRolIdUsuarioNavigations
                     .Where(ur => ur.Estatus == true)
                     .Select(ur => ur.IdRol)
                     .ToList()
@@ -424,14 +424,14 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> AsignarRolesUsuario(int idUsuario, List<int> rolesSeleccionados)
         {
             var usuario = await _context.Usuarios
-                .Include(u => u.UsuarioRols)
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
                 .FirstOrDefaultAsync(u => u.Id == idUsuario);
 
             if (usuario == null)
                 return NotFound();
 
             // Eliminar roles anteriores
-            var rolesActuales = usuario.UsuarioRols.Where(ur => ur.Estatus == true).ToList();
+            var rolesActuales = usuario.UsuarioRolIdUsuarioNavigations.Where(ur => ur.Estatus == true).ToList();
             foreach (var rol in rolesActuales)
             {
                 rol.Estatus = false;

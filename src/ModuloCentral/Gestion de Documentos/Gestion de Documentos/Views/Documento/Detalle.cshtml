@@ -19,25 +19,27 @@
                     <li class="list-group-item"><strong>Fecha de Creación:</strong> @Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</li>
                 </ul>
             </div>
-            <div class="col-md-6 text-center mt-4">
-                @if (Model.EstadoActual == "Borrador")
-                {
-                    <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-lg w-100 mb-2">
-                        <i class="fas fa-edit"></i> Editar Metadatos
+            <div class="col-md-6 mt-4">
+                <div class="d-flex flex-column gap-2">
+                    @if (Model.EstadoActual == "Borrador")
+                    {
+                        <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-edit me-2"></i>Editar Metadatos
+                        </a>
+                        <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success w-100">
+                            <i class="fas fa-file-upload me-2"></i>Subir Nueva Versión
+                        </a>
+                    }
+                    <button type="button" class="btn btn-warning w-100" id="btnEnviarRevision">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar a Revisión
+                    </button>
+                    <a asp-action="Historial" asp-route-id="@Model.Id" class="btn btn-outline-info w-100">
+                        <i class="fas fa-history"></i> Ver Historial Completo
                     </a>
-                    <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success btn-lg w-100 mb-2">
-                        <i class="fas fa-file-upload"></i> Subir Nueva Versión
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Volver a Mis Documentos
                     </a>
-                    <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id" class="btn btn-warning text-dark btn-lg w-100 mb-2">
-                        <i class="fas fa-paper-plane"></i> Asignar a Revisión
-                    </a>
-                }
-                <a asp-action="Historial" asp-route-id="@Model.Id" class="btn btn-outline-info w-100 mb-2">
-                    <i class="fas fa-history"></i> Ver Historial Completo
-                </a>
-                <a asp-action="Index" class="btn btn-outline-secondary w-100">
-                    <i class="fas fa-arrow-left"></i> Volver a Mis Documentos
-                </a>
+                </div>
             </div>
         </div>
 
@@ -49,7 +51,6 @@
                         <th>Versión</th>
                         <th>Fecha Subida</th>
                         <th>Hash (SHA-256)</th>
-                        <th>Almacenamiento (GridFS ID)</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -60,7 +61,6 @@
                             <td>V@(version.NumeroVersion)</td>
                             <td>@version.FechaSubida?.ToString("dd/MM/yyyy HH:mm")</td>
                             <td><small class="text-muted">@version.HashDocumento</small></td>
-                            <td><small>@version.RutaArchivoFisico</small></td>
                             <td>
                                 <a asp-action="Descargar" asp-route-versionId="@version.Id" class="btn btn-sm btn-jewel-primary">Descargar PDF</a>
                             </td>
@@ -71,3 +71,31 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalConfirmarRevision" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-paper-plane me-2 text-warning"></i>Confirmar Envío a Revisión</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas enviar este documento a revisión?</p>
+                <p class="text-warning small"><i class="fas fa-exclamation-circle me-1"></i>Una vez enviado <strong>no podrás editarlo</strong> hasta que sea rechazado por el revisor.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id"
+                   class="btn btn-warning" id="btnConfirmarRevision">
+                    <i class="fas fa-paper-plane me-1"></i>Sí, Enviar a Revisión
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('btnEnviarRevision').addEventListener('click', function() {
+    var modal = new bootstrap.Modal(document.getElementById('modalConfirmarRevision'));
+    modal.show();
+});
+</script>

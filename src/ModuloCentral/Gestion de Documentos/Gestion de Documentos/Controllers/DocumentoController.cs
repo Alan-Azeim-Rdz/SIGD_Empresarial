@@ -24,15 +24,27 @@ namespace Gestion_de_Documentos.Controllers
             return int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pagina = 1)
         {
             var userId = GetCurrentUserId();
+            const int porPagina = 10;
+
+            var total = await _context.Documentos
+                .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true)
+                .CountAsync();
+
             var documentos = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
                 .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true)
                 .OrderByDescending(d => d.FechaCreacion)
+                .Skip((pagina - 1) * porPagina)
+                .Take(porPagina)
                 .ToListAsync();
+
+            ViewBag.PaginaActual  = pagina;
+            ViewBag.TotalPaginas  = (int)Math.Ceiling(total / (double)porPagina);
+            ViewBag.TotalDocs     = total;
 
             return View(documentos);
         }

@@ -149,12 +149,17 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Usuarios()
         {
-            // Usamos la propiedad de navegación correcta aquí también para evitar el error en la vista de lista
             var usuarios = await _context.Usuarios
-                .Include(u => u.UsuarioRolIdUsuarioNavigations)
+                .Include(u => u.UsuarioRolIdUsuarioNavigations.Where(ur => ur.Estatus == true))
                     .ThenInclude(ur => ur.IdRolNavigation)
+                .Include(u => u.IdDepartamentoNavigation)
                 .Where(u => u.Estatus == true)
                 .ToListAsync();
+
+            ViewBag.Departamentos = await _context.Departamentos
+                .Where(d => d.Estatus == true)
+                .ToListAsync();
+
             return View(usuarios);
         }
 
