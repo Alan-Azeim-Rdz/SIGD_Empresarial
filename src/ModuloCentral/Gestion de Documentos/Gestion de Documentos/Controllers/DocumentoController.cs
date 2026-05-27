@@ -30,31 +30,18 @@ namespace Gestion_de_Documentos.Controllers
             return int.TryParse(claim, out var empId) ? empId : 0;
         }
 
-        public async Task<IActionResult> Index(int pagina = 1)
+        public async Task<IActionResult> Index()
         {
-            var userId = GetCurrentUserId();
             var empresaId = GetCurrentUserEmpresaId();
-            const int porPagina = 10;
-
-            var total = await _context.Documentos
-                .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true && d.IdEmpresa == empresaId)
-                .CountAsync();
-
             var documentos = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
                 .Include(d => d.DocumentoVersions)
                     .ThenInclude(v => v.FlujoAprobacions)
                         .ThenInclude(f => f.IdUsuarioAsignadoNavigation)
-                .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true && d.IdEmpresa == empresaId)
+                .Where(d => d.Estatus == true && d.IdEmpresa == empresaId)
                 .OrderByDescending(d => d.FechaCreacion)
-                .Skip((pagina - 1) * porPagina)
-                .Take(porPagina)
                 .ToListAsync();
-
-            ViewBag.PaginaActual  = pagina;
-            ViewBag.TotalPaginas  = (int)Math.Ceiling(total / (double)porPagina);
-            ViewBag.TotalDocs     = total;
 
             return View(documentos);
         }
@@ -303,8 +290,6 @@ namespace Gestion_de_Documentos.Controllers
         [HttpGet]
         public async Task<IActionResult> Historial(int id)
         {
-            var userId = GetCurrentUserId();
-            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
             var empresaId = GetCurrentUserEmpresaId();
 
             var doc = await _context.Documentos
@@ -318,9 +303,6 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null)
                 return NotFound("Documento no válido.");
 
-            if (!esAdmin && doc.IdUsuarioCreacion != userId)
-                return RedirectToAction("AccesoDenegado", "Auth");
-
             // Ordenamos versiones descendentemente
             doc.DocumentoVersions = doc.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ToList();
 
@@ -329,8 +311,6 @@ namespace Gestion_de_Documentos.Controllers
 
         public async Task<IActionResult> Detalle(int id)
         {
-            var userId = GetCurrentUserId();
-            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
             var empresaId = GetCurrentUserEmpresaId();
 
             var doc = await _context.Documentos
@@ -344,9 +324,6 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null)
                 return NotFound();
 
-            if (!esAdmin && doc.IdUsuarioCreacion != userId)
-                return RedirectToAction("AccesoDenegado", "Auth");
-
             // Ordenamos versiones descendentemente
             doc.DocumentoVersions = doc.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ToList();
 
@@ -355,18 +332,14 @@ namespace Gestion_de_Documentos.Controllers
 
         public async Task<IActionResult> Descargar(int versionId)
         {
-            var userId = GetCurrentUserId();
-            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
+            var empresaId = GetCurrentUserEmpresaId();
 
             var version = await _context.DocumentoVersions
                 .Include(v => v.IdDocumentoNavigation)
-                .FirstOrDefaultAsync(v => v.Id == versionId);
+                .FirstOrDefaultAsync(v => v.Id == versionId && v.IdDocumentoNavigation.IdEmpresa == empresaId);
 
             if (version == null || string.IsNullOrEmpty(version.RutaArchivoFisico))
                 return NotFound();
-
-            if (!esAdmin && version.IdDocumentoNavigation?.IdUsuarioCreacion != userId)
-                return RedirectToAction("AccesoDenegado", "Auth");
 
             try
             {
