@@ -56,6 +56,15 @@ namespace Gestion_de_Documentos.Controllers
                 ModelState.AddModelError("", "Solo se permiten archivos en formato PDF.");
             }
 
+            ModelState.Remove("IdUsuarioPropietario");
+            ModelState.Remove("EstadoActual");
+            ModelState.Remove("IdDepartamentoNavigation");
+            ModelState.Remove("IdTipoDocumentoNavigation");
+            ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioPropietarioNavigation");
+            ModelState.Remove("IdUsuarioModificacionNavigation");
+            ModelState.Remove("IdUsuarioEliminacionNavigation");
+
             if (ModelState.IsValid)
             {
                 var userId = GetCurrentUserId();
@@ -75,7 +84,8 @@ namespace Gestion_de_Documentos.Controllers
                 doc.Estatus = true;
                 doc.FechaCreacion = DateTime.Now;
                 doc.IdUsuarioCreacion = userId;
-                
+                doc.IdUsuarioPropietario = userId;
+
                 _context.Documentos.Add(doc);
                 await _context.SaveChangesAsync(); // Para obtener el doc.Id
 
