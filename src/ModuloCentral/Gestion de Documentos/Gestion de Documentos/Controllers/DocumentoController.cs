@@ -4,11 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Gestion_de_Documentos.Models;
 using Gestion_de_Documentos.Services;
 using System.Security.Cryptography;
-using System.Text.Json;
-using System.Collections.Generic;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Gestion_de_Documentos.Controllers
 {
@@ -35,40 +30,45 @@ namespace Gestion_de_Documentos.Controllers
             return int.TryParse(claim, out var empId) ? empId : 0;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pagina = 1)
         {
+            var userId = GetCurrentUserId();
             var empresaId = GetCurrentUserEmpresaId();
+            const int porPagina = 10;
+
+            var total = await _context.Documentos
+                .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true && d.IdEmpresa == empresaId)
+                .CountAsync();
+
             var documentos = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
                 .Include(d => d.DocumentoVersions)
                     .ThenInclude(v => v.FlujoAprobacions)
                         .ThenInclude(f => f.IdUsuarioAsignadoNavigation)
-                .Where(d => d.Estatus == true && d.IdEmpresa == empresaId)
+                .Where(d => d.IdUsuarioCreacion == userId && d.Estatus == true && d.IdEmpresa == empresaId)
                 .OrderByDescending(d => d.FechaCreacion)
+                .Skip((pagina - 1) * porPagina)
+                .Take(porPagina)
                 .ToListAsync();
+
+            ViewBag.PaginaActual  = pagina;
+            ViewBag.TotalPaginas  = (int)Math.Ceiling(total / (double)porPagina);
+            ViewBag.TotalDocs     = total;
 
             return View(documentos);
         }
 
         public async Task<IActionResult> Crear()
         {
-            var empresaId = GetCurrentUserEmpresaId();
-            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true && t.IdEmpresa == empresaId).ToListAsync();
-            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
-            
-            var empresa = await _context.Empresas.FindAsync(empresaId);
-            ViewBag.CamposPersonalizados = empresa?.CamposPersonalizados;
-
+            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true).ToListAsync();
+            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true).ToListAsync();
             return View();
         }
 
         [HttpPost]
         public async Task<IActionResult> Crear(Documento doc, IFormFile archivoPdf)
         {
-            var userId = GetCurrentUserId();
-            var empresaId = GetCurrentUserEmpresaId();
-
             if (archivoPdf == null || archivoPdf.Length == 0)
             {
                 ModelState.AddModelError("", "Debe seleccionar un archivo PDF.");
@@ -78,44 +78,11 @@ namespace Gestion_de_Documentos.Controllers
                 ModelState.AddModelError("", "Solo se permiten archivos en formato PDF.");
             }
 
-            // Validar y guardar campos personalizados
-            var empresa = await _context.Empresas.FindAsync(empresaId);
-            var definicionCampos = empresa?.CamposPersonalizados;
-            if (!string.IsNullOrEmpty(definicionCampos))
-            {
-                try
-                {
-                    using var jsonDoc = JsonDocument.Parse(definicionCampos);
-                    var dictValores = new Dictionary<string, string>();
-                    
-                    foreach (var campo in jsonDoc.RootElement.EnumerateArray())
-                    {
-                        var nombre = campo.GetProperty("Nombre").GetString() ?? "";
-                        var requerido = campo.GetProperty("Requerido").GetBoolean();
-                        var valor = Request.Form["CP_" + nombre].ToString() ?? "";
-                        
-                        if (requerido && string.IsNullOrWhiteSpace(valor))
-                        {
-                            ModelState.AddModelError("", $"El campo personalizado '{nombre}' es requerido.");
-                        }
-                        
-                        dictValores[nombre] = valor;
-                    }
-                    
-                    doc.CamposPersonalizadosValores = JsonSerializer.Serialize(dictValores);
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("", "Error al procesar campos personalizados: " + ex.Message);
-                }
-            }
-
-            // Remover validaciones innecesarias del ModelState (Navigation properties)
+            ModelState.Remove("IdUsuarioPropietario");
+            ModelState.Remove("EstadoActual");
             ModelState.Remove("IdDepartamentoNavigation");
             ModelState.Remove("IdTipoDocumentoNavigation");
             ModelState.Remove("IdUsuarioCreacionNavigation");
-            ModelState.Remove("IdUsuarioModificacionNavigation");
-            ModelState.Remove("IdUsuarioEliminacionNavigation");
             ModelState.Remove("IdUsuarioPropietarioNavigation");
             ModelState.Remove("IdEmpresaNavigation");
             ModelState.Remove("EstadoActual");
@@ -125,6 +92,9 @@ namespace Gestion_de_Documentos.Controllers
 
             if (ModelState.IsValid)
             {
+                var userId = GetCurrentUserId();
+                var empresaId = GetCurrentUserEmpresaId();
+                
                 // 1. Guardar el archivo en MongoDB GridFS
                 using var stream = archivoPdf.OpenReadStream();
                 var objectIdStr = await _gridFsService.SubirArchivoAsync(stream, archivoPdf.FileName, archivoPdf.ContentType);
@@ -136,13 +106,12 @@ namespace Gestion_de_Documentos.Controllers
                 var hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToUpperInvariant();
 
                 // 2. Crear el registro base de Documento
-                doc.IdEmpresa = empresaId;
                 doc.EstadoActual = "Borrador";
                 doc.Estatus = true;
                 doc.FechaCreacion = DateTime.Now;
                 doc.IdUsuarioCreacion = userId;
                 doc.IdUsuarioPropietario = userId;
-                
+                doc.IdEmpresa = empresaId;
                 _context.Documentos.Add(doc);
                 await _context.SaveChangesAsync(); // Para obtener el doc.Id
 
@@ -169,27 +138,22 @@ namespace Gestion_de_Documentos.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true && t.IdEmpresa == empresaId).ToListAsync();
-            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
-            ViewBag.CamposPersonalizados = definicionCampos;
+            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true).ToListAsync();
+            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true).ToListAsync();
             return View(doc);
         }
 
         [HttpGet]
         public async Task<IActionResult> Editar(int id)
         {
-            var empresaId = GetCurrentUserEmpresaId();
-            var doc = await _context.Documentos.FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
+            var userId = GetCurrentUserId();
+            var doc = await _context.Documentos.FirstOrDefaultAsync(d => d.Id == id && d.IdUsuarioCreacion == userId && d.Estatus == true);
 
             if (doc == null || doc.EstadoActual != "Borrador")
                 return NotFound("Documento no válido o no se encuentra en estado Borrador.");
 
-            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true && t.IdEmpresa == empresaId).ToListAsync();
-            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
-            
-            var empresa = await _context.Empresas.FindAsync(empresaId);
-            ViewBag.CamposPersonalizados = empresa?.CamposPersonalizados;
-
+            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true).ToListAsync();
+            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true).ToListAsync();
             return View(doc);
         }
 
@@ -198,53 +162,21 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> Editar(int id, Documento model)
         {
             var userId = GetCurrentUserId();
-            var empresaId = GetCurrentUserEmpresaId();
-            var doc = await _context.Documentos.FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
+            var doc = await _context.Documentos.FirstOrDefaultAsync(d => d.Id == id && d.IdUsuarioCreacion == userId && d.Estatus == true);
 
             if (doc == null || doc.EstadoActual != "Borrador")
                 return NotFound("Documento no válido o no se encuentra en estado Borrador.");
 
-            // Validar y guardar campos personalizados
-            var empresa = await _context.Empresas.FindAsync(empresaId);
-            var definicionCampos = empresa?.CamposPersonalizados;
-            if (!string.IsNullOrEmpty(definicionCampos))
-            {
-                try
-                {
-                    using var jsonDoc = JsonDocument.Parse(definicionCampos);
-                    var dictValores = new Dictionary<string, string>();
-                    
-                    foreach (var campo in jsonDoc.RootElement.EnumerateArray())
-                    {
-                        var nombre = campo.GetProperty("Nombre").GetString() ?? "";
-                        var requerido = campo.GetProperty("Requerido").GetBoolean();
-                        var valor = Request.Form["CP_" + nombre].ToString() ?? "";
-                        
-                        if (requerido && string.IsNullOrWhiteSpace(valor))
-                        {
-                            ModelState.AddModelError("", $"El campo personalizado '{nombre}' es requerido.");
-                        }
-                        
-                        dictValores[nombre] = valor;
-                    }
-                    
-                    doc.CamposPersonalizadosValores = JsonSerializer.Serialize(dictValores);
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("", "Error al procesar campos personalizados: " + ex.Message);
-                }
-            }
-
             // Remover validaciones innecesarias del ModelState (Navigation properties)
+            ModelState.Remove("IdUsuarioPropietario");
+            ModelState.Remove("EstadoActual");
             ModelState.Remove("IdDepartamentoNavigation");
             ModelState.Remove("IdTipoDocumentoNavigation");
             ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioPropietarioNavigation");
             ModelState.Remove("IdUsuarioModificacionNavigation");
             ModelState.Remove("IdUsuarioEliminacionNavigation");
-            ModelState.Remove("IdUsuarioPropietarioNavigation");
             ModelState.Remove("IdEmpresaNavigation");
-            ModelState.Remove("EstadoActual");
             ModelState.Remove("BitacoraControlDocumentos");
             ModelState.Remove("BitacoraTransaccionals");
             ModelState.Remove("DocumentoVersions");
@@ -255,7 +187,6 @@ namespace Gestion_de_Documentos.Controllers
                 doc.Titulo = model.Titulo;
                 doc.IdTipoDocumento = model.IdTipoDocumento;
                 doc.IdDepartamento = model.IdDepartamento;
-                doc.CamposPersonalizadosValores = doc.CamposPersonalizadosValores; // Mantenemos el valor actualizado
                 
                 doc.FechaModificacion = DateTime.Now;
                 doc.IdUsuarioModificacion = userId;
@@ -266,19 +197,18 @@ namespace Gestion_de_Documentos.Controllers
                 return RedirectToAction(nameof(Detalle), new { id = doc.Id });
             }
 
-            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true && t.IdEmpresa == empresaId).ToListAsync();
-            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
-            ViewBag.CamposPersonalizados = definicionCampos;
+            ViewBag.TiposDocumento = await _context.TipoDocumentos.Where(t => t.Estatus == true).ToListAsync();
+            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true).ToListAsync();
             return View(model);
         }
 
         [HttpGet]
         public async Task<IActionResult> SubirNuevaVersion(int id)
         {
-            var empresaId = GetCurrentUserEmpresaId();
+            var userId = GetCurrentUserId();
             var doc = await _context.Documentos
                 .Include(d => d.DocumentoVersions)
-                .FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
+                .FirstOrDefaultAsync(d => d.Id == id && d.IdUsuarioCreacion == userId && d.Estatus == true);
 
             if (doc == null || (doc.EstadoActual != "Borrador" && doc.EstadoActual != "Rechazado"))
                 return NotFound("Documento no válido o no se puede modificar en su estado actual.");
@@ -288,13 +218,12 @@ namespace Gestion_de_Documentos.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubirNuevaVersion(int id, IFormFile archivoPdf)
+        public async Task<IActionResult> SubirNuevaVersion(int id, IFormFile archivoPdf, string? motivoCambio)
         {
             var userId = GetCurrentUserId();
-            var empresaId = GetCurrentUserEmpresaId();
             var doc = await _context.Documentos
                 .Include(d => d.DocumentoVersions)
-                .FirstOrDefaultAsync(d => d.Id == id && d.IdEmpresa == empresaId && d.Estatus == true);
+                .FirstOrDefaultAsync(d => d.Id == id && d.IdUsuarioCreacion == userId && d.Estatus == true);
 
             if (doc == null || (doc.EstadoActual != "Borrador" && doc.EstadoActual != "Rechazado"))
                 return NotFound("Documento no válido o no se puede modificar en su estado actual.");
@@ -354,11 +283,12 @@ namespace Gestion_de_Documentos.Controllers
                     MimeType = "application/pdf",
                     TamanoBytes = archivoPdf.Length,
                     IdUsuarioCreacion = userId,
+                    MotivoCambio = motivoCambio,
                     FechaCreacion = DateTime.Now
                 };
 
                 _context.DocumentoVersions.Add(nuevaVersion);
-                
+
                 doc.FechaModificacion = DateTime.Now;
                 doc.IdUsuarioModificacion = userId;
                 
@@ -373,7 +303,10 @@ namespace Gestion_de_Documentos.Controllers
         [HttpGet]
         public async Task<IActionResult> Historial(int id)
         {
+            var userId = GetCurrentUserId();
+            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
             var empresaId = GetCurrentUserEmpresaId();
+
             var doc = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
@@ -385,6 +318,9 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null)
                 return NotFound("Documento no válido.");
 
+            if (!esAdmin && doc.IdUsuarioCreacion != userId)
+                return RedirectToAction("AccesoDenegado", "Auth");
+
             // Ordenamos versiones descendentemente
             doc.DocumentoVersions = doc.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ToList();
 
@@ -393,7 +329,10 @@ namespace Gestion_de_Documentos.Controllers
 
         public async Task<IActionResult> Detalle(int id)
         {
+            var userId = GetCurrentUserId();
+            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
             var empresaId = GetCurrentUserEmpresaId();
+
             var doc = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
@@ -405,6 +344,9 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null)
                 return NotFound();
 
+            if (!esAdmin && doc.IdUsuarioCreacion != userId)
+                return RedirectToAction("AccesoDenegado", "Auth");
+
             // Ordenamos versiones descendentemente
             doc.DocumentoVersions = doc.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ToList();
 
@@ -413,13 +355,18 @@ namespace Gestion_de_Documentos.Controllers
 
         public async Task<IActionResult> Descargar(int versionId)
         {
-            var empresaId = GetCurrentUserEmpresaId();
+            var userId = GetCurrentUserId();
+            var esAdmin = User.IsInRole("Administrador") || User.IsInRole("Superior");
+
             var version = await _context.DocumentoVersions
                 .Include(v => v.IdDocumentoNavigation)
-                .FirstOrDefaultAsync(v => v.Id == versionId && v.IdDocumentoNavigation.IdEmpresa == empresaId);
+                .FirstOrDefaultAsync(v => v.Id == versionId);
 
             if (version == null || string.IsNullOrEmpty(version.RutaArchivoFisico))
                 return NotFound();
+
+            if (!esAdmin && version.IdDocumentoNavigation?.IdUsuarioCreacion != userId)
+                return RedirectToAction("AccesoDenegado", "Auth");
 
             try
             {
@@ -435,12 +382,7 @@ namespace Gestion_de_Documentos.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> DescargarUltima(int id)
         {
-            // Nota: Al descargar de forma anónima (por el portal público sync),
-            // requerimos verificar que la descarga ocurra para la empresa que corresponda.
-            // Para mantener compatibilidad en descargas públicas directas, buscamos la versión
-            // sin obligar claims si no está logueado, pero validamos que esté activo.
             var version = await _context.DocumentoVersions
-                .Include(v => v.IdDocumentoNavigation)
                 .Where(v => v.IdDocumento == id && v.Estatus == true)
                 .OrderByDescending(v => v.NumeroVersion)
                 .FirstOrDefaultAsync();

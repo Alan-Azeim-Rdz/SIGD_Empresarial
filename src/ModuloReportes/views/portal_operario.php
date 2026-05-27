@@ -10,27 +10,27 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         :root {
-            /* Paleta principal */
-            --sapphire:       #1E3D59;
-            --sapphire-light: #2d6a9f;
-            --sapphire-dark:  #132941;
-            --emerald:        #0F7A72;
-            --emerald-light:  #1a9e95;
-            --emerald-dark:   #0a5a54;
-            --amethyst:       #6B4C9A;
-            --amber:          #E8A020;
-            --crimson:        #C0392B;
-            --bg:             #F4F1EB;
-            --bg-card:        #FFFFFF;
-            --bg-hover:       #EEF2F7;
-            --text-primary:   #1C2B3A;
-            --text-secondary: #546E7A;
-            --text-muted:     #90A4AE;
-            --border:         #DDE3EA;
+            /* Paleta principal — moderno oscuro */
+            --sapphire:       #3B82F6;
+            --sapphire-light: #60A5FA;
+            --sapphire-dark:  #1E40AF;
+            --emerald:        #06B6D4;
+            --emerald-light:  #22D3EE;
+            --emerald-dark:   #0891B2;
+            --amethyst:       #8B5CF6;
+            --amber:          #F59E0B;
+            --crimson:        #EF4444;
+            --bg:             #0A0E1A;
+            --bg-card:        #141A2A;
+            --bg-hover:       #1E2538;
+            --text-primary:   #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted:     #64748B;
+            --border:         #1E2538;
             --radius-md:      .85rem;
             --radius-sm:      .5rem;
-            --shadow-sm:      0 1px 4px rgba(30,61,89,.08);
-            --shadow-md:      0 4px 16px rgba(30,61,89,.12);
+            --shadow-sm:      0 1px 4px rgba(0,0,0,.4);
+            --shadow-md:      0 4px 16px rgba(0,0,0,.4);
         }
 
         body {
@@ -42,7 +42,7 @@
 
         h2 {
             font-weight: 800;
-            color: var(--sapphire-dark);
+            color: var(--text-primary);
             letter-spacing: -.02em;
         }
 
@@ -88,16 +88,23 @@
             color: var(--text-primary);
         }
         .form-control {
-            border: 1.5px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             color: var(--text-primary);
-            background-color: #fff !important;
+            background-color: #0A0E1A !important;
             padding: .55rem .9rem;
             transition: border-color .18s, box-shadow .18s;
         }
         .form-control:focus {
-            border-color: var(--sapphire-light);
-            box-shadow: 0 0 0 3px rgba(45,106,159,.18);
+            border-color: var(--sapphire);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+            background-color: #0A0E1A !important;
+            color: var(--text-primary);
+        }
+        .input-group-text {
+            background-color: #0A0E1A !important;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
         }
 
         /* Tabla custom */
@@ -110,8 +117,8 @@
             border: 1px solid var(--border);
         }
         .table thead th {
-            background: var(--sapphire) !important;
-            color: #fff !important;
+            background: #1E2538 !important;
+            color: #94A3B8 !important;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: .04em;
@@ -123,7 +130,7 @@
             transition: background .15s;
         }
         .table tbody tr:hover {
-            background-color: var(--bg-hover) !important;
+            background-color: rgba(59,130,246,.05) !important;
         }
         .table tbody td {
             padding: .75rem 1rem;
@@ -137,21 +144,22 @@
 
         /* Botones custom */
         .btn-jewel-primary {
-            background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-light) 100%);
+            background: linear-gradient(135deg, var(--sapphire) 0%, var(--emerald) 100%);
             color: #fff;
             border: none;
-            box-shadow: 0 2px 8px rgba(15,122,114,.25);
+            box-shadow: 0 2px 8px rgba(59,130,246,.25);
             font-weight: 600;
         }
         .btn-jewel-primary:hover {
-            background: linear-gradient(135deg, var(--emerald-dark) 0%, var(--emerald) 100%);
+            background: linear-gradient(135deg, var(--sapphire-dark) 0%, var(--sapphire) 100%);
             color: #fff;
-            box-shadow: 0 4px 14px rgba(15,122,114,.35);
+            box-shadow: 0 4px 14px rgba(59,130,246,.35);
+            transform: translateY(-1px);
         }
 
         .btn-outline-jewel {
             border: 1.5px solid var(--sapphire);
-            color: var(--sapphire);
+            color: var(--sapphire-light);
             background: transparent;
             font-weight: 600;
         }
@@ -161,9 +169,9 @@
         }
 
         .badge-version {
-            background: rgba(45,106,159,.12);
+            background: rgba(59,130,246,.15);
             color: var(--sapphire-light);
-            border: 1px solid rgba(45,106,159,.2);
+            border: 1px solid rgba(59,130,246,.25);
             font-weight: 600;
             padding: .3em .7em;
             border-radius: 2rem;
@@ -171,9 +179,9 @@
         }
 
         .badge-codigo {
-            background: rgba(15,122,114,.12);
-            color: var(--emerald-dark);
-            border: 1px solid rgba(15,122,114,.2);
+            background: rgba(6,182,212,.15);
+            color: var(--emerald-light);
+            border: 1px solid rgba(6,182,212,.25);
             font-weight: 600;
             padding: .3em .7em;
             border-radius: 2rem;
@@ -207,8 +215,8 @@
             font-size: .9rem;
             padding: 1rem 1.25rem;
         }
-        .alert-success { background: rgba(15,122,114,.06); color: var(--emerald-dark); border-left: 4px solid var(--emerald); }
-        .alert-danger  { background: rgba(192,57,43,.07); color: var(--crimson); border-left: 4px solid var(--crimson); }
+        .alert-success { background: rgba(6,182,212,.08); color: var(--emerald-light); border-left: 4px solid var(--emerald); }
+        .alert-danger  { background: rgba(239,68,68,.08); color: #F87171; border-left: 4px solid var(--crimson); }
 
         /* Ajustes de Iframe */
         body.in-iframe {

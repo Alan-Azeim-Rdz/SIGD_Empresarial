@@ -1,0 +1,35 @@
+# ============================================================
+# SIGD Empresarial — Modo DEBUG / Pruebas
+# Uso: docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d
+# ADVERTENCIA: No usar en producción — expone datos sensibles
+# ============================================================
+
+services:
+
+  # ── Módulo Central .NET ──────────────────────────────────
+  modulo_central:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_DETAILEDERRORS=true
+      - Logging__LogLevel__Default=Debug
+      - Logging__LogLevel__Microsoft.AspNetCore=Debug
+      - Logging__LogLevel__Microsoft.EntityFrameworkCore=Information
+
+  # ── Módulo Búsqueda Node.js ──────────────────────────────
+  modulo_busqueda:
+    environment:
+      - LOG_LEVEL=debug
+      - NODE_ENV=development
+      - DEBUG=*
+
+  # ── Módulo Reportes PHP ──────────────────────────────────
+  modulo_reportes:
+    environment:
+      - PHP_DISPLAY_ERRORS=1
+      - PHP_ERROR_REPORTING=E_ALL
+      - APP_DEBUG=true
+
+  # ── SQL Server ───────────────────────────────────────────
+  sqlserver:
+    environment:
+      - MSSQL_SQL_AUDIT_ENABLED=1

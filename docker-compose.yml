@@ -104,6 +104,8 @@ services:
       # Clave compartida — también declarada en modulo_reportes como SYNC_API_KEY
       - ReportesModule__SyncApiKey=${SYNC_API_KEY:-sigd_sync_secret_2026}
       - ReportesModule__TimeoutSeconds=10
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/sigd_busqueda?authSource=admin
+      - MONGO_DB_NAME=sigd_busqueda
     networks:
       - sigd_network
 

@@ -34,7 +34,7 @@ namespace Gestion_de_Documentos.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(string username, string contrasena)
+        public async Task<IActionResult> Login(string username, string contrasena, bool recordarme = false)
         {
             // 1 y 2. Buscamos al usuario y sus roles en una sola consulta optimizada, 
             // usando la propiedad de navegación que el Scaffold mapeó correctamente: UsuarioRolIdUsuarioNavigations
@@ -45,62 +45,51 @@ namespace Gestion_de_Documentos.Controllers
 
             var hashContrasena = HashPassword(contrasena);
 
-            if (usuario != null)
+            if (usuario != null && string.Equals(usuario.Contrasena.Trim(), hashContrasena.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                bool esCorrecto = string.Equals(usuario.Contrasena.Trim(), hashContrasena.Trim(), StringComparison.OrdinalIgnoreCase);
-
-                // Registrar el intento de acceso en la bitácora
-                var bitacora = new BitacoraAcceso
+                var claims = new List<System.Security.Claims.Claim>
                 {
-                    IdUsuario = usuario.Id,
-                    FechaHoraIntento = DateTime.Now,
-                    DireccionIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
-                    EstadoIntento = esCorrecto ? "Exitoso" : "Fallido",
-                    IdUsuarioCreacion = usuario.Id,
-                    Estatus = true
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, usuario.Correo),
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.GivenName, usuario.Nombre),
                 };
 
-                _context.BitacoraAccesos.Add(bitacora);
-                await _context.SaveChangesAsync();
+                // Agregar roles desde la base de datos usando la propiedad mapeada
+                var rolesActivos = usuario.UsuarioRolIdUsuarioNavigations != null
+                    ? usuario.UsuarioRolIdUsuarioNavigations
+                        .Select(ur => ur.IdRolNavigation?.Nombre)
+                        .Where(r => !string.IsNullOrEmpty(r))
+                        .ToList()
+                    : new List<string>();
 
-                if (esCorrecto)
+                if (rolesActivos.Any())
                 {
-                    var claims = new List<System.Security.Claims.Claim>
+                    foreach (var rol in rolesActivos)
                     {
-                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, usuario.Correo),
-                        new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.GivenName, usuario.Nombre),
-                        new System.Security.Claims.Claim("IdEmpresa", usuario.IdEmpresa?.ToString() ?? "0")
-                    };
-
-                    // Agregar roles desde la base de datos usando la propiedad mapeada
-                    var rolesActivos = usuario.UsuarioRolIdUsuarioNavigations != null
-                        ? usuario.UsuarioRolIdUsuarioNavigations
-                            .Select(ur => ur.IdRolNavigation?.Nombre)
-                            .Where(r => !string.IsNullOrEmpty(r))
-                            .ToList()
-                        : new List<string>();
-
-                    if (rolesActivos.Any())
-                    {
-                        foreach (var rol in rolesActivos)
-                        {
-                            claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, rol));
-                        }
+                        claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, rol));
                     }
-                    else
-                    {
-                        // Si no tiene roles asignados, asignar rol por defecto
-                        claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Usuario"));
-                    }
-
-                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var principal = new ClaimsPrincipal(identity);
-
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-
-                    return RedirectToAction("Index", "Home");
                 }
+                else
+                {
+                    // Si no tiene roles asignados, asignar rol por defecto
+                    claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "Usuario"));
+                }
+
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var principal = new ClaimsPrincipal(identity);
+
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = recordarme,
+                    ExpiresUtc = recordarme
+                        ? DateTimeOffset.UtcNow.AddDays(30)
+                        : DateTimeOffset.UtcNow.AddHours(2),
+                    AllowRefresh = true
+                };
+
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
+
+                return RedirectToAction("Index", "Home");
             }
 
             ViewBag.Error = "El Username o la contraseña son incorrectos.";
@@ -112,8 +101,7 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador,Superior")]
         public IActionResult Registro()
         {
-            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
-            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
             return View();
         }
 
@@ -141,19 +129,18 @@ namespace Gestion_de_Documentos.Controllers
                 if (existe)
                 {
                     ViewBag.Error = "Este correo electrónico ya está registrado.";
-                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
                     return View(nuevoUsuario);
                 }
 
-                var departamentoExiste = await _context.Departamentos.AnyAsync(d => d.Id == nuevoUsuario.IdDepartamento && d.Estatus == true && d.IdEmpresa == empresaId);
+                var departamentoExiste = await _context.Departamentos.AnyAsync(d => d.Id == nuevoUsuario.IdDepartamento && d.Estatus == true);
                 if (!departamentoExiste)
                 {
                     ViewBag.Error = "El departamento seleccionado no es válido.";
-                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
                     return View(nuevoUsuario);
                 }
 
-                nuevoUsuario.IdEmpresa = empresaId;
                 nuevoUsuario.Estatus = true;
                 nuevoUsuario.FechaCreacion = DateTime.Now;
                 nuevoUsuario.IdUsuarioCreacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
@@ -165,7 +152,7 @@ namespace Gestion_de_Documentos.Controllers
 
                 ViewBag.Exito = "Usuario creado exitosamente. Deberá cambiar su contraseña en el primer acceso.";
                 ModelState.Clear();
-                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
                 return View(new Usuario()); // Limpia el formulario
             }
 
@@ -185,11 +172,11 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Usuarios()
         {
-            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            // Usamos la propiedad de navegación correcta aquí también para evitar el error en la vista de lista
             var usuarios = await _context.Usuarios
                 .Include(u => u.UsuarioRolIdUsuarioNavigations)
                     .ThenInclude(ur => ur.IdRolNavigation)
-                .Where(u => u.Estatus == true && u.IdEmpresa == empresaId)
+                .Where(u => u.Estatus == true)
                 .ToListAsync();
             return View(usuarios);
         }

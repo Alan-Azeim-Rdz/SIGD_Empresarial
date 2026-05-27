@@ -23,6 +23,8 @@ public partial class DirContext : DbContext
 
     public virtual DbSet<Departamento> Departamentos { get; set; }
 
+    public virtual DbSet<Empresa> Empresas { get; set; }
+
     public virtual DbSet<Documento> Documentos { get; set; }
 
     public virtual DbSet<DocumentoVersion> DocumentoVersions { get; set; }
@@ -42,8 +44,6 @@ public partial class DirContext : DbContext
     public virtual DbSet<Usuario> Usuarios { get; set; }
 
     public virtual DbSet<UsuarioRol> UsuarioRols { get; set; }
-
-    public virtual DbSet<Empresa> Empresas { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -205,10 +205,6 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.DepartamentoIdUsuarioModificacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_Depto_UsuMod");
-
-            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Departamentos)
-                .HasForeignKey(d => d.IdEmpresa)
-                .HasConstraintName("FK_Departamento_Empresa");
         });
 
         modelBuilder.Entity<Documento>(entity =>
@@ -263,13 +259,6 @@ public partial class DirContext : DbContext
                 .HasForeignKey(d => d.IdUsuarioPropietario)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Documento__IdUsuario");
-
-            entity.Property(e => e.CamposPersonalizadosValores)
-                .IsUnicode(true);
-
-            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Documentos)
-                .HasForeignKey(d => d.IdEmpresa)
-                .HasConstraintName("FK_Documento_Empresa");
         });
 
         modelBuilder.Entity<DocumentoVersion>(entity =>
@@ -553,10 +542,6 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.TipoDocumentoIdUsuarioModificacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_TipoDoc_UsuMod");
-
-            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.TipoDocumentos)
-                .HasForeignKey(d => d.IdEmpresa)
-                .HasConstraintName("FK_TipoDocumento_Empresa");
         });
 
         modelBuilder.Entity<Usuario>(entity =>
@@ -606,10 +591,6 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.InverseIdUsuarioModificacionNavigation)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_Usuario_UsuMod");
-
-            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Usuarios)
-                .HasForeignKey(d => d.IdEmpresa)
-                .HasConstraintName("FK_Usuario_Empresa");
         });
 
         modelBuilder.Entity<UsuarioRol>(entity =>
@@ -703,7 +684,6 @@ public partial class DirContext : DbContext
                 .HasForeignKey(d => d.IdUsuarioEliminacion)
                 .HasConstraintName("FK_Empresa_UsuEli");
         });
-
         OnModelCreatingPartial(modelBuilder);
     }
 
