@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Gestion_de_Documentos.Models;
@@ -10,6 +10,8 @@ public partial class DocumentoVersion
     public int IdDocumento { get; set; }
 
     public int NumeroVersion { get; set; }
+
+    public int VersionMinor { get; set; } = 0;
 
     public string RutaArchivoFisico { get; set; } = null!;
 

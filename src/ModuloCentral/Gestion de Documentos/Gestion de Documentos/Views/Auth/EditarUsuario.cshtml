@@ -1,0 +1,109 @@
+@model Gestion_de_Documentos.Models.Usuario
+@using Gestion_de_Documentos.Models
+@{
+    ViewData["Title"] = "Editar Usuario";
+    var departamentos = ViewBag.Departamentos as List<Departamento> ?? new List<Departamento>();
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card card-jewel">
+            <div class="card-body p-4">
+                <h3 class="fw-bold mb-4" style="color: var(--jewel-amethyst);">
+                    <i class="fas fa-user-edit"></i> Editar Usuario
+                </h3>
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> @ViewBag.Error</div>
+                }
+                @if (TempData["Exito"] != null)
+                {
+                    <div class="alert alert-success"><i class="fas fa-check-circle"></i> @TempData["Exito"]</div>
+                }
+
+                <form method="post" asp-action="EditarUsuario" asp-route-id="@Model.Id">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Datos Personales -->
+                    <div class="mb-4">
+                        <h5 style="color: var(--jewel-amethyst);" class="fw-bold mb-3">Datos Personales</h5>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                                <input type="text" name="nombre" class="form-control" value="@Model.Nombre" required placeholder="Juan" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Apellido Paterno <span class="text-danger">*</span></label>
+                                <input type="text" name="apellidoP" class="form-control" value="@Model.ApellidoP" required placeholder="García" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Apellido Materno</label>
+                                <input type="text" name="apellidoM" class="form-control" value="@Model.ApellidoM" placeholder="López" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Correo Electrónico <span class="text-danger">*</span></label>
+                                <input type="email" name="correo" class="form-control" value="@Model.Correo" required placeholder="usuario@empresa.com" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Datos de la Organización -->
+                    <div class="mb-4">
+                        <h5 style="color: var(--jewel-amethyst);" class="fw-bold mb-3">Datos de la Organización</h5>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Departamento <span class="text-danger">*</span></label>
+                            <select name="idDepartamento" class="form-select" required>
+                                <option value="">-- Seleccionar Departamento --</option>
+                                @foreach (var dept in departamentos)
+                                {
+                                    if (dept.Id == Model.IdDepartamento)
+                                    {
+                                        <option value="@dept.Id" selected>@dept.Nombre</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@dept.Id">@dept.Nombre</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Cambio de Contraseña (Opcional) -->
+                    <div class="mb-4">
+                        <h5 style="color: var(--jewel-amethyst);" class="fw-bold mb-3">Cambiar Contraseña <small class="text-muted fw-normal">(opcional)</small></h5>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nueva Contraseña</label>
+                            <input type="password" name="nuevaContrasena" class="form-control" placeholder="Dejar en blanco para no cambiar" autocomplete="new-password" />
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Si deseas cambiar la contraseña, ingresa una nueva. Si lo dejas en blanco, se mantiene la contraseña actual.
+                            </small>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a asp-action="Usuarios" class="btn btn-light">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-jewel-primary">
+                            <i class="fas fa-save"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

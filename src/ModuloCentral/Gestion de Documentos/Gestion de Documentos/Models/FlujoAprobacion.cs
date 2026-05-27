@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Gestion_de_Documentos.Models;
@@ -38,6 +38,10 @@ public partial class FlujoAprobacion
     public string? TokenFirma { get; set; }
 
     public string? MetodoAutenticacion { get; set; }
+    
+    public string? IpOrigenRemitente { get; set; }
+    
+    public string? IpOrigenFirmante { get; set; }
 
     public virtual Usuario IdUsuarioAsignadoNavigation { get; set; } = null!;
 
