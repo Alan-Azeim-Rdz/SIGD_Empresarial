@@ -1,35 +1,824 @@
-﻿@{
+@{
     ViewData["Title"] = "Iniciar Sesión";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5">
-        <div class="card card-jewel">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <h2 class="fw-bold" style="color: var(--jewel-sapphire);">Acceso al Sistema</h2>
-                    <p class="text-muted">Ingresa tus credenciales operativas</p>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+    :root {
+        --bg-base: #050816;
+        --bg-card: #0B1120;
+        --bg-elevated: #131B2F;
+        --border-color: rgba(99, 102, 241, 0.12);
+        --border-hover: rgba(99, 102, 241, 0.3);
+        --accent: #6366F1;
+        --accent-light: #818CF8;
+        --accent-glow: rgba(99, 102, 241, 0.4);
+        --cyan: #06B6D4;
+        --emerald: #10B981;
+        --rose: #F43F5E;
+        --amber: #F59E0B;
+        --text-primary: #F1F5F9;
+        --text-secondary: #94A3B8;
+        --text-muted: #475569;
+        --font-display: 'Space Grotesk', sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: var(--font-display);
+        background: var(--bg-base);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    /* Fondo con gradiente animado */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+            radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+            radial-gradient(circle at 50% 100%, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Grid pattern overlay */
+    body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        pointer-events: none;
+        z-index: 0;
+        mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    }
+
+    .login-container {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 0;
+    }
+
+    /* ============ PANEL IZQUIERDO ============ */
+    .info-panel {
+        padding: 48px 56px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+    }
+
+    .brand-section {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        animation: fadeInUp 0.6s ease;
+    }
+
+    .brand-logo {
+        width: 52px;
+        height: 52px;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--cyan) 100%);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: white;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+        position: relative;
+    }
+
+    .brand-logo::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--accent), var(--cyan));
+        filter: blur(20px);
+        opacity: 0.4;
+        z-index: -1;
+    }
+
+    .brand-text h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1;
+    }
+
+    .brand-text h1 span {
+        background: linear-gradient(135deg, var(--accent-light), var(--cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .brand-text p {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+        font-family: var(--font-mono);
+    }
+
+    .main-content {
+        max-width: 540px;
+        animation: fadeInUp 0.6s ease 0.1s backwards;
+    }
+
+    .badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        border-radius: 100px;
+        font-size: 0.78rem;
+        color: var(--emerald);
+        font-weight: 500;
+        margin-bottom: 24px;
+    }
+
+    .badge-status::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--emerald);
+        box-shadow: 0 0 12px var(--emerald);
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.2); }
+    }
+
+    .main-title {
+        font-size: 3rem;
+        font-weight: 700;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        margin-bottom: 20px;
+    }
+
+    .main-title .gradient {
+        background: linear-gradient(135deg, var(--accent-light) 0%, var(--cyan) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .main-description {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 36px;
+        max-width: 480px;
+    }
+
+    /* Terminal mock */
+    .terminal {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 32px;
+        animation: fadeInUp 0.6s ease 0.2s backwards;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    }
+
+    .terminal-header {
+        background: var(--bg-elevated);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .terminal-dots {
+        display: flex;
+        gap: 6px;
+    }
+
+    .terminal-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+    }
+
+    .terminal-dot.red { background: #FF5F57; }
+    .terminal-dot.yellow { background: #FEBC2E; }
+    .terminal-dot.green { background: #28C840; }
+
+    .terminal-title {
+        margin-left: 12px;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        color: var(--text-muted);
+    }
+
+    .terminal-body {
+        padding: 18px 20px;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        line-height: 1.9;
+    }
+
+    .terminal-line {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        color: var(--text-secondary);
+    }
+
+    .terminal-time {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+    }
+
+    .tag {
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 4px;
+        font-size: 0.68rem;
+        letter-spacing: 0.02em;
+    }
+
+    .tag.success { background: rgba(16, 185, 129, 0.15); color: var(--emerald); }
+    .tag.info { background: rgba(99, 102, 241, 0.15); color: var(--accent-light); }
+    .tag.warn { background: rgba(245, 158, 11, 0.15); color: var(--amber); }
+
+    /* Features grid */
+    .features-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        animation: fadeInUp 0.6s ease 0.3s backwards;
+    }
+
+    .feature {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.3s ease;
+        cursor: default;
+    }
+
+    .feature:hover {
+        border-color: var(--border-hover);
+        transform: translateY(-2px);
+        background: var(--bg-elevated);
+    }
+
+    .feature-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.1));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-light);
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    .feature h4 {
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 3px;
+    }
+
+    .feature p {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+    }
+
+    /* Footer stats */
+    .footer-stats {
+        display: flex;
+        gap: 36px;
+        animation: fadeInUp 0.6s ease 0.4s backwards;
+    }
+
+    .stat {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .stat-value {
+        font-size: 1.6rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent-light), var(--cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stat-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    /* ============ PANEL DERECHO ============ */
+    .form-panel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px;
+        background: linear-gradient(135deg, rgba(11, 17, 32, 0.4) 0%, rgba(19, 27, 47, 0.6) 100%);
+        backdrop-filter: blur(20px);
+        border-left: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    .form-container {
+        width: 100%;
+        max-width: 400px;
+        animation: fadeInUp 0.6s ease 0.2s backwards;
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 36px;
+    }
+
+    .form-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 20px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.1));
+        border: 1px solid var(--border-hover);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: var(--accent-light);
+        position: relative;
+    }
+
+    .form-icon::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--accent), var(--cyan));
+        opacity: 0.2;
+        z-index: -1;
+        filter: blur(15px);
+    }
+
+    .form-header h2 {
+        font-size: 1.7rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        letter-spacing: -0.02em;
+    }
+
+    .form-header p {
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+    }
+
+    .alert-error {
+        background: rgba(244, 63, 94, 0.1);
+        border: 1px solid rgba(244, 63, 94, 0.25);
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        color: #FCA5A5;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        letter-spacing: 0.02em;
+    }
+
+    .input-wrapper {
+        position: relative;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 0.88rem;
+        transition: color 0.2s;
+    }
+
+    .form-input {
+        width: 100%;
+        background: var(--bg-card);
+        border: 1.5px solid var(--border-color);
+        border-radius: 10px;
+        padding: 13px 16px 13px 44px;
+        color: var(--text-primary);
+        font-size: 0.92rem;
+        font-family: var(--font-display);
+        transition: all 0.2s;
+        outline: none;
+    }
+
+    .form-input:focus {
+        border-color: var(--accent);
+        background: var(--bg-elevated);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .form-input:focus + .input-icon,
+    .input-wrapper:focus-within .input-icon {
+        color: var(--accent-light);
+    }
+
+    .form-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .toggle-password {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .toggle-password:hover {
+        color: var(--accent-light);
+        background: rgba(99, 102, 241, 0.1);
+    }
+
+    .form-options {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        font-size: 0.82rem;
+    }
+
+    .remember-me {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .remember-me input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+        cursor: pointer;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--cyan) 100%);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: var(--font-display);
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-submit::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, var(--cyan) 0%, var(--accent) 100%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .btn-submit:hover::before {
+        opacity: 1;
+    }
+
+    .btn-submit span,
+    .btn-submit i {
+        position: relative;
+        z-index: 1;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 30px rgba(99, 102, 241, 0.4);
+    }
+
+    .form-divider {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 28px 0;
+        color: var(--text-muted);
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    .form-divider::before,
+    .form-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+    }
+
+    .security-info {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .sec-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+
+    .sec-item i {
+        color: var(--accent-light);
+        font-size: 0.78rem;
+    }
+
+    .form-footer {
+        margin-top: 32px;
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+    }
+
+    /* Animaciones */
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive */
+    @@media (max-width: 1024px) {
+        .login-container {
+            grid-template-columns: 1fr;
+        }
+        .info-panel {
+            display: none;
+        }
+        .form-panel {
+            border-left: none;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .form-panel {
+            padding: 32px 24px;
+        }
+        .form-header h2 {
+            font-size: 1.4rem;
+        }
+    }
+</style>
+
+<div class="login-container">
+    <!-- Panel Izquierdo -->
+    <div class="info-panel">
+        <div class="brand-section">
+            <div class="brand-logo">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <div class="brand-text">
+                <h1>SIGD <span>Empresarial</span></h1>
+                <p>// SISTEMA DE GESTIÓN DOCUMENTAL</p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="badge-status">Sistema operativo</div>
+            <h2 class="main-title">
+                Gestión inteligente de <span class="gradient">documentos corporativos</span>
+            </h2>
+            <p class="main-description">
+                Control total sobre versiones, aprobaciones y trazabilidad. Diseñado para equipos
+                profesionales que necesitan rapidez y seguridad en cada documento.
+            </p>
+
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="terminal-dots">
+                        <div class="terminal-dot red"></div>
+                        <div class="terminal-dot yellow"></div>
+                        <div class="terminal-dot green"></div>
+                    </div>
+                    <span class="terminal-title">sigd@@empresa: ~/audit-log</span>
+                </div>
+                <div class="terminal-body">
+                    <div class="terminal-line">
+                        <span class="terminal-time">12:41</span>
+                        <span class="tag success">OK</span>
+                        <span>Documento aprobado · Manual_Calidad_v3.pdf</span>
+                    </div>
+                    <div class="terminal-line">
+                        <span class="terminal-time">12:39</span>
+                        <span class="tag info">INFO</span>
+                        <span>Nueva versión cargada por Carlos R.</span>
+                    </div>
+                    <div class="terminal-line">
+                        <span class="terminal-time">12:35</span>
+                        <span class="tag warn">AUDIT</span>
+                        <span>Acceso IP 10.0.1.42 · usuario jperez</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon"><i class="fas fa-code-branch"></i></div>
+                    <h4>Versionado completo</h4>
+                    <p>Historial trazable de cada cambio</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon"><i class="fas fa-check-double"></i></div>
+                    <h4>Flujo de aprobación</h4>
+                    <p>Multi-rol con firma digital</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon"><i class="fas fa-shield-virus"></i></div>
+                    <h4>Auditoría 360°</h4>
+                    <p>Cada acción queda registrada</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+                    <h4>Búsqueda instantánea</h4>
+                    <p>Encuentra cualquier documento</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-stats">
+            <div class="stat">
+                <span class="stat-value">+500</span>
+                <span class="stat-label">Documentos</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">99.9%</span>
+                <span class="stat-label">Uptime</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value">24/7</span>
+                <span class="stat-label">Disponibilidad</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Derecho - Formulario -->
+    <div class="form-panel">
+        <div class="form-container">
+            <div class="form-header">
+                <div class="form-icon">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h2>Iniciar sesión</h2>
+                <p>Accede a tu panel de control</p>
+            </div>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>@ViewBag.Error</span>
+                </div>
+            }
+
+            <form asp-action="Login" method="post">
+                <div class="form-group">
+                    <label class="form-label">Correo electrónico</label>
+                    <div class="input-wrapper">
+                        <input type="text" name="username" class="form-input"
+                               placeholder="admin@sigd.local" required autocomplete="off" />
+                        <i class="fas fa-envelope input-icon"></i>
+                    </div>
                 </div>
 
-                @if (ViewBag.Error != null)
-                {
-                    <div class="alert alert-danger text-center shadow-sm">@ViewBag.Error</div>
-                }
+                <div class="form-group">
+                    <label class="form-label">Contraseña</label>
+                    <div class="input-wrapper">
+                        <input type="password" name="contrasena" id="passInput"
+                               class="form-input" placeholder="••••••••••" required />
+                        <i class="fas fa-key input-icon"></i>
+                        <button type="button" class="toggle-password" onclick="togglePass()">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
 
-                <form asp-action="Login" method="post">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Username</label>
-                        <input type="text" name="username" class="form-control" required placeholder="Ej: admin_sistema" autocomplete="off" />
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Contraseña</label>
-                        <input type="password" name="contrasena" class="form-control" required placeholder="••••••••" />
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-jewel-primary btn-lg">Ingresar</button>
-                    </div>
-                </form>
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="recordarme" />
+                        <span>Mantener sesión iniciada</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <span>Acceder al sistema</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="form-divider">Protección activa</div>
+
+            <div class="security-info">
+                <div class="sec-item">
+                    <i class="fas fa-lock"></i>
+                    <span>Conexión cifrada</span>
+                </div>
+                <div class="sec-item">
+                    <i class="fas fa-clock-rotate-left"></i>
+                    <span>Acceso registrado</span>
+                </div>
+                <div class="sec-item">
+                    <i class="fas fa-satellite-dish"></i>
+                    <span>Monitoreo 24/7</span>
+                </div>
+            </div>
+
+            <div class="form-footer">
+                v2.0.1 // © 2026 SIGD Empresarial // .NET 10
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function togglePass() {
+        const input = document.getElementById('passInput');
+        const icon = document.getElementById('eyeIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    }
+</script>
