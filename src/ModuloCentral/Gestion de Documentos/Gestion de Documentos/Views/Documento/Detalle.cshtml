@@ -23,10 +23,7 @@
                 <div class="d-flex flex-column gap-2">
                     @if (Model.EstadoActual == "Borrador")
                     {
-                        <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-edit me-2"></i>Editar Metadatos
-                        </a>
-                        <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success w-100">
+<a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success w-100">
                             <i class="fas fa-file-upload me-2"></i>Subir Nueva Versión
                         </a>
                     }
@@ -72,30 +69,13 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalConfirmarRevision" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-paper-plane me-2 text-warning"></i>Confirmar Envío a Revisión</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Estás seguro que deseas enviar este documento a revisión?</p>
-                <p class="text-warning small"><i class="fas fa-exclamation-circle me-1"></i>Una vez enviado <strong>no podrás editarlo</strong> hasta que sea rechazado por el revisor.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id"
-                   class="btn btn-warning" id="btnConfirmarRevision">
-                    <i class="fas fa-paper-plane me-1"></i>Sí, Enviar a Revisión
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
 <script>
-document.getElementById('btnEnviarRevision').addEventListener('click', function() {
-    var modal = new bootstrap.Modal(document.getElementById('modalConfirmarRevision'));
-    modal.show();
+document.addEventListener('DOMContentLoaded', function () {
+    const btnEnviar = document.getElementById('btnEnviarRevision');
+    if (btnEnviar) {
+        btnEnviar.addEventListener('click', function () {
+            window.location.href = '@Url.Action("EnviarARevision", "Flujo", new { idDocumento = Model.Id })';
+        });
+    }
 });
 </script>

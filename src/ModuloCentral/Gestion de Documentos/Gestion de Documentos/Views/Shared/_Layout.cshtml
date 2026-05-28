@@ -5,9 +5,177 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Sistema Integral de Gestión Documental Empresarial" />
     <title>@ViewData["Title"] - SIGD Empresarial</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-main:    #050816;
+            --bg-surface: #0B1120;
+            --bg-raised:  #131B2F;
+            --border:     rgba(99,102,241,0.12);
+            --accent:     #6366F1;
+            --accent2:    #06B6D4;
+            --text:       #F1F5F9;
+            --text-muted: #94A3B8;
+            --text-dim:   #475569;
+            --success:    #10B981;
+            --warning:    #F59E0B;
+            --error:      #F43F5E;
+            --nav-h:      64px;
+            --font-main:  'Space Grotesk', sans-serif;
+            --font-mono:  'JetBrains Mono', monospace;
+        }
+        body {
+            background-color: var(--bg-main) !important;
+            color: var(--text) !important;
+            font-family: var(--font-main) !important;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(99,102,241,0.06) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(6,182,212,0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(99,102,241,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.025) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            mask-image: radial-gradient(ellipse at center, black 0%, transparent 75%);
+        }
+        #sigd-header, .sigd-page-wrap, .sigd-footer, .modal { position: relative; z-index: 1; }
+
+        /* ── NAVBAR PREMIUM ── */
+        .navbar-jewel {
+            background: rgba(5, 8, 22, 0.85) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.15) !important;
+            padding: 8px 24px !important;
+            min-height: 72px;
+        }
+
+        .navbar-nav .nav-link {
+            padding: 8px 14px !important;
+        }
+
+        .navbar-brand {
+            font-family: var(--font-main) !important;
+            font-weight: 700 !important;
+            font-size: 1.1rem !important;
+            color: var(--text) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            letter-spacing: -0.02em !important;
+        }
+
+        .navbar-brand .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #6366F1, #06B6D4);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: white;
+        }
+
+        .navbar-brand span {
+            background: linear-gradient(135deg, #818CF8, #06B6D4) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            background-clip: text !important;
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--text-muted) !important;
+            font-size: 0.85rem !important;
+            font-weight: 500 !important;
+            padding: 6px 12px !important;
+            border-radius: 8px !important;
+            transition: all 0.2s !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            font-family: var(--font-main) !important;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--text) !important;
+            background: rgba(99, 102, 241, 0.1) !important;
+        }
+
+        .navbar-nav .nav-link.active {
+            color: #818CF8 !important;
+            background: rgba(99, 102, 241, 0.12) !important;
+        }
+
+        .dropdown-menu {
+            background: #0B1120 !important;
+            border: 1px solid rgba(99, 102, 241, 0.15) !important;
+            border-radius: 12px !important;
+            padding: 6px !important;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .dropdown-item {
+            color: var(--text-muted) !important;
+            font-size: 0.85rem !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            transition: all 0.2s !important;
+            font-family: var(--font-main) !important;
+        }
+
+        .dropdown-item:hover {
+            color: var(--text) !important;
+            background: rgba(99, 102, 241, 0.1) !important;
+        }
+
+        /* User badge */
+        .sigd-user-card {
+            background: rgba(99, 102, 241, 0.08) !important;
+            border: 1px solid rgba(99, 102, 241, 0.15) !important;
+            border-radius: 10px !important;
+            padding: 6px 12px !important;
+        }
+
+        .sigd-avatar {
+            background: linear-gradient(135deg, #6366F1, #06B6D4) !important;
+            border-radius: 8px !important;
+        }
+
+        .sigd-logout-btn {
+            border-color: rgba(244, 63, 94, 0.3) !important;
+            color: #FDA4AF !important;
+            border-radius: 8px !important;
+            font-family: var(--font-main) !important;
+        }
+
+        .sigd-logout-btn:hover {
+            background: rgba(244, 63, 94, 0.1) !important;
+        }
+
+        /* Breadcrumb */
+        .sigd-breadcrumb-bar {
+            background: rgba(5, 8, 22, 0.6) !important;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.08) !important;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -93,12 +261,6 @@
                                 </span>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modalConexiones"
-                                   title="Configurar Conexiones" id="btn-config-conexiones">
-                                    <i class="fas fa-cog"></i>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link" asp-controller="Auth" asp-action="Logout">
                                     <i class="fas fa-sign-out-alt me-1"></i>Salir
                                 </a>
@@ -117,24 +279,6 @@
             </div>
         </nav>
 
-        <!-- Barra de navegación de migajas (breadcrumb) -->
-        <div class="bg-white border-bottom" style="padding: .4rem 0;">
-            <div class="container">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb mb-0" style="font-size: .78rem;">
-                        <li class="breadcrumb-item">
-                            <a asp-controller="Home" asp-action="Index" class="text-decoration-none" style="color: var(--sapphire);">
-                                <i class="fas fa-home me-1"></i>SIGD
-                            </a>
-                        </li>
-                        @if (ViewData["Title"]?.ToString() != "Inicio")
-                        {
-                            <li class="breadcrumb-item active text-muted">@ViewData["Title"]</li>
-                        }
-                    </ol>
-                </nav>
-            </div>
-        </div>
     </header>
 
     <div class="container mt-3">
@@ -190,6 +334,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <script>

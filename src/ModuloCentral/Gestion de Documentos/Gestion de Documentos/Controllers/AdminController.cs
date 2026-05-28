@@ -20,6 +20,68 @@ namespace Gestion_de_Documentos.Controllers
             return int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         }
 
+        #region GESTIÓN DE USUARIOS
+        [HttpGet]
+        public async Task<IActionResult> EditarUsuario(int id)
+        {
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Id == id && u.Estatus == true);
+            if (usuario == null) return NotFound();
+            ViewBag.Departamentos = await _context.Departamentos
+                .Where(d => d.Estatus == true).ToListAsync();
+            return View(usuario);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditarUsuario(int id, Usuario model)
+        {
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Id == id && u.Estatus == true);
+            if (usuario == null) return NotFound();
+
+            ModelState.Remove("Contrasena");
+            ModelState.Remove("IdDepartamentoNavigation");
+            ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioModificacionNavigation");
+            ModelState.Remove("IdUsuarioEliminacionNavigation");
+
+            if (ModelState.IsValid)
+            {
+                usuario.Nombre = model.Nombre;
+                usuario.ApellidoP = model.ApellidoP;
+                usuario.ApellidoM = model.ApellidoM;
+                usuario.Correo = model.Correo;
+                usuario.IdDepartamento = model.IdDepartamento;
+                usuario.FechaModificacion = DateTime.Now;
+                usuario.IdUsuarioModificacion = GetCurrentUserId();
+                _context.Update(usuario);
+                await _context.SaveChangesAsync();
+                return RedirectToAction("Usuarios", "Auth");
+            }
+            ViewBag.Departamentos = await _context.Departamentos
+                .Where(d => d.Estatus == true).ToListAsync();
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EliminarUsuario(int id)
+        {
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Id == id && u.Estatus == true);
+            if (usuario == null) return NotFound();
+
+            // Soft delete
+            usuario.Estatus = false;
+            usuario.FechaEliminacion = DateTime.Now;
+            usuario.IdUsuarioEliminacion = GetCurrentUserId();
+            _context.Update(usuario);
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Usuarios", "Auth");
+        }
+        #endregion
+
         #region PANEL PRINCIPAL
         public IActionResult Index()
         {

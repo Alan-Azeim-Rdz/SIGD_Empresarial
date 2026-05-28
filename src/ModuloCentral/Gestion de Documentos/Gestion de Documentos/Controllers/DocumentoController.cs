@@ -154,9 +154,12 @@ namespace Gestion_de_Documentos.Controllers
                 return NotFound("Documento no válido o no se encuentra en estado Borrador.");
 
             // Remover validaciones innecesarias del ModelState (Navigation properties)
+            ModelState.Remove("IdUsuarioPropietario");
+            ModelState.Remove("EstadoActual");
             ModelState.Remove("IdDepartamentoNavigation");
             ModelState.Remove("IdTipoDocumentoNavigation");
             ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioPropietarioNavigation");
             ModelState.Remove("IdUsuarioModificacionNavigation");
             ModelState.Remove("IdUsuarioEliminacionNavigation");
 

@@ -35,10 +35,50 @@
             <div class="d-flex justify-content-between">
                 <a asp-controller="Documento" asp-action="Detalle" asp-route-id="@Model.Id"
                    class="btn btn-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-warning text-dark fw-bold">
+                <button type="button" class="btn btn-warning text-dark fw-bold" id="btnEnviarFinal">
                     <i class="fas fa-paper-plane me-1"></i>Enviar a Revisión
                 </button>
             </div>
         </form>
     </div>
 </div>
+<script>
+document.getElementById('btnEnviarFinal').addEventListener('click', function () {
+    const revisor = document.querySelector('select[name="idRevisor"]').value;
+    if (!revisor) {
+        Swal.fire({
+            title: 'Selecciona un revisor',
+            text: 'Debes seleccionar un revisor antes de continuar.',
+            icon: 'warning',
+            confirmButtonColor: '#6366F1',
+            background: '#0B1120',
+            color: '#F1F5F9'
+        });
+        return;
+    }
+    Swal.fire({
+        title: '¿Confirmar envío a revisión?',
+        html: `
+            <div style="text-align:left; font-size:.9rem; line-height:1.8;">
+                <p>Estás a punto de enviar este documento a revisión.</p>
+                <p style="color:#F59E0B; font-size:.82rem;">
+                    ⚠️ Una vez enviado <strong>no podrás editarlo</strong>
+                    hasta que sea rechazado por el revisor.
+                </p>
+            </div>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Sí, Enviar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#F59E0B',
+        cancelButtonColor: '#374151',
+        background: '#0B1120',
+        color: '#F1F5F9',
+        backdrop: 'rgba(5,8,22,0.8)'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.querySelector('form').submit();
+        }
+    });
+});
+</script>

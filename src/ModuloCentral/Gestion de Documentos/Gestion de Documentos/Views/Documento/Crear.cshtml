@@ -57,36 +57,39 @@
                 <button type="button" class="btn btn-jewel-primary" id="btnGuardarDoc">
                     <i class="fas fa-save me-1"></i>Guardar como Borrador
                 </button>
+                <script>
+                document.getElementById('btnGuardarDoc').addEventListener('click', function () {
+                    Swal.fire({
+                        title: 'Confirmar guardado',
+                        html: `
+                            <div style="text-align:left; font-size:.9rem; line-height:1.8;">
+                                <p>Estás a punto de guardar este documento como <strong>Borrador</strong>.</p>
+                                <p style="color:#94A3B8; font-size:.82rem;">
+                                     Podrás editarlo mientras esté en estado Borrador.<br>
+                                    📎 El archivo PDF se almacenará en MongoDB GridFS.
+                                </p>
+                            </div>`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-save me-1"></i> Sí, guardar',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#6366F1',
+                        cancelButtonColor: '#374151',
+                        background: '#0B1120',
+                        color: '#F1F5F9',
+                        backdrop: 'rgba(5,8,22,0.8)',
+                        borderRadius: '14px',
+                        customClass: {
+                            popup: 'swal-popup-custom'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            document.querySelector('form').submit();
+                        }
+                    });
+                });
+                </script>
             </div>
-<div class="modal fade" id="modalConfirmarGuardar" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-save me-2"></i>Confirmar Guardado</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Estás seguro que deseas guardar este documento como borrador?</p>
-                <p class="text-muted small">Podrás editarlo después mientras esté en estado <strong>Borrador</strong>.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnConfirmarGuardar">
-                    <i class="fas fa-save me-1"></i>Sí, Guardar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<script>
-document.getElementById('btnGuardarDoc').addEventListener('click', function() {
-    var modal = new bootstrap.Modal(document.getElementById('modalConfirmarGuardar'));
-    modal.show();
-});
-document.getElementById('btnConfirmarGuardar').addEventListener('click', function() {
-    document.querySelector('form').submit();
-});
-</script>
         </form>
     </div>
 </div>

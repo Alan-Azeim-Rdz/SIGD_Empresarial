@@ -129,14 +129,18 @@
             background-color: var(--bg-card);
             transition: background .15s;
         }
+        .table tbody tr {
+            background-color: var(--bg-card) !important;
+        }
         .table tbody tr:hover {
-            background-color: rgba(59,130,246,.05) !important;
+            background-color: rgba(59,130,246,.08) !important;
         }
         .table tbody td {
             padding: .75rem 1rem;
             border-bottom: 1px solid var(--border);
             vertical-align: middle;
-            color: var(--text-primary);
+            color: var(--text-primary) !important;
+            background-color: transparent !important;
         }
         .table tr:last-child td {
             border-bottom: none;

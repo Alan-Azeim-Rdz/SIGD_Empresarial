@@ -90,12 +90,30 @@
                                                    class="btn btn-sm btn-info" title="Asignar Roles">
                                                     <i class="fas fa-user-tag"></i> Roles
                                                 </a>
-                                                <a href="#" class="btn btn-sm btn-warning" title="Editar" disabled>
+                                                <a asp-controller="Admin" asp-action="EditarUsuario"
+                                                   asp-route-id="@usuario.Id"
+                                                   class="btn btn-sm btn-warning">
                                                     <i class="fas fa-edit"></i> Editar
                                                 </a>
-                                                <a href="#" class="btn btn-sm btn-danger" title="Eliminar" disabled>
-                                                    <i class="fas fa-trash"></i> Eliminar
-                                                </a>
+                                                <form asp-controller="Admin" asp-action="EliminarUsuario"
+                                                      asp-route-id="@usuario.Id" method="post" style="display:inline;">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="button" class="btn btn-sm btn-danger"
+                                                        onclick="Swal.fire({
+                                                            title: 'Eliminar usuario',
+                                                            text: '¿Estás seguro? Esta acción desactivará al usuario.',
+                                                            icon: 'warning',
+                                                            showCancelButton: true,
+                                                            confirmButtonText: 'Sí, eliminar',
+                                                            cancelButtonText: 'Cancelar',
+                                                            confirmButtonColor: '#F43F5E',
+                                                            cancelButtonColor: '#374151',
+                                                            background: '#0B1120',
+                                                            color: '#F1F5F9'
+                                                        }).then((r) => { if(r.isConfirmed) this.closest('form').submit(); })">
+                                                        <i class="fas fa-trash"></i> Eliminar
+                                                    </button>
+                                                </form>
                                             </td>
                                         </tr>
                                     }
