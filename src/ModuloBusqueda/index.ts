@@ -13,10 +13,11 @@ import pino from 'pino';
 // ── 1. LOGGER ────────────────────────────────────────
 // Prod (NODE_ENV=production): JSON puro en stdout, 1 línea por entrada.
 // Dev: pino-pretty con colores (instalado en devDependencies).
+const IS_PRODUCTION = (process.env['NODE_ENV'] ?? 'production') === 'production';
 const loggerOptions: any = {
   level: process.env['LOG_LEVEL'] ?? 'info'
 };
-if (process.env['NODE_ENV'] !== 'production') {
+if (!IS_PRODUCTION) {
   loggerOptions.transport = { target: 'pino-pretty', options: { colorize: true } };
 }
 export const logger = pino(loggerOptions);

@@ -8,7 +8,7 @@ services:
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD}
-      - MSSQL_PID=Express
+      - MSSQL_PID=Developer
     ports:
       - "1434:1433"
     volumes:
@@ -23,7 +23,6 @@ services:
       start_period: 30s
     networks:
       - sigd_network
-    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
@@ -39,7 +38,6 @@ services:
       - ./scripts/postgres:/docker-entrypoint-initdb.d
     networks:
       - sigd_network
-    restart: unless-stopped
 
   mongodb:
     image: mongo:7.0
@@ -55,19 +53,19 @@ services:
       - ./scripts/mongo:/docker-entrypoint-initdb.d:ro
     networks:
       - sigd_network
-    restart: unless-stopped
 
   # ==========================================
-  # APLICACIONES (MICROSERVICIOS) - PRODUCCIÓN
+  # APLICACIONES (MICROSERVICIOS) - DESARROLLO
   # ==========================================
 
   # ------------------------------------------
-  # 1. MÓDULO CENTRAL (.NET)
+  # 1. MÓDULO CENTRAL (.NET) - Hot reload
   # ------------------------------------------
   modulo_central:
     build:
       context: "./src/ModuloCentral/Gestion de Documentos"
       dockerfile: "Gestion de Documentos/Dockerfile"
+      target: development
     container_name: app_central_dotnet
     ports:
       - "5000:8080"
@@ -76,20 +74,21 @@ services:
         condition: service_healthy
       modulo_reportes:
         condition: service_started
+    volumes:
+      - "./src/ModuloCentral/Gestion de Documentos/Gestion de Documentos:/src/Gestion de Documentos"
     environment:
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
       - ReportesModule__BaseUrl=http://modulo_reportes
       - BusquedaModule__BaseUrl=http://modulo_busqueda:3000
-      - ReportesModule__SyncApiKey=${SYNC_API_KEY}
+      - ReportesModule__SyncApiKey=${SYNC_API_KEY:-sigd_sync_secret_2026}
       - ReportesModule__TimeoutSeconds=10
       - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/sigd_busqueda?authSource=admin
       - MONGO_DB_NAME=sigd_busqueda
     networks:
       - sigd_network
-    restart: unless-stopped
 
   # ------------------------------------------
-  # 2. MÓDULO DE REPORTES (PHP)
+  # 2. MÓDULO DE REPORTES (PHP) - Hot reload
   # ------------------------------------------
   modulo_reportes:
     build:
@@ -99,32 +98,37 @@ services:
       - "8000:80"
     depends_on:
       - postgres
+    volumes:
+      - ./src/ModuloReportes:/var/www/html
+      - /var/www/html/vendor
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${PG_USER}
       - DB_PASS=${PG_PASSWORD}
       - DB_NAME=${PG_DATABASE}
-      - SYNC_API_KEY=${SYNC_API_KEY}
+      - SYNC_API_KEY=${SYNC_API_KEY:-sigd_sync_secret_2026}
     networks:
       - sigd_network
-    restart: unless-stopped
 
   # ------------------------------------------
-  # 3. MÓDULO DE BÚSQUEDA (Node.js / TypeScript)
+  # 3. MÓDULO DE BÚSQUEDA (Node.js) - Hot reload
   # ------------------------------------------
   modulo_busqueda:
     build:
       context: ./src/ModuloBusqueda
       dockerfile: Dockerfile
-      target: production
+      target: development
     container_name: app_busqueda_node
     ports:
       - "3000:3000"
     depends_on:
       - mongodb
+    volumes:
+      - ./src/ModuloBusqueda:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     environment:
-      - NODE_ENV=production
       - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/sigd_busqueda?authSource=admin
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/docs"]
@@ -134,7 +138,6 @@ services:
       start_period: 10s
     networks:
       - sigd_network
-    restart: unless-stopped
 
 # ==========================================
 # VOLÚMENES Y REDES
