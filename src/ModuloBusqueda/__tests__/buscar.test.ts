@@ -83,6 +83,14 @@ describe('GET /buscar', () => {
     expect(filtro['id_empresa']).toBe(1);
   });
 
+  it('el filtro de búsqueda excluye versiones de borrador/inestables', async () => {
+    await request(app).get('/buscar').query({ q: 'test', id_empresa: 1 });
+
+    const filtro = findSpy.mock.calls[0]?.[0] as Record<string, any>;
+    expect(filtro).toHaveProperty('version');
+    expect(filtro.version).toEqual({ $not: /\.([1-9]\d*)$/ });
+  });
+
   it('si Metadato.find lanza un error → 500', async () => {
     findSpy.mockRejectedValue(new Error('timeout de MongoDB'));
 

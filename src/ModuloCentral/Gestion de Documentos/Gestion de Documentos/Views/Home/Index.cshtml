@@ -71,7 +71,7 @@ else
             </div>
         }
 
-        @if (User.IsInRole("Superior") || User.IsInRole("Aprobador"))
+        @if (User.IsInRole("Superior") || User.IsInRole("Administrador"))
         {
             <div class="col-md-4 animate-fade-up" style="animation-delay:.1s">
                 <div class="card card-jewel p-4 h-100">
@@ -90,7 +90,7 @@ else
             </div>
         }
 
-        @if (User.IsInRole("Editor") || User.IsInRole("Usuario") || User.IsInRole("Administrador"))
+        @if (User.IsInRole("Usuario") || User.IsInRole("Administrador") || User.IsInRole("Superior"))
         {
             <div class="col-md-4 animate-fade-up" style="animation-delay:.15s">
                 <div class="card card-jewel p-4 h-100">
@@ -114,7 +114,7 @@ else
             </div>
         }
 
-        @if (User.IsInRole("Administrador") || User.IsInRole("Editor") || User.IsInRole("Usuario"))
+        @if (User.IsInRole("Administrador") || User.IsInRole("Usuario") || User.IsInRole("Superior"))
         {
             <div class="col-md-4 animate-fade-up" style="animation-delay:.2s">
                 <div class="card card-jewel p-4 h-100">

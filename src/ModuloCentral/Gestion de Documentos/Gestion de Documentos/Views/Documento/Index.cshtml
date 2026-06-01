@@ -42,6 +42,7 @@
                         <tr>
                             <th><i class="fas fa-barcode me-1"></i>Código</th>
                             <th><i class="fas fa-heading me-1"></i>Título</th>
+                            <th>Versión</th>
                             <th>Tipo</th>
                             <th>Depto.</th>
                             <th>Estado</th>
@@ -52,11 +53,14 @@
                     <tbody>
                         @foreach (var item in Model)
                         {
+                            var ultimaV = item.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ThenByDescending(v => v.VersionMinor).FirstOrDefault();
+                            var versionStr = ultimaV != null ? $"{ultimaV.NumeroVersion}.{ultimaV.VersionMinor}" : "—";
                             <tr class="animate-fade-in">
                                 <td>
                                     <code style="font-size: .8rem; color: var(--sapphire);">@item.CodigoInterno</code>
                                 </td>
                                 <td class="fw-semibold">@item.Titulo</td>
+                                <td><span class="badge bg-primary">V @versionStr</span></td>
                                 <td class="text-muted">@item.IdTipoDocumentoNavigation?.Nombre</td>
                                 <td class="text-muted">@item.IdDepartamentoNavigation?.Nombre</td>
                                 <td>
@@ -78,7 +82,6 @@
                                     }
                                     
                                     @{
-                                        var ultimaV = item.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ThenByDescending(v => v.VersionMinor).FirstOrDefault();
                                         var ultimoFlujo = ultimaV?.FlujoAprobacions.OrderByDescending(f => f.FechaModificacion).FirstOrDefault();
                                         if (ultimoFlujo != null && !string.IsNullOrEmpty(ultimoFlujo.Comentarios) && (item.EstadoActual == "Rechazado" || item.EstadoActual == "Vigente"))
                                         {

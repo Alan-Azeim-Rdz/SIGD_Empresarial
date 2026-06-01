@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Alta de Usuario";
     var departamentos = ViewBag.Departamentos as List<Departamento> ?? new List<Departamento>();
+    var roles = ViewBag.Roles as List<Rol> ?? new List<Rol>();
 }
 
 <div class="row justify-content-center mt-4">
@@ -72,6 +73,19 @@
                                 </select>
                                 <span asp-validation-for="IdDepartamento" class="text-danger"></span>
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Rol <span class="text-danger">*</span></label>
+                                <select name="idRol" class="form-select" required>
+                                    <option value="">-- Seleccionar Rol --</option>
+                                    @foreach (var rol in roles)
+                                    {
+                                        <option value="@rol.Id">@rol.Nombre</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Estatus <span class="text-danger">*</span></label>
                                 <select class="form-select" required disabled>

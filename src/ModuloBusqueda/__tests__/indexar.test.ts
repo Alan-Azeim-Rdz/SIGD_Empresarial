@@ -64,13 +64,13 @@ describe('POST /indexar', () => {
     expect(res.body.success).toBe(false);
   });
 
-  it('cuando no se envía version el documento se guarda con version = 1', async () => {
+  it('cuando no se envía version el documento se guarda con version = "0.1"', async () => {
     const { version: _, ...sinVersion } = payloadIndexarValido;
     const res = await request(app).post('/indexar').send(sinVersion);
 
     expect(res.status).toBe(201);
-    // El default ?? 1 se aplica en el constructor antes de llamar save()
-    expect(res.body.data.version).toBe(1);
+    // El default ?? '0.1' se aplica en el constructor antes de llamar save()
+    expect(res.body.data.version).toBe('0.1');
   });
 
   it('si el documento ya existe (código 11000 de MongoDB) → 409', async () => {

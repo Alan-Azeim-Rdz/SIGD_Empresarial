@@ -90,6 +90,8 @@ DISABLE TRIGGER [dbo].[TRG_SoftDelete_Usuario] ON [dbo].[Usuario];
 DISABLE TRIGGER [dbo].[TRG_SoftDelete_Departamento] ON [dbo].[Departamento];
 DISABLE TRIGGER [dbo].[TRG_SoftDelete_TipoDocumento] ON [dbo].[TipoDocumento];
 DISABLE TRIGGER [dbo].[TRG_SoftDelete_Usuario_Rol] ON [dbo].[Usuario_Rol];
+DISABLE TRIGGER [dbo].[TRG_SoftDelete_Rol_Permiso] ON [dbo].[Rol_Permiso];
+DISABLE TRIGGER [dbo].[TRG_SoftDelete_Rol] ON [dbo].[Rol];
 
 -- Limpieza de tablas log/bitácora
 DELETE FROM [dbo].[BitacoraAcceso];
@@ -97,9 +99,11 @@ DELETE FROM [dbo].[BitacoraControlDocumento];
 DELETE FROM [dbo].[BitacoraTransaccional];
 
 -- Limpieza de tablas de negocio
-DELETE FROM [dbo].[Documento_Version] WHERE [IdDocumento] >= 101;
-DELETE FROM [dbo].[Documento] WHERE [Id] >= 101;
-DELETE FROM [dbo].[Usuario_Rol] WHERE [IdUsuario] > 1;
+DELETE FROM [dbo].[Documento_Version];
+DELETE FROM [dbo].[Documento];
+DELETE FROM [dbo].[Usuario_Rol];
+DELETE FROM [dbo].[Rol_Permiso];
+DELETE FROM [dbo].[Rol] WHERE [Id] > 1;
 DELETE FROM [dbo].[Usuario] WHERE [Id] > 1;
 DELETE FROM [dbo].[Departamento] WHERE [Id] > 1;
 DELETE FROM [dbo].[TipoDocumento] WHERE [Id] >= 1;
@@ -113,59 +117,107 @@ ENABLE TRIGGER [dbo].[TRG_SoftDelete_Usuario] ON [dbo].[Usuario];
 ENABLE TRIGGER [dbo].[TRG_SoftDelete_Departamento] ON [dbo].[Departamento];
 ENABLE TRIGGER [dbo].[TRG_SoftDelete_TipoDocumento] ON [dbo].[TipoDocumento];
 ENABLE TRIGGER [dbo].[TRG_SoftDelete_Usuario_Rol] ON [dbo].[Usuario_Rol];
+ENABLE TRIGGER [dbo].[TRG_SoftDelete_Rol_Permiso] ON [dbo].[Rol_Permiso];
+ENABLE TRIGGER [dbo].[TRG_SoftDelete_Rol] ON [dbo].[Rol];
+
+-- 0. Re-crear roles base con sus respectivos IDs
+PRINT 'Insertando roles base...';
+SET IDENTITY_INSERT [dbo].[Rol] ON;
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Rol] WHERE Id = 2)
+    INSERT INTO [dbo].[Rol] (Id, Nombre, Descripcion, IdUsuarioCreacion, FechaCreacion, Estatus)
+    VALUES (2, N'Administrador', N'Administrador de la empresa. Gestiona usuarios, roles, departamentos y documentos.', 1, GETDATE(), 1);
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Rol] WHERE Id = 3)
+    INSERT INTO [dbo].[Rol] (Id, Nombre, Descripcion, IdUsuarioCreacion, FechaCreacion, Estatus)
+    VALUES (3, N'Usuario', N'Usuario de área. Puede crear documentos, consultarlos y enviarlos a revisión.', 1, GETDATE(), 1);
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Rol] WHERE Id = 4)
+    INSERT INTO [dbo].[Rol] (Id, Nombre, Descripcion, IdUsuarioCreacion, FechaCreacion, Estatus)
+    VALUES (4, N'Auditor', N'Auditor de la empresa. Permisos de sólo lectura global dentro de su empresa.', 1, GETDATE(), 1);
+IF NOT EXISTS (SELECT 1 FROM [dbo].[Rol] WHERE Id = 5)
+    INSERT INTO [dbo].[Rol] (Id, Nombre, Descripcion, IdUsuarioCreacion, FechaCreacion, Estatus)
+    VALUES (5, N'Superior', N'Superior jerárquico. Revisa, aprueba o rechaza documentos enviados a revisión.', 1, GETDATE(), 1);
+SET IDENTITY_INSERT [dbo].[Rol] OFF;
+
+-- Asignar permisos al rol Administrador (IdRol = 2)
+INSERT INTO [dbo].[Rol_Permiso] (IdRol, IdPermiso, IdUsuarioCreacion, FechaCreacion, Estatus)
+SELECT 2, Id, 1, GETDATE(), 1 FROM [dbo].[Permiso] WHERE Id IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 17, 18);
+
+-- Asignar permisos al rol Usuario (IdRol = 3) — puede crear y enviar documentos
+INSERT INTO [dbo].[Rol_Permiso] (IdRol, IdPermiso, IdUsuarioCreacion, FechaCreacion, Estatus)
+SELECT 3, Id, 1, GETDATE(), 1 FROM [dbo].[Permiso] WHERE Id IN (1, 2, 3, 4, 7, 18);
+
+-- Asignar permisos al rol Auditor (IdRol = 4) — solo lectura
+INSERT INTO [dbo].[Rol_Permiso] (IdRol, IdPermiso, IdUsuarioCreacion, FechaCreacion, Estatus)
+SELECT 4, Id, 1, GETDATE(), 1 FROM [dbo].[Permiso] WHERE Id IN (4, 7, 17, 18);
+
+-- Asignar permisos al rol Superior (IdRol = 5) — aprueba, edita y crea documentos
+INSERT INTO [dbo].[Rol_Permiso] (IdRol, IdPermiso, IdUsuarioCreacion, FechaCreacion, Estatus)
+SELECT 5, Id, 1, GETDATE(), 1 FROM [dbo].[Permiso] WHERE Id IN (1, 2, 3, 4, 5, 6, 7, 14, 15, 18);
 
 -- 1. Insertar Departamentos
 PRINT 'Insertando departamentos...';
 SET IDENTITY_INSERT [dbo].[Departamento] ON;
-INSERT INTO [dbo].[Departamento] (Id, Nombre, Abreviatura, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-(2, 'Recursos Humanos', 'RH', 1, GETDATE(), 1),
-(3, 'Producción', 'PRD', 1, GETDATE(), 1),
-(4, 'Calidad', 'CAL', 1, GETDATE(), 1),
-(5, 'Mantenimiento', 'MNT', 1, GETDATE(), 1),
-(6, 'Sistemas e Informática', 'TI', 1, GETDATE(), 1);
+INSERT INTO [dbo].[Departamento] (Id, Nombre, Abreviatura, Estatus, FechaCreacion, IdUsuarioCreacion, IdEmpresa) VALUES
+(2, 'Recursos Humanos', 'RH', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(3, 'Producción', 'PRD', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(4, 'Calidad', 'CAL', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(5, 'Mantenimiento', 'MNT', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(6, 'Sistemas e Informática', 'TI', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(7, 'Administración', 'ADM', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(8, 'Administración', 'ADM', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
 SET IDENTITY_INSERT [dbo].[Departamento] OFF;
 
 -- 2. Insertar Tipos de Documento
 PRINT 'Insertando tipos de documentos...';
 SET IDENTITY_INSERT [dbo].[TipoDocumento] ON;
-INSERT INTO [dbo].[TipoDocumento] (Id, Nombre, Abreviatura, TiempoRetencionMeses, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-(1, 'Procedimiento', 'PROC', 12, 1, GETDATE(), 1),
-(2, 'Manual', 'MAN', 12, 1, GETDATE(), 1),
-(3, 'Formato', 'FMT', 12, 1, GETDATE(), 1),
-(4, 'Instructivo', 'INS', 12, 1, GETDATE(), 1),
-(5, 'Política', 'POL', 12, 1, GETDATE(), 1),
-(6, 'Especificación', 'ESP', 12, 1, GETDATE(), 1),
-(7, 'Registro', 'REG', 12, 1, GETDATE(), 1);
+INSERT INTO [dbo].[TipoDocumento] (Id, Nombre, Abreviatura, TiempoRetencionMeses, Estatus, FechaCreacion, IdUsuarioCreacion, IdEmpresa) VALUES
+(1, 'Procedimiento', 'PROC', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(2, 'Manual', 'MAN', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(3, 'Formato', 'FMT', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(4, 'Instructivo', 'INS', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(5, 'Política', 'POL', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(6, 'Especificación', 'ESP', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(7, 'Registro', 'REG', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
 SET IDENTITY_INSERT [dbo].[TipoDocumento] OFF;
 
--- 3. Insertar Usuarios (IDs del 2 al 10)
+-- 3. Insertar Usuarios (IDs del 2 al 12)
 PRINT 'Insertando usuarios demo...';
 SET IDENTITY_INSERT [dbo].[Usuario] ON;
-INSERT INTO [dbo].[Usuario] (Id, IdDepartamento, Nombre, ApellidoP, ApellidoM, Correo, Contrasena, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-(2, 2, 'María', 'García', 'SIGD', 'maria.garcia@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(3, 3, 'Carlos', 'Ramírez', 'SIGD', 'carlos.ramirez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(4, 4, 'Ana', 'Martínez', 'SIGD', 'ana.martinez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(5, 5, 'Jorge', 'López', 'SIGD', 'jorge.lopez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(6, 6, 'Laura', 'Hernández', 'SIGD', 'laura.hernandez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(7, 4, 'Marcos', 'de León', 'Tapia', 'marcos.deleon@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(8, 3, 'Aurelio', 'Uribe', 'Santos', 'aurelio.uribe@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(9, 2, 'Emilio', 'Ybarra', 'Ruiz', 'emilio.ybarra@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(10, 5, 'Felix', 'Palomo', 'Valencia', 'felix.palomo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1);
+INSERT INTO [dbo].[Usuario] (Id, IdDepartamento, Nombre, ApellidoP, ApellidoM, Correo, Contrasena, Estatus, FechaCreacion, IdUsuarioCreacion, IdEmpresa) VALUES
+(2, 2, 'María', 'García', 'SIGD', 'maria.garcia@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(3, 3, 'Carlos', 'Ramírez', 'SIGD', 'carlos.ramirez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(4, 4, 'Ana', 'Martínez', 'SIGD', 'ana.martinez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(5, 5, 'Jorge', 'López', 'SIGD', 'jorge.lopez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(6, 6, 'Laura', 'Hernández', 'SIGD', 'laura.hernandez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(7, 4, 'Marcos', 'de León', 'Tapia', 'marcos.deleon@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(8, 3, 'Aurelio', 'Uribe', 'Santos', 'aurelio.uribe@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(9, 2, 'Emilio', 'Ybarra', 'Ruiz', 'emilio.ybarra@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(10, 5, 'Felix', 'Palomo', 'Valencia', 'felix.palomo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(11, 7, 'Ana', 'García', 'Martínez', 'admin.tech@techcorp.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@Tech2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(12, 8, 'Carlos', 'López', 'Hernández', 'admin@grupoinnovar.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@Innov2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(13, 1, 'Admin', 'Demo', 'SIGD', 'admin.demo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'demo')),
+(14, 1, 'Usuario', 'Demo', 'SIGD', 'user.demo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'demo')),
+(15, 1, 'Auditor', 'Demo', 'SIGD', 'auditor.demo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'demo'));
 SET IDENTITY_INSERT [dbo].[Usuario] OFF;
 
--- 4. Asignar rol Super Administrador (Id=1) a todos para pruebas locales
+-- 4. Asignar roles (Id=1 es Super Administrador, Id=2 es Administrador, Id=3 es Usuario, Id=4 es Auditor)
 PRINT 'Asignando roles...';
 SET IDENTITY_INSERT [dbo].[Usuario_Rol] ON;
 INSERT INTO [dbo].[Usuario_Rol] (Id, IdUsuario, IdRol, FechaAsignacion, Estatus, IdUsuarioCreacion) VALUES
-(2, 2, 1, GETDATE(), 1, 1),
-(3, 3, 1, GETDATE(), 1, 1),
-(4, 4, 1, GETDATE(), 1, 1),
-(5, 5, 1, GETDATE(), 1, 1),
-(6, 6, 1, GETDATE(), 1, 1),
-(7, 7, 1, GETDATE(), 1, 1),
-(8, 8, 1, GETDATE(), 1, 1),
-(9, 9, 1, GETDATE(), 1, 1),
-(10, 10, 1, GETDATE(), 1, 1);
+(1, 1, 1, GETDATE(), 1, 1),   -- admin global: Super Administrador
+(2, 2, 3, GETDATE(), 1, 1),   -- maria: Usuario
+(3, 3, 3, GETDATE(), 1, 1),   -- carlos: Usuario
+(4, 4, 3, GETDATE(), 1, 1),   -- ana: Usuario
+(5, 5, 5, GETDATE(), 1, 1),   -- jorge: Superior
+(6, 6, 4, GETDATE(), 1, 1),   -- laura: Auditor
+(7, 7, 5, GETDATE(), 1, 1),   -- marcos: Superior
+(8, 8, 3, GETDATE(), 1, 1),   -- aurelio: Usuario
+(9, 9, 3, GETDATE(), 1, 1),   -- emilio: Usuario
+(10, 10, 4, GETDATE(), 1, 1), -- felix: Auditor
+(11, 11, 2, GETDATE(), 1, 1), -- admin techcorp: Administrador
+(12, 12, 2, GETDATE(), 1, 1), -- admin grupoinnovar: Administrador
+(13, 13, 2, GETDATE(), 1, 1), -- admin demo: Administrador
+(14, 14, 3, GETDATE(), 1, 1), -- user demo: Usuario
+(15, 15, 4, GETDATE(), 1, 1); -- auditor demo: Auditor
 SET IDENTITY_INSERT [dbo].[Usuario_Rol] OFF;
 """)
 
@@ -191,9 +243,12 @@ for doc in mongo_docs:
     # Fecha
     date_str = doc["fecha_creacion"]["$date"].replace("T", " ").replace("Z", "")
     
+    # Determinar empresa desde dept_id
+    emp_slug = "techcorp" if dept_id in [2, 4, 6] else "grupoinnovar"
+    
     sqlserver_sql.append(
-        f"INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) "
-        f"VALUES ({id_doc}, '{codigo}', N'{titulo}', {dept_id}, 'Vigente', {user_id}, '{date_str}', {estatus_val}, {user_id}, 1);"
+        f"INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) "
+        f"VALUES ({id_doc}, '{codigo}', N'{titulo}', {dept_id}, 'Vigente', {user_id}, '{date_str}', {estatus_val}, {user_id}, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = '{emp_slug}'));"
     )
 
 sqlserver_sql.append("SET IDENTITY_INSERT [dbo].[Documento] OFF;")
@@ -238,17 +293,52 @@ postgres_sql.append(f"""-- =====================================================
 -- ==========================================================
 
 -- Limpieza previa
-DELETE FROM estadistica_documento WHERE id_documento >= 101;
-DELETE FROM documento_vigente WHERE id_documento >= 101;
-DELETE FROM usuario WHERE id_usuario > 6;
+DELETE FROM estadistica_documento;
+DELETE FROM documento_vigente;
+DELETE FROM usuario WHERE id_usuario > 1;
+DELETE FROM departamento WHERE id_departamento > 1;
+DELETE FROM tipo_documento WHERE id_tipo >= 1;
 
--- Insertar usuarios faltantes (IDs del 7 al 10)
-INSERT INTO usuario (id_usuario, id_departamento, nombre, apellido_p, correo, contrasena, estatus, id_usuario_creacion) VALUES
-(7, 4, 'Marcos', 'de León', 'marcos.deleon@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1),
-(8, 3, 'Aurelio', 'Uribe', 'aurelio.uribe@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1),
-(9, 2, 'Emilio', 'Ybarra', 'emilio.ybarra@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1),
-(10, 5, 'Felix', 'Palomo', 'felix.palomo@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1)
+-- Insertar departamentos (incluyendo administración de cada empresa)
+INSERT INTO departamento (id_departamento, nombre, abreviatura, estatus, id_usuario_creacion, id_empresa) VALUES
+(2, 'Recursos Humanos', 'RH', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(3, 'Producción', 'PRD', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(4, 'Calidad', 'CAL', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(5, 'Mantenimiento', 'MNT', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(6, 'Sistemas e Informática', 'TI', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(7, 'Administración', 'ADM', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(8, 'Administración', 'ADM', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar'))
+ON CONFLICT (id_departamento) DO NOTHING;
+
+-- Insertar tipos de documentos
+INSERT INTO tipo_documento (id_tipo, nombre, abreviatura, estatus, id_usuario_creacion, id_empresa) VALUES
+(1, 'Procedimiento', 'PROC', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(2, 'Manual', 'MAN', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(3, 'Formato', 'FMT', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(4, 'Instructivo', 'INS', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(5, 'Política', 'POL', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(6, 'Especificación', 'ESP', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(7, 'Registro', 'REG', TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar'))
+ON CONFLICT (id_tipo) DO NOTHING;
+
+-- Insertar usuarios demo y administradores de empresa (IDs del 2 al 12)
+INSERT INTO usuario (id_usuario, id_departamento, nombre, apellido_p, correo, contrasena, estatus, id_usuario_creacion, id_empresa) VALUES
+(2, 2, 'María', 'García', 'maria.garcia@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(3, 3, 'Carlos', 'Ramírez', 'carlos.ramirez@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(4, 4, 'Ana', 'Martínez', 'ana.martinez@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(5, 5, 'Jorge', 'López', 'jorge.lopez@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(6, 6, 'Laura', 'Hernández', 'laura.hernandez@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(7, 4, 'Marcos', 'de León', 'marcos.deleon@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(8, 3, 'Aurelio', 'Uribe', 'aurelio.uribe@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(9, 2, 'Emilio', 'Ybarra', 'emilio.ybarra@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(10, 5, 'Felix', 'Palomo', 'felix.palomo@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(11, 7, 'Ana', 'García', 'admin.tech@techcorp.local', UPPER(encode(digest('Admin@Tech2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'techcorp')),
+(12, 8, 'Carlos', 'López', 'admin@grupoinnovar.local', UPPER(encode(digest('Admin@Innov2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'grupoinnovar')),
+(13, 1, 'Admin', 'Demo', 'admin.demo@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'demo')),
+(14, 1, 'Usuario', 'Demo', 'user.demo@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'demo')),
+(15, 1, 'Auditor', 'Demo', 'auditor.demo@sigd.local', UPPER(encode(digest('Admin@SIGD2026!','sha256'),'hex')), TRUE, 1, (SELECT id_empresa FROM empresa WHERE slug = 'demo'))
 ON CONFLICT (id_usuario) DO NOTHING;
+
 
 -- Insertar documentos
 """)
@@ -267,9 +357,11 @@ for doc in mongo_docs:
     estatus_val = "TRUE" if doc["estatus"] else "FALSE"
     date_str = doc["fecha_creacion"]["$date"].replace("T", " ").replace("Z", "")
     
+    # Determinar empresa desde dept_id
+    emp_slug = "techcorp" if dept_id in [2, 4, 6] else "grupoinnovar"
     postgres_sql.append(
-        f"INSERT INTO documento_vigente (id_documento, codigo_interno, titulo, id_tipo, id_departamento, version_actual, fecha_publicacion, ruta_archivo_descarga, hash_verificacion, estatus, id_usuario_creacion, fecha_creacion) "
-        f"VALUES ({id_doc}, '{codigo}', '{titulo}', 1, {dept_id}, 1, '{date_str}', 'gridfs://mock-id-{id_doc}', 'mock-hash-{id_doc}', {estatus_val}, {user_id}, '{date_str}') "
+        f"INSERT INTO documento_vigente (id_documento, codigo_interno, titulo, id_tipo, id_departamento, version_actual, fecha_publicacion, ruta_archivo_descarga, hash_verificacion, estatus, id_usuario_creacion, fecha_creacion, id_empresa) "
+        f"VALUES ({id_doc}, '{codigo}', '{titulo}', 1, {dept_id}, 1, '{date_str}', 'gridfs://mock-id-{id_doc}', 'mock-hash-{id_doc}', {estatus_val}, {user_id}, '{date_str}', (SELECT id_empresa FROM empresa WHERE slug = '{emp_slug}')) "
         f"ON CONFLICT (id_documento) DO NOTHING;"
     )
 
@@ -344,6 +436,13 @@ def to_js_val(val):
         return f'"{escaped}"'
     else:
         return json.dumps(val)
+
+# Inyectar id_empresa para cada documento de MongoDB
+for doc in mongo_docs:
+    codigo = doc["codigo_interno"]
+    dept_abbr = codigo.split("-")[1]
+    dept_id = DEPT_MAP.get(dept_abbr, 1)
+    doc["id_empresa"] = 2 if dept_id in [2, 4, 6] else 3
 
 mongo_docs_js = [to_js_val(doc) for doc in mongo_docs]
 mongo_array_content = ",\n  ".join(mongo_docs_js)

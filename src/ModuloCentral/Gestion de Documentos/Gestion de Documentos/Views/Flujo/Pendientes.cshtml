@@ -68,7 +68,7 @@ else
                             <div class="d-flex gap-3 flex-wrap">
                                 <div>
                                     <span class="text-muted">Versión</span><br>
-                                    <strong>V@(ver?.NumeroVersion)</strong>
+                                    <strong>V@(ver?.NumeroVersion).@(ver?.VersionMinor)</strong>
                                 </div>
                                 <div>
                                     <span class="text-muted">Enviado por</span><br>
@@ -92,7 +92,14 @@ else
                                class="btn btn-outline-jewel btn-sm w-50">
                                 <i class="fas fa-info-circle me-1"></i>Ver Detalles
                             </a>
-                            <button type="button" class="btn btn-jewel-secondary btn-sm w-50" data-bs-toggle="modal" data-bs-target="#pdfModal-@flujo.Id">
+                            <button type="button" 
+                                    class="btn btn-jewel-secondary btn-sm w-50 btn-abrir-visor"
+                                    data-version-id="@ver?.Id"
+                                    data-flujo-id="@flujo.Id"
+                                    data-doc-titulo="@doc?.Titulo"
+                                    data-doc-codigo="@doc?.CodigoInterno"
+                                    data-src="@Url.Action("VerPrevio", "Documento", new { versionId = ver?.Id })"
+                                    data-bs-toggle="modal" data-bs-target="#modalVisorPdf">
                                 <i class="fas fa-file-pdf me-1"></i>Previsualizar PDF
                             </button>
                         </div>
@@ -109,9 +116,9 @@ else
                             </div>
                             
                             <div class="form-check mb-3">
-                                <input class="form-check-input check-leido" type="checkbox" id="checkLeido-@flujo.Id" data-target="btnGroup-@flujo.Id">
-                                <label class="form-check-label text-muted" for="checkLeido-@flujo.Id" style="font-size: 0.85rem;">
-                                    Confirmo que he previsualizado y leído el documento.
+                                <input class="form-check-input check-leido" type="checkbox" id="checkLeido-@flujo.Id" data-target="btnGroup-@flujo.Id" disabled>
+                                <label class="form-check-label text-muted" for="checkLeido-@flujo.Id" style="font-size: 0.85rem;" id="labelLeido-@flujo.Id">
+                                    <i class="fas fa-lock me-1"></i> Debe previsualizar el PDF para firmar.
                                 </label>
                             </div>
 
@@ -128,24 +135,6 @@ else
                             </div>
                         </form>
 
-                        <!-- Modal de Previsualización PDF -->
-                        <div class="modal fade" id="pdfModal-@flujo.Id" tabindex="-1" aria-labelledby="pdfModalLabel-@flujo.Id" aria-hidden="true">
-                          <div class="modal-dialog modal-xl modal-dialog-centered">
-                            <div class="modal-content">
-                              <div class="modal-header bg-light">
-                                <h5 class="modal-title" id="pdfModalLabel-@flujo.Id"><i class="fas fa-file-pdf me-2 text-danger"></i>Previsualización: @doc?.Titulo</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                              </div>
-                              <div class="modal-body p-0" style="height: 75vh;">
-                                  <iframe src="@Url.Action("Descargar", "Documento", new { versionId = ver?.Id })" width="100%" height="100%" style="border: none;"></iframe>
-                              </div>
-                              <div class="modal-footer bg-light">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar Visor</button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>>
-
                     </div>
                 </div>
             </div>
@@ -153,23 +142,160 @@ else
     </div>
 }
 
+<!-- Modal Visor PDF Único -->
+<div class="modal fade" id="modalVisorPdf" tabindex="-1" aria-labelledby="modalVisorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width:92vw;">
+        <div class="modal-content" style="height:90vh;">
+            <div class="modal-header" style="background:var(--bg-card); border-bottom:1px solid var(--border);">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-file-pdf text-danger fs-5"></i>
+                    <h5 class="modal-title mb-0" id="modalVisorLabel">Previsualización de Documento</h5>
+                    <code id="modalVisorCodigo" class="text-muted ms-2" style="font-size:.78rem;"></code>
+                </div>
+                <div class="d-flex gap-2 ms-auto me-3">
+                    <a id="btnDescargarModal" href="#" class="btn btn-sm btn-outline-success" title="Descargar PDF">
+                        <i class="fas fa-download me-1"></i>Descargar
+                    </a>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0" style="flex:1; overflow:hidden;">
+                <div id="visorLoading" class="d-flex align-items-center justify-content-center h-100"
+                     style="background:var(--bg-hover);">
+                    <div class="text-center">
+                        <div class="spinner-border mb-3" style="color:var(--sapphire); width:3rem; height:3rem;" role="status"></div>
+                        <p class="text-muted">Cargando documento...</p>
+                    </div>
+                </div>
+                <iframe id="iframeVisor"
+                        src="about:blank"
+                        style="width:100%; height:100%; border:none; display:none;"
+                        title="Visor de documento PDF">
+                </iframe>
+            </div>
+            <div class="modal-footer" style="background:var(--bg-card); border-top:1px solid var(--border); font-size:.82rem;">
+                <span id="estadoVista" class="text-muted me-auto">
+                    <i class="fas fa-info-circle me-1"></i>Esperando a que cargue el documento...
+                </span>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar Visor
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Habilitar/deshabilitar botones según el checkbox de "leído"
-            const checks = document.querySelectorAll('.check-leido');
-            checks.forEach(check => {
-                check.addEventListener('change', function () {
-                    const targetId = this.getAttribute('data-target');
-                    const btnGroup = document.getElementById(targetId);
-                    if (btnGroup) {
-                        const buttons = btnGroup.querySelectorAll('.btn-action');
-                        buttons.forEach(btn => {
-                            btn.disabled = !this.checked;
-                        });
+            const modal = document.getElementById('modalVisorPdf');
+            const iframe = document.getElementById('iframeVisor');
+            const loading = document.getElementById('visorLoading');
+            const estadoEl = document.getElementById('estadoVista');
+            const titleEl = document.getElementById('modalVisorLabel');
+            const codeEl = document.getElementById('modalVisorCodigo');
+            const downloadBtn = document.getElementById('btnDescargarModal');
+
+            let currentFlujoId = null;
+            let currentVersionId = null;
+
+            function registrarLectura() {
+                if (iframe.src === 'about:blank' || !currentVersionId) return;
+
+                loading.classList.add('d-none');
+                loading.classList.remove('d-flex');
+                iframe.style.display = 'block';
+
+                // Registrar la vista en sesión en el servidor
+                fetch('@Url.Action("RegistrarVista", "Documento")?versionId=' + currentVersionId, {
+                    method: 'POST',
+                    headers: { 
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '' 
                     }
+                })
+                .then(res => {
+                    if (res.ok) {
+                        estadoEl.innerHTML = '<i class="fas fa-check-circle me-1 text-success"></i>Documento leído — ya puede cerrar esta ventana y firmar.';
+                        estadoEl.className = 'text-success me-auto fw-semibold';
+
+                        // Habilitar y marcar el checkbox correspondiente
+                        const chk = document.getElementById('checkLeido-' + currentFlujoId);
+                        const lbl = document.getElementById('labelLeido-' + currentFlujoId);
+                        if (chk) {
+                            chk.disabled = false;
+                            chk.checked = true;
+                            
+                            // Cambiar la etiqueta a una verde indicando que fue previsualizado
+                            if (lbl) {
+                                lbl.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i> Documento previsualizado y verificado.';
+                                lbl.className = 'form-check-label text-success fw-semibold';
+                            }
+
+                            // Habilitar los botones
+                            const btnGroup = document.getElementById('btnGroup-' + currentFlujoId);
+                            if (btnGroup) {
+                                const buttons = btnGroup.querySelectorAll('.btn-action');
+                                buttons.forEach(btn => {
+                                    btn.disabled = false;
+                                });
+                            }
+                        }
+                    } else {
+                        estadoEl.innerHTML = '<i class="fas fa-exclamation-triangle me-1 text-warning"></i> Error al registrar la previsualización.';
+                        estadoEl.className = 'text-warning me-auto';
+                    }
+                })
+                .catch(() => {
+                    estadoEl.innerHTML = '<i class="fas fa-exclamation-triangle me-1 text-warning"></i> Error de red al registrar la previsualización.';
+                    estadoEl.className = 'text-warning me-auto';
+                });
+            }
+
+            // Al hacer clic en un botón de previsualizar, configurar el modal
+            const btnsAbrir = document.querySelectorAll('.btn-abrir-visor');
+            btnsAbrir.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const src = this.dataset.src;
+                    currentFlujoId = this.dataset.flujoId;
+                    currentVersionId = this.dataset.versionId;
+                    
+                    titleEl.textContent = this.dataset.docTitulo;
+                    codeEl.textContent = this.dataset.docCodigo;
+                    downloadBtn.href = '@Url.Action("Descargar", "Documento")?versionId=' + currentVersionId;
+
+                    loading.classList.remove('d-none');
+                    loading.classList.add('d-flex');
+                    iframe.style.display = 'none';
+                    iframe.src = src;
+
+                    estadoEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cargando documento...';
+                    estadoEl.className = 'text-muted me-auto';
+
+                    // Fallback para navegadores que no disparan el evento 'load' en PDFs
+                    setTimeout(function() {
+                        if (!loading.classList.contains('d-none')) {
+                            registrarLectura();
+                        }
+                    }, 1500);
                 });
             });
+
+            // Cuando el iframe carga
+            iframe.addEventListener('load', function() {
+                if (!loading.classList.contains('d-none')) {
+                    registrarLectura();
+                }
+            });
+
+            // Limpiar al cerrar modal
+            if (modal) {
+                modal.addEventListener('hidden.bs.modal', function () {
+                    iframe.src = 'about:blank';
+                    loading.classList.remove('d-none');
+                    loading.classList.add('d-flex');
+                    iframe.style.display = 'none';
+                });
+            }
         });
     </script>
 }

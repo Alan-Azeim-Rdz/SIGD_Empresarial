@@ -21,9 +21,24 @@ namespace Gestion_de_Documentos.Controllers
             _busquedaService = busquedaService;
         }
 
+        public class RevisorDto
+        {
+            public int Id { get; set; }
+            public string Nombre { get; set; }
+            public string ApellidoP { get; set; }
+            public string ApellidoM { get; set; }
+            public string Rol { get; set; }
+        }
+
         private int GetCurrentUserId()
         {
             return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        }
+
+        private int GetCurrentUserEmpresaId()
+        {
+            var claim = User.FindFirst("IdEmpresa")?.Value;
+            return int.TryParse(claim, out var id) ? id : 0;
         }
 
         [HttpGet]
@@ -35,16 +50,28 @@ namespace Gestion_de_Documentos.Controllers
             if (doc == null || doc.EstadoActual != "Borrador")
                 return NotFound("Documento no válido o no se encuentra en estado Borrador.");
 
-            // Obtener lista de usuarios que son 'Administrador' o 'Superior' de la MISMA empresa y departamento
+            var empresaId = doc.IdEmpresa ?? GetCurrentUserEmpresaId();
+
             var revisores = await _context.UsuarioRols
                 .Include(ur => ur.IdUsuarioNavigation)
                 .Include(ur => ur.IdRolNavigation)
-                .Where(ur => (ur.IdRolNavigation.Nombre == "Administrador" || ur.IdRolNavigation.Nombre == "Superior") 
-                          && ur.Estatus == true 
-                          && ur.IdUsuarioNavigation.Estatus == true
-                          && ur.IdUsuarioNavigation.IdEmpresa == doc.IdEmpresa
-                          && ur.IdUsuarioNavigation.IdDepartamento == doc.IdDepartamento)
-                .Select(ur => new { ur.IdUsuarioNavigation.Id, ur.IdUsuarioNavigation.Nombre, ApellidoP = ur.IdUsuarioNavigation.ApellidoP, ApellidoM = ur.IdUsuarioNavigation.ApellidoM, Rol = ur.IdRolNavigation.Nombre })
+                .Where(ur => ur.Estatus != false 
+                          && ur.IdUsuarioNavigation.Estatus != false
+                          && (empresaId == 0 
+                              ? ur.IdUsuarioNavigation.IdEmpresa == null 
+                              : ur.IdUsuarioNavigation.IdEmpresa == empresaId)
+                          && (
+                              ur.IdRolNavigation.Nombre == "Administrador"
+                              || (ur.IdRolNavigation.Nombre == "Superior" && ur.IdUsuarioNavigation.IdDepartamento == doc.IdDepartamento)
+                             ))
+                .Select(ur => new RevisorDto
+                {
+                    Id = ur.IdUsuarioNavigation.Id,
+                    Nombre = ur.IdUsuarioNavigation.Nombre,
+                    ApellidoP = ur.IdUsuarioNavigation.ApellidoP,
+                    ApellidoM = ur.IdUsuarioNavigation.ApellidoM,
+                    Rol = ur.IdRolNavigation.Nombre
+                })
                 .ToListAsync();
 
             ViewBag.Revisores = revisores;
@@ -66,10 +93,22 @@ namespace Gestion_de_Documentos.Controllers
             if (versionActual == null)
                 return BadRequest("El documento no tiene versiones válidas.");
 
-            // Validar que el revisor elegido exista y tenga rol válido
+            var empresaId = doc.IdEmpresa ?? GetCurrentUserEmpresaId();
+
+            // Validar que el revisor elegido exista y tenga rol válido (Administrador de la misma empresa o Superior del mismo departamento/empresa)
             var revisorValido = await _context.UsuarioRols
+                .Include(ur => ur.IdUsuarioNavigation)
                 .Include(ur => ur.IdRolNavigation)
-                .AnyAsync(ur => ur.IdUsuario == idRevisor && (ur.IdRolNavigation.Nombre == "Administrador" || ur.IdRolNavigation.Nombre == "Superior") && ur.Estatus == true);
+                .AnyAsync(ur => ur.IdUsuario == idRevisor 
+                             && ur.Estatus != false 
+                             && ur.IdUsuarioNavigation.Estatus != false
+                             && (empresaId == 0 
+                                 ? ur.IdUsuarioNavigation.IdEmpresa == null 
+                                 : ur.IdUsuarioNavigation.IdEmpresa == empresaId)
+                             && (
+                                 ur.IdRolNavigation.Nombre == "Administrador"
+                                 || (ur.IdRolNavigation.Nombre == "Superior" && ur.IdUsuarioNavigation.IdDepartamento == doc.IdDepartamento)
+                                ));
 
             if (!revisorValido) return BadRequest("El usuario seleccionado no es un revisor válido.");
 
@@ -124,9 +163,19 @@ namespace Gestion_de_Documentos.Controllers
 
             var userId = GetCurrentUserId();
 
+            if (flujo.IdUsuarioAsignado != userId)
+                return RedirectToAction("AccesoDenegado", "Auth");
+
             if (string.IsNullOrWhiteSpace(comentarios))
             {
                 return BadRequest("Los comentarios son obligatorios para aprobar o rechazar el documento.");
+            }
+
+            // Validar que haya previsualizado el archivo antes de firmar/responder
+            var visto = HttpContext.Session.GetString($"doc_visto_{userId}_{flujo.IdVersionDocumento}") == "1";
+            if (!visto)
+            {
+                return BadRequest("Debe previsualizar el documento completo en el visor antes de poder tomar una decisión.");
             }
 
             // Modificar el registro de flujo actual en lugar de crear un detalle
@@ -139,23 +188,41 @@ namespace Gestion_de_Documentos.Controllers
 
             if (respuesta == "Aprobar")
             {
+                var idDoc = flujo.IdVersionDocumentoNavigation.IdDocumento;
+
+                // Calcular el siguiente NumeroVersion mayor
+                var maxAprobada = await _context.DocumentoVersions
+                    .Where(v => v.IdDocumento == idDoc && v.VersionMinor == 0 && v.Id != flujo.IdVersionDocumento)
+                    .Select(v => (int?)v.NumeroVersion)
+                    .MaxAsync() ?? 0;
+
+                var siguienteMajor = maxAprobada + 1;
+
+                flujo.IdVersionDocumentoNavigation.NumeroVersion = siguienteMajor;
+                flujo.IdVersionDocumentoNavigation.VersionMinor = 0;
+
                 // El documento pasa a Vigente
                 flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.EstadoActual = "Vigente";
                 await _context.SaveChangesAsync();
                 
-                var idDoc = flujo.IdVersionDocumentoNavigation.IdDocumento;
-
                 // Sincronizar con Módulo de Reportes (PostgreSQL/PHP)
                 await _reportesService.SincronizarDocumentoAsync(idDoc, userId);
 
+                // Obtener IP del firmante
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+
                 // Sincronizar con Módulo de Búsqueda (MongoDB/Node.js)
-                await _busquedaService.SincronizarDocumentoAsync(idDoc, userId);
+                await _busquedaService.SincronizarDocumentoAsync(idDoc, userId, ip);
             }
             else
             {
                 // El documento vuelve a estado Rechazado
                 flujo.IdVersionDocumentoNavigation.IdDocumentoNavigation.EstadoActual = "Rechazado";
                 await _context.SaveChangesAsync();
+
+                // Desindexar de la búsqueda ya que no está Vigente
+                var idDoc = flujo.IdVersionDocumentoNavigation.IdDocumento;
+                await _busquedaService.DesindexarDocumentoAsync(idDoc);
             }
 
             return RedirectToAction(nameof(Pendientes));
@@ -174,6 +241,9 @@ namespace Gestion_de_Documentos.Controllers
                 return NotFound("Flujo no válido o no se puede deshacer.");
 
             var userId = GetCurrentUserId();
+
+            if (flujo.IdUsuarioAsignado != userId)
+                return RedirectToAction("AccesoDenegado", "Auth");
 
             // Revertir a Pendiente
             flujo.EstadoFirma = "Pendiente";

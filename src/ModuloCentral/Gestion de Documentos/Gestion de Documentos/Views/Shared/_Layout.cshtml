@@ -68,7 +68,8 @@
             z-index: 0;
         }
 
-        #sigd-header, .sigd-page-wrap, .sigd-footer, .modal { position: relative; z-index: 1; }
+        #sigd-header, .sigd-footer { position: relative; z-index: 1; }
+        .sigd-page-wrap { position: relative; }
 
         /* --- Custom Scrollbar --- */
         ::-webkit-scrollbar              { width: 6px; height: 6px; }
@@ -637,6 +638,11 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Auth" asp-action="Registro">
                                     <i class="fas fa-user-plus" style="color: var(--warning);"></i>Crear Usuario
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Auth" asp-action="Usuarios">
+                                    <i class="fas fa-users" style="color: var(--accent2);"></i>Ver Usuarios
                                 </a>
                             </li>
                         }

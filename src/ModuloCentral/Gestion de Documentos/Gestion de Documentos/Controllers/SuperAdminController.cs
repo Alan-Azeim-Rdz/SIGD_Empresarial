@@ -185,13 +185,15 @@ namespace Gestion_de_Documentos.Controllers
                             await _context.SaveChangesAsync();
                         }
 
+
                         var usuarioRol = new UsuarioRol
                         {
                             IdUsuario = nuevoUsuario.Id,
                             IdRol = rolAdmin.Id,
                             FechaAsignacion = DateTime.Now,
                             FechaCreacion = DateTime.Now,
-                            Estatus = true
+                            Estatus = true,
+                            IdUsuarioCreacion = nuevoUsuario.Id
                         };
                         _context.UsuarioRols.Add(usuarioRol);
                         await _context.SaveChangesAsync();
@@ -202,7 +204,7 @@ namespace Gestion_de_Documentos.Controllers
 
                         await transaction.CommitAsync();
 
-                        TempData["SuccessMessage"] = $"Empresa '{nuevaEmpresa.Nombre}' y su administrador fueron creados correctamente.";
+                        TempData["SuccessMessage"] = $"Empresa '{nuevaEmpresa.Nombre}' creada correctamente. El administrador '{model.NombreAdmin} {model.ApellidoAdminP}' puede iniciar sesión y crear los usuarios de su empresa desde el panel administrativo.";
                         return RedirectToAction(nameof(Index));
                     }
                     catch (Exception ex)

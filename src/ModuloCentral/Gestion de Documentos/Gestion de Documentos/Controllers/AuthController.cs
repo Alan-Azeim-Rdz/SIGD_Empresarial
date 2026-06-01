@@ -54,6 +54,11 @@ namespace Gestion_de_Documentos.Controllers
                     new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.GivenName, usuario.Nombre),
                 };
 
+                if (usuario.IdEmpresa.HasValue)
+                {
+                    claims.Add(new System.Security.Claims.Claim("IdEmpresa", usuario.IdEmpresa.Value.ToString()));
+                }
+
                 // Agregar roles desde la base de datos usando la propiedad mapeada
                 var rolesActivos = usuario.UsuarioRolIdUsuarioNavigations != null
                     ? usuario.UsuarioRolIdUsuarioNavigations
@@ -101,13 +106,17 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador,Superior")]
         public IActionResult Registro()
         {
-            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+            // Excluir roles restringidos del selector
+            ViewBag.Roles = _context.Rols.Where(r => r.Estatus == true
+                && r.Nombre != "Super Administrador").ToList();
             return View();
         }
 
         [HttpPost]
         [Authorize(Roles = "Administrador,Superior")]
-        public async Task<IActionResult> Registro(Usuario nuevoUsuario)
+        public async Task<IActionResult> Registro(Usuario nuevoUsuario, int idRol)
         {
             var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
 
@@ -129,30 +138,71 @@ namespace Gestion_de_Documentos.Controllers
                 if (existe)
                 {
                     ViewBag.Error = "Este correo electrónico ya está registrado.";
-                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                    ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
                     return View(nuevoUsuario);
                 }
 
-                var departamentoExiste = await _context.Departamentos.AnyAsync(d => d.Id == nuevoUsuario.IdDepartamento && d.Estatus == true);
+                var departamentoExiste = await _context.Departamentos.AnyAsync(d => d.Id == nuevoUsuario.IdDepartamento && d.Estatus == true && d.IdEmpresa == empresaId);
                 if (!departamentoExiste)
                 {
                     ViewBag.Error = "El departamento seleccionado no es válido.";
-                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                    ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
+                    return View(nuevoUsuario);
+                }
+
+                var rolExiste = await _context.Rols.AnyAsync(r => r.Id == idRol && r.Estatus == true);
+                if (!rolExiste)
+                {
+                    ViewBag.Error = "El rol seleccionado no es válido.";
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                    ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
                     return View(nuevoUsuario);
                 }
 
                 nuevoUsuario.Estatus = true;
                 nuevoUsuario.FechaCreacion = DateTime.Now;
                 nuevoUsuario.IdUsuarioCreacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                nuevoUsuario.IdEmpresa = empresaId;
 
                 nuevoUsuario.Contrasena = HashPassword(nuevoUsuario.Contrasena);
 
-                _context.Usuarios.Add(nuevoUsuario);
-                await _context.SaveChangesAsync();
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        _context.Usuarios.Add(nuevoUsuario);
+                        await _context.SaveChangesAsync();
+
+                        var usuarioRol = new UsuarioRol
+                        {
+                            IdUsuario = nuevoUsuario.Id,
+                            IdRol = idRol,
+                            FechaAsignacion = DateTime.Now,
+                            FechaCreacion = DateTime.Now,
+                            Estatus = true,
+                            IdUsuarioCreacion = nuevoUsuario.IdUsuarioCreacion
+                        };
+                        _context.UsuarioRols.Add(usuarioRol);
+                        await _context.SaveChangesAsync();
+
+                        await transaction.CommitAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        ViewBag.Error = "Ocurrió un error al registrar el usuario y su rol: " + ex.Message;
+                        ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                        ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
+                        return View(nuevoUsuario);
+                    }
+                }
 
                 ViewBag.Exito = "Usuario creado exitosamente. Deberá cambiar su contraseña en el primer acceso.";
                 ModelState.Clear();
-                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
                 return View(new Usuario()); // Limpia el formulario
             }
 
@@ -165,18 +215,20 @@ namespace Gestion_de_Documentos.Controllers
             }
 
             ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+            ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
             return View(nuevoUsuario);
         }
-
         // --- GESTIÓN DE USUARIOS (Protegido por Rol) ---
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Usuarios()
         {
-            // Usamos la propiedad de navegación correcta aquí también para evitar el error en la vista de lista
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
             var usuarios = await _context.Usuarios
+                .Include(u => u.IdDepartamentoNavigation)
                 .Include(u => u.UsuarioRolIdUsuarioNavigations)
                     .ThenInclude(ur => ur.IdRolNavigation)
-                .Where(u => u.Estatus == true)
+                .Where(u => u.Estatus == true && u.IdEmpresa == empresaId)
                 .ToListAsync();
             return View(usuarios);
         }
@@ -187,18 +239,30 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> EditarUsuario(int id)
         {
             var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
+            var usuario = await _context.Usuarios
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
+                .FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
             if (usuario == null) return NotFound();
+            
             ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+            // Excluir roles restringidos del selector
+            ViewBag.Roles = _context.Rols.Where(r => r.Estatus == true
+                && r.Nombre != "Super Administrador").ToList();
+
+            var rolAsignado = usuario.UsuarioRolIdUsuarioNavigations.FirstOrDefault(ur => ur.Estatus == true);
+            ViewBag.IdRolAsignado = rolAsignado?.IdRol ?? 0;
+
             return View(usuario);
         }
 
         [HttpPost]
         [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> EditarUsuario(int id, string nombre, string apellidoP, string? apellidoM, string correo, int idDepartamento, string? nuevaContrasena)
+        public async Task<IActionResult> EditarUsuario(int id, string nombre, string apellidoP, string? apellidoM, string correo, int idDepartamento, int idRol, string? nuevaContrasena)
         {
             var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
+            var usuario = await _context.Usuarios
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
+                .FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
             if (usuario == null) return NotFound();
 
             // Verificar correo único
@@ -207,6 +271,8 @@ namespace Gestion_de_Documentos.Controllers
             {
                 ViewBag.Error = "El correo electrónico ya está en uso por otro usuario.";
                 ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
+                ViewBag.IdRolAsignado = idRol;
                 return View(usuario);
             }
 
@@ -215,23 +281,88 @@ namespace Gestion_de_Documentos.Controllers
             {
                 ViewBag.Error = "El departamento seleccionado no es válido.";
                 ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
+                ViewBag.IdRolAsignado = idRol;
                 return View(usuario);
             }
 
-            usuario.Nombre = nombre;
-            usuario.ApellidoP = apellidoP;
-            usuario.ApellidoM = apellidoM;
-            usuario.Correo = correo;
-            usuario.IdDepartamento = idDepartamento;
-            usuario.FechaModificacion = DateTime.Now;
-            usuario.IdUsuarioModificacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
-
-            if (!string.IsNullOrWhiteSpace(nuevaContrasena))
+            var rolValido = await _context.Rols.AnyAsync(r => r.Id == idRol && r.Estatus == true);
+            if (!rolValido)
             {
-                usuario.Contrasena = HashPassword(nuevaContrasena);
+                ViewBag.Error = "El rol seleccionado no es válido.";
+                ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
+                ViewBag.IdRolAsignado = idRol;
+                return View(usuario);
             }
 
-            await _context.SaveChangesAsync();
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    usuario.Nombre = nombre;
+                    usuario.ApellidoP = apellidoP;
+                    usuario.ApellidoM = apellidoM;
+                    usuario.Correo = correo;
+                    usuario.IdDepartamento = idDepartamento;
+                    usuario.FechaModificacion = DateTime.Now;
+                    usuario.IdUsuarioModificacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+
+                    if (!string.IsNullOrWhiteSpace(nuevaContrasena))
+                    {
+                        usuario.Contrasena = HashPassword(nuevaContrasena);
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    var rolesActuales = await _context.UsuarioRols
+                        .Where(ur => ur.IdUsuario == id && ur.Estatus == true)
+                        .ToListAsync();
+
+                    bool rolYaAsignado = false;
+                    foreach (var ur in rolesActuales)
+                    {
+                        if (ur.IdRol == idRol)
+                        {
+                            rolYaAsignado = true;
+                        }
+                        else
+                        {
+                            ur.Estatus = false;
+                            ur.FechaEliminacion = DateTime.Now;
+                            ur.IdUsuarioEliminacion = usuario.IdUsuarioModificacion;
+                            _context.Update(ur);
+                        }
+                    }
+
+                    if (!rolYaAsignado)
+                    {
+                        var nuevoUsuarioRol = new UsuarioRol
+                        {
+                            IdUsuario = usuario.Id,
+                            IdRol = idRol,
+                            FechaAsignacion = DateTime.Now,
+                            FechaCreacion = DateTime.Now,
+                            Estatus = true,
+                            IdUsuarioCreacion = usuario.IdUsuarioModificacion
+                        };
+                        _context.UsuarioRols.Add(nuevoUsuarioRol);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    ViewBag.Error = "Ocurrió un error al actualizar el usuario y su rol: " + ex.Message;
+                    ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+                    ViewBag.Roles = await _context.Rols.Where(r => r.Estatus == true).ToListAsync();
+                    ViewBag.IdRolAsignado = idRol;
+                    return View(usuario);
+                }
+            }
+
             TempData["Exito"] = "Usuario actualizado correctamente.";
             return RedirectToAction("Usuarios");
         }
@@ -250,6 +381,42 @@ namespace Gestion_de_Documentos.Controllers
                 usuario.IdUsuarioEliminacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
                 await _context.SaveChangesAsync();
                 TempData["Exito"] = $"Usuario '{usuario.Nombre} {usuario.ApellidoP}' eliminado correctamente.";
+            }
+            return RedirectToAction("Usuarios");
+        }
+
+        // --- VER USUARIOS ELIMINADOS (Borrado Lógico) ---
+        [HttpGet]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> UsuariosEliminados()
+        {
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            ViewBag.Departamentos = await _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
+            var usuarios = await _context.Usuarios
+                .Include(u => u.IdDepartamentoNavigation)
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
+                    .ThenInclude(ur => ur.IdRolNavigation)
+                .Where(u => (u.Estatus == false || u.Estatus == null) && u.IdEmpresa == empresaId)
+                .ToListAsync();
+            return View(usuarios);
+        }
+
+        // --- REACTIVAR USUARIO ---
+        [HttpPost]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> ReactivarUsuario(int id)
+        {
+            var empresaId = int.TryParse(User.FindFirst("IdEmpresa")?.Value, out var empId) ? empId : 0;
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
+            if (usuario != null)
+            {
+                usuario.Estatus = true;
+                usuario.FechaEliminacion = null;
+                usuario.IdUsuarioEliminacion = null;
+                usuario.FechaModificacion = DateTime.Now;
+                usuario.IdUsuarioModificacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                await _context.SaveChangesAsync();
+                TempData["Exito"] = $"Usuario '{usuario.Nombre} {usuario.ApellidoP}' reactivado correctamente.";
             }
             return RedirectToAction("Usuarios");
         }
@@ -380,13 +547,15 @@ namespace Gestion_de_Documentos.Controllers
                             await _context.SaveChangesAsync();
                         }
 
+
                         var usuarioRol = new UsuarioRol
                         {
                             IdUsuario = nuevoUsuario.Id,
                             IdRol = rolAdmin.Id,
                             FechaAsignacion = DateTime.Now,
                             FechaCreacion = DateTime.Now,
-                            Estatus = true
+                            Estatus = true,
+                            IdUsuarioCreacion = nuevoUsuario.Id
                         };
                         _context.UsuarioRols.Add(usuarioRol);
                         await _context.SaveChangesAsync();
@@ -397,7 +566,7 @@ namespace Gestion_de_Documentos.Controllers
 
                         await transaction.CommitAsync();
 
-                        TempData["Exito"] = "Empresa registrada exitosamente. Ya puedes iniciar sesión.";
+                        TempData["Exito"] = "¡Empresa registrada exitosamente! Ya puedes iniciar sesión como Administrador y comenzar a configurar tu empresa: agrega departamentos, usuarios, auditores y más desde tu panel administrativo.";
                         return RedirectToAction("Login");
                     }
                     catch (Exception ex)

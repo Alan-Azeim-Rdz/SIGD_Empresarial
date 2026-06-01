@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ==========================================
   # BASES DE DATOS (Sin cambios)
@@ -99,8 +97,8 @@ services:
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
       # URL interna Docker del Módulo de Reportes (misma sigd_network)
       - ReportesModule__BaseUrl=http://modulo_reportes
-      # Conexión a MongoDB
-      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
+      # URL interna Docker del Módulo de Búsqueda (misma sigd_network)
+      - BusquedaModule__BaseUrl=http://modulo_busqueda:3000
       # Clave compartida — también declarada en modulo_reportes como SYNC_API_KEY
       - ReportesModule__SyncApiKey=${SYNC_API_KEY:-sigd_sync_secret_2026}
       - ReportesModule__TimeoutSeconds=10

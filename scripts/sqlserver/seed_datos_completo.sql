@@ -9,23 +9,18 @@ SET NOCOUNT ON;
 PRINT '=== INICIANDO SEED COMPLETO DE DATOS FICTICIOS ===';
 
 -- Asegurar que los roles necesarios existen para evitar IDs nulos en Usuario_Rol
-IF NOT EXISTS (SELECT 1 FROM Rol WHERE Nombre='Editor')
-    INSERT INTO Rol (Nombre, Descripcion, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES (N'Editor', N'Permite crear y editar documentos', 1, GETDATE(), 1);
 IF NOT EXISTS (SELECT 1 FROM Rol WHERE Nombre='Auditor')
     INSERT INTO Rol (Nombre, Descripcion, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES (N'Auditor', N'Permite ver reportes e historiales', 1, GETDATE(), 1);
 IF NOT EXISTS (SELECT 1 FROM Rol WHERE Nombre='Superior')
     INSERT INTO Rol (Nombre, Descripcion, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES (N'Superior', N'Permite autorizar flujos', 1, GETDATE(), 1);
-IF NOT EXISTS (SELECT 1 FROM Rol WHERE Nombre='Aprobador')
-    INSERT INTO Rol (Nombre, Descripcion, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES (N'Aprobador', N'Permite firmar documentos en flujo', 1, GETDATE(), 1);
 
 -- IDs de referencia
 DECLARE @EmpTech    INT = (SELECT Id FROM Empresa WHERE Slug='techcorp');
 DECLARE @EmpInnov   INT = (SELECT Id FROM Empresa WHERE Slug='grupoinnovar');
 DECLARE @RolAdmin   INT = (SELECT Id FROM Rol WHERE Nombre='Administrador');
-DECLARE @RolEditor  INT = (SELECT Id FROM Rol WHERE Nombre='Editor');
+DECLARE @RolUsuario INT = (SELECT Id FROM Rol WHERE Nombre='Usuario');
 DECLARE @RolAuditor INT = (SELECT Id FROM Rol WHERE Nombre='Auditor');
 DECLARE @RolSuper   INT = (SELECT Id FROM Rol WHERE Nombre='Superior');
-DECLARE @RolAprob   INT = (SELECT Id FROM Rol WHERE Nombre='Aprobador');
 
 -- Contraseña estándar de prueba: Test@2026! (hash SHA2_256 UTF-16)
 DECLARE @PwdTest VARCHAR(255) = CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', CONVERT(VARBINARY, N'Test@2026!')), 2);
@@ -83,7 +78,7 @@ BEGIN
     VALUES (@DTITech, @EmpTech, N'Marco', N'Torres', N'Ríos', N'marco.torres@techcorp.local', @PwdTest, DATEADD(DAY,-90,GETDATE()), 1, @AdminTech);
     DECLARE @u1Tech INT = SCOPE_IDENTITY();
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@u1Tech, @RolEditor, DATEADD(DAY,-90,GETDATE()), DATEADD(DAY,-90,GETDATE()), 1, @AdminTech);
+    VALUES (@u1Tech, @RolUsuario, DATEADD(DAY,-90,GETDATE()), DATEADD(DAY,-90,GETDATE()), 1, @AdminTech);
 END
 
 -- u2: Aprobador TI
@@ -92,8 +87,6 @@ BEGIN
     INSERT INTO Usuario (IdDepartamento, IdEmpresa, Nombre, ApellidoP, ApellidoM, Correo, Contrasena, FechaCreacion, Estatus, IdUsuarioCreacion)
     VALUES (@DTITech, @EmpTech, N'Sofía', N'Ramos', N'Gutiérrez', N'sofia.ramos@techcorp.local', @PwdTest, DATEADD(DAY,-80,GETDATE()), 1, @AdminTech);
     DECLARE @u2Tech INT = SCOPE_IDENTITY();
-    INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@u2Tech, @RolAprob, DATEADD(DAY,-80,GETDATE()), DATEADD(DAY,-80,GETDATE()), 1, @AdminTech);
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
     VALUES (@u2Tech, @RolSuper, DATEADD(DAY,-80,GETDATE()), DATEADD(DAY,-80,GETDATE()), 1, @AdminTech);
 END
@@ -105,7 +98,7 @@ BEGIN
     VALUES (@DRRHHTech, @EmpTech, N'Lucía', N'Mendoza', N'Salinas', N'lucia.mendoza@techcorp.local', @PwdTest, DATEADD(DAY,-75,GETDATE()), 1, @AdminTech);
     DECLARE @u3Tech INT = SCOPE_IDENTITY();
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@u3Tech, @RolEditor, DATEADD(DAY,-75,GETDATE()), DATEADD(DAY,-75,GETDATE()), 1, @AdminTech);
+    VALUES (@u3Tech, @RolUsuario, DATEADD(DAY,-75,GETDATE()), DATEADD(DAY,-75,GETDATE()), 1, @AdminTech);
 END
 
 -- u4: Auditor
@@ -125,7 +118,7 @@ BEGIN
     VALUES (@DLegalTech, @EmpTech, N'Diana', N'Flores', N'Castillo', N'diana.flores@techcorp.local', @PwdTest, DATEADD(DAY,-55,GETDATE()), 1, @AdminTech);
     DECLARE @u5Tech INT = SCOPE_IDENTITY();
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@u5Tech, @RolEditor, DATEADD(DAY,-55,GETDATE()), DATEADD(DAY,-55,GETDATE()), 1, @AdminTech);
+    VALUES (@u5Tech, @RolUsuario, DATEADD(DAY,-55,GETDATE()), DATEADD(DAY,-55,GETDATE()), 1, @AdminTech);
 END
 
 -- u6: Aprobador/Superior RRHH
@@ -136,8 +129,6 @@ BEGIN
     DECLARE @u6Tech INT = SCOPE_IDENTITY();
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
     VALUES (@u6Tech, @RolSuper, DATEADD(DAY,-50,GETDATE()), DATEADD(DAY,-50,GETDATE()), 1, @AdminTech);
-    INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@u6Tech, @RolAprob, DATEADD(DAY,-50,GETDATE()), DATEADD(DAY,-50,GETDATE()), 1, @AdminTech);
 END
 
 PRINT 'Usuarios TechCorp listos.';
@@ -153,7 +144,7 @@ BEGIN
     VALUES (@DFinInnov, @EmpInnov, N'Patricia', N'Luna', N'Ortega', N'patricia.luna@grupoinnovar.local', @PwdTest, DATEADD(DAY,-85,GETDATE()), 1, @AdminInnov);
     DECLARE @v1Innov INT = SCOPE_IDENTITY();
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@v1Innov, @RolEditor, DATEADD(DAY,-85,GETDATE()), DATEADD(DAY,-85,GETDATE()), 1, @AdminInnov);
+    VALUES (@v1Innov, @RolUsuario, DATEADD(DAY,-85,GETDATE()), DATEADD(DAY,-85,GETDATE()), 1, @AdminInnov);
 END
 
 -- v2: Aprobador Finanzas
@@ -162,8 +153,6 @@ BEGIN
     INSERT INTO Usuario (IdDepartamento, IdEmpresa, Nombre, ApellidoP, ApellidoM, Correo, Contrasena, FechaCreacion, Estatus, IdUsuarioCreacion)
     VALUES (@DFinInnov, @EmpInnov, N'Ernesto', N'Medina', N'Reyes', N'ernesto.medina@grupoinnovar.local', @PwdTest, DATEADD(DAY,-70,GETDATE()), 1, @AdminInnov);
     DECLARE @v2Innov INT = SCOPE_IDENTITY();
-    INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@v2Innov, @RolAprob, DATEADD(DAY,-70,GETDATE()), DATEADD(DAY,-70,GETDATE()), 1, @AdminInnov);
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
     VALUES (@v2Innov, @RolSuper, DATEADD(DAY,-70,GETDATE()), DATEADD(DAY,-70,GETDATE()), 1, @AdminInnov);
 END
@@ -175,7 +164,7 @@ BEGIN
     VALUES (@DOpsInnov, @EmpInnov, N'Isabel', N'Cano', N'Jiménez', N'isabel.cano@grupoinnovar.local', @PwdTest, DATEADD(DAY,-65,GETDATE()), 1, @AdminInnov);
     DECLARE @v3Innov INT = SCOPE_IDENTITY();
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@v3Innov, @RolEditor, DATEADD(DAY,-65,GETDATE()), DATEADD(DAY,-65,GETDATE()), 1, @AdminInnov);
+    VALUES (@v3Innov, @RolUsuario, DATEADD(DAY,-65,GETDATE()), DATEADD(DAY,-65,GETDATE()), 1, @AdminInnov);
 END
 
 -- v4: Auditor
@@ -195,7 +184,7 @@ BEGIN
     VALUES (@DCompInnov, @EmpInnov, N'Elena', N'Ruiz', N'Navarro', N'elena.ruiz@grupoinnovar.local', @PwdTest, DATEADD(DAY,-45,GETDATE()), 1, @AdminInnov);
     DECLARE @v5Innov INT = SCOPE_IDENTITY();
     INSERT INTO Usuario_Rol (IdUsuario, IdRol, FechaAsignacion, FechaCreacion, Estatus, IdUsuarioCreacion)
-    VALUES (@v5Innov, @RolEditor, DATEADD(DAY,-45,GETDATE()), DATEADD(DAY,-45,GETDATE()), 1, @AdminInnov);
+    VALUES (@v5Innov, @RolUsuario, DATEADD(DAY,-45,GETDATE()), DATEADD(DAY,-45,GETDATE()), 1, @AdminInnov);
 END
 
 -- v6: Aprobador Operaciones
@@ -286,21 +275,6 @@ BEGIN
     (@RolAdmin, @pConfRoles,  1, GETDATE(), 1), (@RolAdmin, @pConfDeptos, 1, GETDATE(), 1);
 END
 
--- Rol Editor → crear, editar, ver documentos
-IF NOT EXISTS (SELECT 1 FROM Rol_Permiso WHERE IdRol=@RolEditor AND IdPermiso=@pDocCrear)
-BEGIN
-    INSERT INTO Rol_Permiso (IdRol, IdPermiso, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-    (@RolEditor, @pDocCrear,  1, GETDATE(), 1), (@RolEditor, @pDocEditar, 1, GETDATE(), 1),
-    (@RolEditor, @pDocVer,    1, GETDATE(), 1);
-END
-
--- Rol Aprobador → aprobar, firmar, ver
-IF NOT EXISTS (SELECT 1 FROM Rol_Permiso WHERE IdRol=@RolAprob AND IdPermiso=@pDocAprob)
-BEGIN
-    INSERT INTO Rol_Permiso (IdRol, IdPermiso, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-    (@RolAprob, @pDocAprob,  1, GETDATE(), 1), (@RolAprob, @pDocFirmar, 1, GETDATE(), 1),
-    (@RolAprob, @pDocVer,    1, GETDATE(), 1);
-END
 
 -- Rol Superior → aprobar, ver
 IF NOT EXISTS (SELECT 1 FROM Rol_Permiso WHERE IdRol=@RolSuper AND IdPermiso=@pDocAprob)

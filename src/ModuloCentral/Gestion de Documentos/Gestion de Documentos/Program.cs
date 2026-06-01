@@ -8,6 +8,15 @@ var builder = WebApplication.CreateBuilder(args);
 // ── MVC ───────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 
+// ── Sesiones HTTP (para registrar vista previa antes de firmar) ──
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 // ── Entity Framework Core → SQL Server ───────────────────────
 builder.Services.AddDbContext<DirContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -42,9 +51,7 @@ builder.Services.AddHttpClient<BusquedaIntegrationService>(client =>
 });
 
 // ── Registrar el servicio de integración en el contenedor DI ─
-// Scoped: una instancia por petición HTTP, igual que DirContext.
-builder.Services.AddScoped<ReportesIntegrationService>();
-builder.Services.AddScoped<BusquedaIntegrationService>();
+// AddHttpClient ya registra las clases en el contenedor DI como Transient.
 
 // ── Servicio MongoDB GridFS para Archivos Físicos ─────────────
 builder.Services.AddSingleton<IMongoGridFsService, MongoGridFsService>();
@@ -56,12 +63,13 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthentication();
+app.UseSession();  // Debe ir después de UseRouting y antes de UseAuthorization
 app.UseAuthorization();
 
 app.MapStaticAssets();

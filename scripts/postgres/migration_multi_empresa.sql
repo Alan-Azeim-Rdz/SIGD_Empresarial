@@ -7,9 +7,12 @@ CREATE TABLE IF NOT EXISTS empresa (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insertar Empresa Demo
+-- Insertar Empresa Demo y Empresas Base
 INSERT INTO empresa (id_empresa, nombre, slug, estatus)
-VALUES (1, 'Empresa Demo', 'demo', TRUE)
+VALUES 
+    (1, 'Empresa Demo', 'demo', TRUE),
+    (2, 'TechCorp Solutions', 'techcorp', TRUE),
+    (3, 'Grupo Innovar', 'grupoinnovar', TRUE)
 ON CONFLICT (id_empresa) DO NOTHING;
 
 -- 2. Modificar departamento

@@ -25,10 +25,10 @@
                 <tbody>
                     @if(Model.DocumentoVersions != null && Model.DocumentoVersions.Any())
                     {
-                        foreach(var version in Model.DocumentoVersions.OrderByDescending(v => v.NumeroVersion))
+                        foreach(var version in Model.DocumentoVersions.OrderByDescending(v => v.NumeroVersion).ThenByDescending(v => v.VersionMinor))
                         {
                             <tr>
-                                <td><span class="badge bg-primary">V @version.NumeroVersion</span></td>
+                                <td><span class="badge bg-primary">V @version.NumeroVersion.@version.VersionMinor</span></td>
                                 <td>@version.FechaSubida?.ToString("dd/MM/yyyy HH:mm")</td>
                                 <td>@(version.TamanoBytes.HasValue ? (version.TamanoBytes.Value / 1024).ToString("N0") + " KB" : "-")</td>
                                 <td><small class="text-muted text-break" style="max-width: 200px; display: inline-block;" title="@version.HashDocumento">@version.HashDocumento</small></td>

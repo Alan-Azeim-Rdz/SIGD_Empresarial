@@ -111,7 +111,7 @@ namespace Gestion_de_Documentos.Controllers
         /// Permite que el módulo central envíe documentos al índice NoSQL de búsqueda.
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Administrador,Editor")]
+        [Authorize(Roles = "Administrador,Superior")]
         public async Task<IActionResult> Indexar([FromBody] object payload)
         {
             try

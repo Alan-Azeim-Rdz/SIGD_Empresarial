@@ -26,7 +26,7 @@ DELETE FROM [dbo].[BitacoraTransaccional];
 -- Limpieza de tablas de negocio
 DELETE FROM [dbo].[Documento_Version] WHERE [IdDocumento] >= 101;
 DELETE FROM [dbo].[Documento] WHERE [Id] >= 101;
-DELETE FROM [dbo].[Usuario_Rol] WHERE [IdUsuario] > 1;
+DELETE FROM [dbo].[Usuario_Rol];
 DELETE FROM [dbo].[Usuario] WHERE [Id] > 1;
 DELETE FROM [dbo].[Departamento] WHERE [Id] > 1;
 DELETE FROM [dbo].[TipoDocumento] WHERE [Id] >= 1;
@@ -44,109 +44,120 @@ ENABLE TRIGGER [dbo].[TRG_SoftDelete_Usuario_Rol] ON [dbo].[Usuario_Rol];
 -- 1. Insertar Departamentos
 PRINT 'Insertando departamentos...';
 SET IDENTITY_INSERT [dbo].[Departamento] ON;
-INSERT INTO [dbo].[Departamento] (Id, Nombre, Abreviatura, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-(2, 'Recursos Humanos', 'RH', 1, GETDATE(), 1),
-(3, 'Producción', 'PRD', 1, GETDATE(), 1),
-(4, 'Calidad', 'CAL', 1, GETDATE(), 1),
-(5, 'Mantenimiento', 'MNT', 1, GETDATE(), 1),
-(6, 'Sistemas e Informática', 'TI', 1, GETDATE(), 1);
+INSERT INTO [dbo].[Departamento] (Id, Nombre, Abreviatura, Estatus, FechaCreacion, IdUsuarioCreacion, IdEmpresa) VALUES
+(2, 'Recursos Humanos', 'RH', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(3, 'Producción', 'PRD', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(4, 'Calidad', 'CAL', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(5, 'Mantenimiento', 'MNT', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(6, 'Sistemas e Informática', 'TI', 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
 SET IDENTITY_INSERT [dbo].[Departamento] OFF;
 
 -- 2. Insertar Tipos de Documento
 PRINT 'Insertando tipos de documentos...';
 SET IDENTITY_INSERT [dbo].[TipoDocumento] ON;
-INSERT INTO [dbo].[TipoDocumento] (Id, Nombre, Abreviatura, TiempoRetencionMeses, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-(1, 'Procedimiento', 'PROC', 12, 1, GETDATE(), 1),
-(2, 'Manual', 'MAN', 12, 1, GETDATE(), 1),
-(3, 'Formato', 'FMT', 12, 1, GETDATE(), 1),
-(4, 'Instructivo', 'INS', 12, 1, GETDATE(), 1),
-(5, 'Política', 'POL', 12, 1, GETDATE(), 1),
-(6, 'Especificación', 'ESP', 12, 1, GETDATE(), 1),
-(7, 'Registro', 'REG', 12, 1, GETDATE(), 1);
+INSERT INTO [dbo].[TipoDocumento] (Id, Nombre, Abreviatura, TiempoRetencionMeses, Estatus, FechaCreacion, IdUsuarioCreacion, IdEmpresa) VALUES
+(1, 'Procedimiento', 'PROC', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(2, 'Manual', 'MAN', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(3, 'Formato', 'FMT', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(4, 'Instructivo', 'INS', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(5, 'Política', 'POL', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(6, 'Especificación', 'ESP', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(7, 'Registro', 'REG', 12, 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
 SET IDENTITY_INSERT [dbo].[TipoDocumento] OFF;
 
--- 3. Insertar Usuarios (IDs del 2 al 10)
+-- 3. Insertar Usuarios (IDs del 2 al 15)
 PRINT 'Insertando usuarios demo...';
 SET IDENTITY_INSERT [dbo].[Usuario] ON;
-INSERT INTO [dbo].[Usuario] (Id, IdDepartamento, Nombre, ApellidoP, ApellidoM, Correo, Contrasena, Estatus, FechaCreacion, IdUsuarioCreacion) VALUES
-(2, 2, 'María', 'García', 'SIGD', 'maria.garcia@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(3, 3, 'Carlos', 'Ramírez', 'SIGD', 'carlos.ramirez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(4, 4, 'Ana', 'Martínez', 'SIGD', 'ana.martinez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(5, 5, 'Jorge', 'López', 'SIGD', 'jorge.lopez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(6, 6, 'Laura', 'Hernández', 'SIGD', 'laura.hernandez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(7, 4, 'Marcos', 'de León', 'Tapia', 'marcos.deleon@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(8, 3, 'Aurelio', 'Uribe', 'Santos', 'aurelio.uribe@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(9, 2, 'Emilio', 'Ybarra', 'Ruiz', 'emilio.ybarra@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1),
-(10, 5, 'Felix', 'Palomo', 'Valencia', 'felix.palomo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1);
+INSERT INTO [dbo].[Usuario] (Id, IdDepartamento, Nombre, ApellidoP, ApellidoM, Correo, Contrasena, Estatus, FechaCreacion, IdUsuarioCreacion, IdEmpresa) VALUES
+(2, 2, 'María', 'García', 'SIGD', 'maria.garcia@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(3, 3, 'Carlos', 'Ramírez', 'SIGD', 'carlos.ramirez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(4, 4, 'Ana', 'Martínez', 'SIGD', 'ana.martinez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(5, 5, 'Jorge', 'López', 'SIGD', 'jorge.lopez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(6, 6, 'Laura', 'Hernández', 'SIGD', 'laura.hernandez@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(7, 4, 'Marcos', 'de León', 'Tapia', 'marcos.deleon@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(8, 3, 'Aurelio', 'Uribe', 'Santos', 'aurelio.uribe@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(9, 2, 'Emilio', 'Ybarra', 'Ruiz', 'emilio.ybarra@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(10, 5, 'Felix', 'Palomo', 'Valencia', 'felix.palomo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(11, 7, 'Ana', 'García', 'Martínez', 'admin.tech@techcorp.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@Tech2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp')),
+(12, 8, 'Carlos', 'López', 'Hernández', 'admin@grupoinnovar.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@Innov2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar')),
+(13, 1, 'Admin', 'Demo', 'SIGD', 'admin.demo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'demo')),
+(14, 1, 'Usuario', 'Demo', 'SIGD', 'user.demo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'demo')),
+(15, 1, 'Auditor', 'Demo', 'SIGD', 'auditor.demo@sigd.local', CONVERT(VARCHAR(255), HASHBYTES('SHA2_256', N'Admin@SIGD2026!'), 2), 1, GETDATE(), 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'demo'));
 SET IDENTITY_INSERT [dbo].[Usuario] OFF;
 
--- 4. Asignar rol Super Administrador (Id=1) a todos para pruebas locales
+-- 4. Asignar roles (Id=1 es Super Administrador, Id=2 es Administrador, Id=3 es Usuario, Id=4 es Auditor)
 PRINT 'Asignando roles...';
 SET IDENTITY_INSERT [dbo].[Usuario_Rol] ON;
 INSERT INTO [dbo].[Usuario_Rol] (Id, IdUsuario, IdRol, FechaAsignacion, Estatus, IdUsuarioCreacion) VALUES
-(2, 2, 1, GETDATE(), 1, 1),
-(3, 3, 1, GETDATE(), 1, 1),
-(4, 4, 1, GETDATE(), 1, 1),
-(5, 5, 1, GETDATE(), 1, 1),
-(6, 6, 1, GETDATE(), 1, 1),
-(7, 7, 1, GETDATE(), 1, 1),
-(8, 8, 1, GETDATE(), 1, 1),
-(9, 9, 1, GETDATE(), 1, 1),
-(10, 10, 1, GETDATE(), 1, 1);
+(1, 1, 1, GETDATE(), 1, 1),
+(2, 2, 3, GETDATE(), 1, 1),
+(3, 3, 3, GETDATE(), 1, 1),
+(4, 4, 3, GETDATE(), 1, 1),
+(5, 5, 3, GETDATE(), 1, 1),
+(6, 6, 4, GETDATE(), 1, 1),
+(7, 7, 3, GETDATE(), 1, 1),
+(8, 8, 3, GETDATE(), 1, 1),
+(9, 9, 3, GETDATE(), 1, 1),
+(10, 10, 4, GETDATE(), 1, 1),
+(11, 11, 2, GETDATE(), 1, 1),
+(12, 12, 2, GETDATE(), 1, 1),
+(13, 13, 2, GETDATE(), 1, 1),
+(14, 14, 3, GETDATE(), 1, 1),
+(15, 15, 4, GETDATE(), 1, 1);
 SET IDENTITY_INSERT [dbo].[Usuario_Rol] OFF;
 
 PRINT 'Insertando documentos de mongodb_seed_data.json...';
 SET IDENTITY_INSERT [dbo].[Documento] ON;
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (101, 'PRO-CAL-001', N'Sabía Incluso Tenían', 4, 'Vigente', 7, '2026-05-25 14:19:47', 1, 7, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (102, 'PRO-PROD-002', N'Familia Su Juez', 3, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (103, 'PRO-PROD-003', N'Media Llega Producción', 3, 'Vigente', 6, '2026-05-25 14:19:47', 1, 6, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (104, 'PRO-CAL-004', N'Cambios Tener Son Incluso', 4, 'Vigente', 3, '2026-05-25 14:19:47', 1, 3, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (105, 'PRO-PROD-005', N'Justicia Decir Servicio Calidad Pp', 3, 'Vigente', 3, '2026-05-25 14:19:47', 0, 3, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (106, 'PRO-RH-006', N'Saber Niños Especialmente Expresión Instituciones', 2, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (107, 'PRO-MANT-007', N'Unidad Poder Razón Su Especialmente Largo', 5, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (108, 'PRO-CAL-008', N'Buscar Carácter Decir Cuerpo', 4, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (109, 'PRO-CAL-009', N'Sentido Diversas Sólo Lo Electoral Tomar', 4, 'Vigente', 3, '2026-05-25 14:19:47', 1, 3, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (110, 'PRO-CAL-010', N'Finalmente Etapa Época Hacia Humanos Asociación', 4, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (111, 'PRO-PROD-011', N'Ciudad Buscar Manos Único Artículo Vista', 3, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (112, 'PRO-CAL-012', N'Amigos Menor Tienen', 4, 'Vigente', 3, '2026-05-25 14:19:47', 0, 3, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (113, 'PRO-RH-013', N'Comisión Trabajo Cualquier Unos Poco', 2, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (114, 'PRO-CAL-014', N'Frente Importante Modo En Nuestras', 4, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (115, 'PRO-PROD-015', N'Campaña Político Nunca', 3, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (116, 'PRO-PROD-016', N'Sociales Necesario Fútbol Paz Vista Zona', 3, 'Vigente', 9, '2026-05-25 14:19:47', 0, 9, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (117, 'PRO-MANT-017', N'Saber Autor Resultado Don', 5, 'Vigente', 2, '2026-05-25 14:19:47', 0, 2, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (118, 'PRO-RH-018', N'Hijos Producto Claro Mayor', 2, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (119, 'PRO-RH-019', N'Ambiente Asimismo Las Actividades Dolor Dar', 2, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (120, 'PRO-PROD-020', N'Boca Hora Militares Mañana Diferencia', 3, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (121, 'PRO-CAL-021', N'Cuba Mañana Parte Hemos Pacientes', 4, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (122, 'PRO-PROD-022', N'Nuestras Tiempo Informe', 3, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (123, 'PRO-MANT-023', N'Muy Cuerpo Pregunta Anterior', 5, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (124, 'PRO-MANT-024', N'Teoría Casi Suelo Iba Derechos', 5, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (125, 'PRO-MANT-025', N'Desde Forma Acerca', 5, 'Vigente', 7, '2026-05-25 14:19:47', 1, 7, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (126, 'PRO-MANT-026', N'Actividad Texto Solución Falta Revolución Manera', 5, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (127, 'PRO-MANT-027', N'Hombres Habrá Campaña Pie', 5, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (128, 'PRO-RH-028', N'Conocer Estilo Efectos', 2, 'Vigente', 7, '2026-05-25 14:19:47', 1, 7, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (129, 'PRO-CAL-029', N'Toda Mucha Consumo Poner Dicho', 4, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (130, 'PRO-MANT-030', N'Trabajadores Destino Psoe Pedro', 5, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (131, 'PRO-CAL-031', N'Mediante Región Situación Principio Resulta', 4, 'Vigente', 6, '2026-05-25 14:19:47', 1, 6, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (132, 'PRO-MANT-032', N'Uso Mal Les', 5, 'Vigente', 1, '2026-05-25 14:19:47', 0, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (133, 'PRO-PROD-033', N'Chile Sol Humano Pasar Uno', 3, 'Vigente', 1, '2026-05-25 14:19:47', 0, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (134, 'PRO-CAL-034', N'Total Espera Serie', 4, 'Vigente', 1, '2026-05-25 14:19:47', 0, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (135, 'PRO-MANT-035', N'Cuyo Algún Baja Hospital Grande Nombre', 5, 'Vigente', 3, '2026-05-25 14:19:47', 0, 3, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (136, 'PRO-MANT-036', N'Primeras Lejos Contra Usted Madre', 5, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (137, 'PRO-MANT-037', N'Martín Dado Plazo Peor', 5, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (138, 'PRO-RH-038', N'Debido G Hijo Le', 2, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (139, 'PRO-PROD-039', N'Otra Sabía Mantener Habla', 3, 'Vigente', 4, '2026-05-25 14:19:47', 0, 4, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (140, 'PRO-RH-040', N'Permite U Hasta', 2, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (141, 'PRO-RH-041', N'Productos Esas Debía Puede Pues Objetivo', 2, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (142, 'PRO-CAL-042', N'Idea Quedó Imágenes Luego Suerte', 4, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (143, 'PRO-RH-043', N'Español Entonces Cual Análisis Derechos Debido', 2, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (144, 'PRO-CAL-044', N'Esos Habrá Espacio Ser Mes', 4, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (145, 'PRO-MANT-045', N'Resultado Ya Muerte', 5, 'Vigente', 3, '2026-05-25 14:19:47', 1, 3, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (146, 'PRO-RH-046', N'Autor Pasó Torno', 2, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (147, 'PRO-PROD-047', N'Encima Ambos Etc Defensa', 3, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (148, 'PRO-CAL-048', N'Posibilidad Proyectos Quiero Fecha Humanos Puerta', 4, 'Vigente', 5, '2026-05-25 14:19:47', 1, 5, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (149, 'PRO-MANT-049', N'Luz Corazón Ideas Tampoco París Social', 5, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1);
-INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento) VALUES (150, 'PRO-PROD-050', N'Años Destino Tres Da Gran', 3, 'Vigente', 5, '2026-05-25 14:19:47', 0, 5, 1);
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (101, 'PRO-CAL-001', N'Sabía Incluso Tenían', 4, 'Vigente', 7, '2026-05-25 14:19:47', 1, 7, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (102, 'PRO-PROD-002', N'Familia Su Juez', 3, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (103, 'PRO-PROD-003', N'Media Llega Producción', 3, 'Vigente', 6, '2026-05-25 14:19:47', 1, 6, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (104, 'PRO-CAL-004', N'Cambios Tener Son Incluso', 4, 'Vigente', 3, '2026-05-25 14:19:47', 1, 3, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (105, 'PRO-PROD-005', N'Justicia Decir Servicio Calidad Pp', 3, 'Vigente', 3, '2026-05-25 14:19:47', 0, 3, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (106, 'PRO-RH-006', N'Saber Niños Especialmente Expresión Instituciones', 2, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (107, 'PRO-MANT-007', N'Unidad Poder Razón Su Especialmente Largo', 5, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (108, 'PRO-CAL-008', N'Buscar Carácter Decir Cuerpo', 4, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (109, 'PRO-CAL-009', N'Sentido Diversas Sólo Lo Electoral Tomar', 4, 'Vigente', 3, '2026-05-25 14:19:47', 1, 3, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (110, 'PRO-CAL-010', N'Finalmente Etapa Época Hacia Humanos Asociación', 4, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (111, 'PRO-PROD-011', N'Ciudad Buscar Manos Único Artículo Vista', 3, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (112, 'PRO-CAL-012', N'Amigos Menor Tienen', 4, 'Vigente', 3, '2026-05-25 14:19:47', 0, 3, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (113, 'PRO-RH-013', N'Comisión Trabajo Cualquier Unos Poco', 2, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (114, 'PRO-CAL-014', N'Frente Importante Modo En Nuestras', 4, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (115, 'PRO-PROD-015', N'Campaña Político Nunca', 3, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (116, 'PRO-PROD-016', N'Sociales Necesario Fútbol Paz Vista Zona', 3, 'Vigente', 9, '2026-05-25 14:19:47', 0, 9, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (117, 'PRO-MANT-017', N'Saber Autor Resultado Don', 5, 'Vigente', 2, '2026-05-25 14:19:47', 0, 2, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (118, 'PRO-RH-018', N'Hijos Producto Claro Mayor', 2, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (119, 'PRO-RH-019', N'Ambiente Asimismo Las Actividades Dolor Dar', 2, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (120, 'PRO-PROD-020', N'Boca Hora Militares Mañana Diferencia', 3, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (121, 'PRO-CAL-021', N'Cuba Mañana Parte Hemos Pacientes', 4, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (122, 'PRO-PROD-022', N'Nuestras Tiempo Informe', 3, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (123, 'PRO-MANT-023', N'Muy Cuerpo Pregunta Anterior', 5, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (124, 'PRO-MANT-024', N'Teoría Casi Suelo Iba Derechos', 5, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (125, 'PRO-MANT-025', N'Desde Forma Acerca', 5, 'Vigente', 7, '2026-05-25 14:19:47', 1, 7, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (126, 'PRO-MANT-026', N'Actividad Texto Solución Falta Revolución Manera', 5, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (127, 'PRO-MANT-027', N'Hombres Habrá Campaña Pie', 5, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (128, 'PRO-RH-028', N'Conocer Estilo Efectos', 2, 'Vigente', 7, '2026-05-25 14:19:47', 1, 7, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (129, 'PRO-CAL-029', N'Toda Mucha Consumo Poner Dicho', 4, 'Vigente', 7, '2026-05-25 14:19:47', 0, 7, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (130, 'PRO-MANT-030', N'Trabajadores Destino Psoe Pedro', 5, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (131, 'PRO-CAL-031', N'Mediante Región Situación Principio Resulta', 4, 'Vigente', 6, '2026-05-25 14:19:47', 1, 6, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (132, 'PRO-MANT-032', N'Uso Mal Les', 5, 'Vigente', 1, '2026-05-25 14:19:47', 0, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (133, 'PRO-PROD-033', N'Chile Sol Humano Pasar Uno', 3, 'Vigente', 1, '2026-05-25 14:19:47', 0, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (134, 'PRO-CAL-034', N'Total Espera Serie', 4, 'Vigente', 1, '2026-05-25 14:19:47', 0, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (135, 'PRO-MANT-035', N'Cuyo Algún Baja Hospital Grande Nombre', 5, 'Vigente', 3, '2026-05-25 14:19:47', 0, 3, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (136, 'PRO-MANT-036', N'Primeras Lejos Contra Usted Madre', 5, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (137, 'PRO-MANT-037', N'Martín Dado Plazo Peor', 5, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (138, 'PRO-RH-038', N'Debido G Hijo Le', 2, 'Vigente', 8, '2026-05-25 14:19:47', 0, 8, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (139, 'PRO-PROD-039', N'Otra Sabía Mantener Habla', 3, 'Vigente', 4, '2026-05-25 14:19:47', 0, 4, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (140, 'PRO-RH-040', N'Permite U Hasta', 2, 'Vigente', 4, '2026-05-25 14:19:47', 1, 4, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (141, 'PRO-RH-041', N'Productos Esas Debía Puede Pues Objetivo', 2, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (142, 'PRO-CAL-042', N'Idea Quedó Imágenes Luego Suerte', 4, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (143, 'PRO-RH-043', N'Español Entonces Cual Análisis Derechos Debido', 2, 'Vigente', 9, '2026-05-25 14:19:47', 1, 9, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (144, 'PRO-CAL-044', N'Esos Habrá Espacio Ser Mes', 4, 'Vigente', 2, '2026-05-25 14:19:47', 1, 2, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (145, 'PRO-MANT-045', N'Resultado Ya Muerte', 5, 'Vigente', 3, '2026-05-25 14:19:47', 1, 3, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (146, 'PRO-RH-046', N'Autor Pasó Torno', 2, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (147, 'PRO-PROD-047', N'Encima Ambos Etc Defensa', 3, 'Vigente', 1, '2026-05-25 14:19:47', 1, 1, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (148, 'PRO-CAL-048', N'Posibilidad Proyectos Quiero Fecha Humanos Puerta', 4, 'Vigente', 5, '2026-05-25 14:19:47', 1, 5, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'techcorp'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (149, 'PRO-MANT-049', N'Luz Corazón Ideas Tampoco París Social', 5, 'Vigente', 10, '2026-05-25 14:19:47', 1, 10, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
+INSERT INTO [dbo].[Documento] (Id, CodigoInterno, Titulo, IdDepartamento, EstadoActual, IdUsuarioPropietario, FechaCreacion, Estatus, IdUsuarioCreacion, IdTipoDocumento, IdEmpresa) VALUES (150, 'PRO-PROD-050', N'Años Destino Tres Da Gran', 3, 'Vigente', 5, '2026-05-25 14:19:47', 0, 5, 1, (SELECT Id FROM [dbo].[Empresa] WHERE Slug = 'grupoinnovar'));
 SET IDENTITY_INSERT [dbo].[Documento] OFF;
 PRINT 'Insertando versiones de documentos...';
 INSERT INTO [dbo].[Documento_Version] (IdDocumento, NumeroVersion, RutaArchivoFisico, HashDocumento, MotivoCambio, IdUsuarioSube, FechaSubida, IdUsuarioCreacion, FechaCreacion, Estatus, ExtensionArchivo, MimeType, TamanoBytes) VALUES (101, 1, 'gridfs://mock-id-101', 'mock-hash-101', 'Carga inicial de datos de prueba', 7, '2026-05-25 14:19:47', 7, '2026-05-25 14:19:47', 1, '.pdf', 'application/pdf', 102400);

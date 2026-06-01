@@ -61,7 +61,8 @@ interface IMetadato extends Document {
   codigo_interno:           string;
   titulo:                   string;
   tags:                     string[];
-  version?:                 number;
+  version?:                 string;
+  ip_subida?:               string;
   contenido_extraido?:      string;
   id_usuario_creacion:      number;
   estatus:                  boolean;
@@ -79,7 +80,8 @@ const MetadatoSchema = new Schema<IMetadato>(
     codigo_interno:          { type: String, required: true, unique: true },
     titulo:                  { type: String, required: true },
     tags:                    { type: [String], default: [] },
-    version:                 { type: Number, min: 1 },
+    version:                 { type: String },
+    ip_subida:               { type: String, default: '127.0.0.1' },
     contenido_extraido:      { type: String },
     id_usuario_creacion:     { type: Number, required: true },
     estatus:                 { type: Boolean, required: true, default: true },
@@ -134,7 +136,8 @@ const swaggerSpec = swaggerJsdoc({
             codigo_interno:      { type: 'string',  example: 'CAL-MAN-001',                  description: 'Código interno único del documento' },
             titulo:              { type: 'string',  example: 'Manual de Calidad ISO 9001:2015' },
             tags:                { type: 'array', items: { type: 'string' }, example: ['calidad', 'ISO 9001', 'manual', 'SGC'] },
-            version:             { type: 'integer', minimum: 1, example: 4,                  description: 'Versión del documento (default 1 si no se envía)' },
+            version:             { type: 'string',  example: '1.0',                           description: 'Versión del documento (default "0.1" si no se envía)' },
+            ip_subida:           { type: 'string',  example: '127.0.0.1',                     description: 'Dirección IP desde la que se subió el documento' },
             contenido_extraido:  { type: 'string',  example: 'Documento rector del Sistema de Gestión de Calidad de la empresa.' },
             id_usuario_creacion: { type: 'integer', example: 1,                              description: 'ID del usuario que aprobó el documento' }
           }
@@ -193,7 +196,8 @@ app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
  *             codigo_interno: CAL-MAN-001
  *             titulo: Manual de Calidad ISO 9001:2015
  *             tags: [calidad, ISO 9001, manual, SGC, gestión]
- *             version: 4
+ *             version: "1.0"
+ *             ip_subida: "127.0.0.1"
  *             contenido_extraido: Documento rector del Sistema de Gestión de Calidad de la empresa.
  *             id_usuario_creacion: 1
  *     responses:
@@ -239,7 +243,7 @@ app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
  */
 app.post('/indexar', async (req: Request, res: Response) => {
   try {
-    const { id_documento_sql, id_empresa, codigo_interno, titulo, tags, version, contenido_extraido, id_usuario_creacion } = req.body;
+    const { id_documento_sql, id_empresa, codigo_interno, titulo, tags, version, contenido_extraido, id_usuario_creacion, ip_subida } = req.body;
 
     if (!id_documento_sql || !id_empresa || !codigo_interno || !titulo || !id_usuario_creacion) {
       res.status(400).json({
@@ -258,6 +262,7 @@ app.post('/indexar', async (req: Request, res: Response) => {
       docExistente.version = version ?? docExistente.version;
       docExistente.contenido_extraido = contenido_extraido ?? docExistente.contenido_extraido;
       docExistente.id_usuario_creacion = id_usuario_creacion;
+      docExistente.ip_subida = ip_subida ?? docExistente.ip_subida;
       docExistente.estatus = true;
       docExistente.fecha_modificacion = new Date();
       await docExistente.save();
@@ -276,9 +281,10 @@ app.post('/indexar', async (req: Request, res: Response) => {
       codigo_interno,
       titulo,
       tags:                tags || [],
-      version:             version ?? 1,
+      version:             version ?? '0.1',
       contenido_extraido:  contenido_extraido ?? undefined,
       id_usuario_creacion,
+      ip_subida:           ip_subida ?? '127.0.0.1',
       estatus:             true,
       fecha_indexacion:    new Date()
     });
@@ -388,6 +394,7 @@ app.get('/buscar', async (req: Request, res: Response) => {
     const resultados = await Metadato.find({
       estatus: true,
       id_empresa,
+      version: { $not: /\.([1-9]\d*)$/ },
       $or: [
         { titulo:             regex },
         { tags:               regex },
@@ -479,5 +486,57 @@ app.get('/documento/:id', async (req: Request, res: Response) => {
   } catch (error: unknown) {
     logger.error({ err: error, endpoint: 'GET /documento/:id', id: req.params['id'] }, 'request_failed');
     res.status(500).json({ success: false, mensaje: 'Error al obtener el documento', detalle: (error as Error).message });
+  }
+});
+
+/**
+ * @openapi
+ * /documento/{id}:
+ *   delete:
+ *     tags:
+ *       - Documentos
+ *     summary: Desindexar (eliminar) un documento
+ *     description: >
+ *       Realiza el borrado lógico (estatus = false) de un documento en el índice de búsqueda de MongoDB.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID numérico de SQL Server o código interno del documento
+ *     responses:
+ *       '200':
+ *         description: Documento desindexado correctamente
+ *       '404':
+ *         description: No se encontró ningún documento con ese ID o código
+ *       '500':
+ *         description: Error interno del servidor
+ */
+app.delete('/documento/:id', async (req: Request, res: Response) => {
+  try {
+    const id = req.params['id'] as string;
+    const esNumerico = /^\d+$/.test(id);
+
+    const filtro = esNumerico
+      ? { id_documento_sql: parseInt(id, 10) }
+      : { codigo_interno: id };
+
+    const documento = await Metadato.findOne(filtro as any);
+
+    if (!documento) {
+      res.status(404).json({ success: false, mensaje: `No se encontró ningún documento con id: ${id}` });
+      return;
+    }
+
+    documento.estatus = false;
+    documento.fecha_eliminacion = new Date();
+    await documento.save();
+
+    res.status(200).json({ success: true, mensaje: 'Documento desindexado correctamente' });
+
+  } catch (error: unknown) {
+    logger.error({ err: error, endpoint: 'DELETE /documento/:id', id: req.params['id'] }, 'request_failed');
+    res.status(500).json({ success: false, mensaje: 'Error al desindexar el documento', detalle: (error as Error).message });
   }
 });

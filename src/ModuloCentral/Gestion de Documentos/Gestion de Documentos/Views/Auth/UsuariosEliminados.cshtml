@@ -1,7 +1,7 @@
 @model List<Usuario>
 @using Gestion_de_Documentos.Models
 @{
-    ViewData["Title"] = "Gestionar Usuarios";
+    ViewData["Title"] = "Personal Inactivo";
 }
 
 <div class="container-fluid mt-4">
@@ -17,17 +17,12 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2 class="fw-bold" style="color: var(--jewel-amethyst);">
-                        <i class="fas fa-users"></i> Gestión de Usuarios
+                        <i class="fas fa-user-slash"></i> Personal Inactivo (Eliminados)
                     </h2>
                 </div>
-                <div class="d-flex gap-2">
-                    <a asp-controller="Auth" asp-action="UsuariosEliminados" class="btn btn-outline-danger">
-                        <i class="fas fa-user-slash"></i> Ver Inactivos
-                    </a>
-                    <a asp-controller="Auth" asp-action="Registro" class="btn btn-jewel-primary">
-                        <i class="fas fa-plus"></i> Nuevo Usuario
-                    </a>
-                </div>
+                <a asp-controller="Auth" asp-action="Usuarios" class="btn btn-jewel-primary">
+                    <i class="fas fa-users"></i> Volver a Usuarios
+                </a>
             </div>
         </div>
     </div>
@@ -39,7 +34,7 @@
                     @if (Model.Count == 0)
                     {
                         <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> No hay usuarios registrados.
+                            <i class="fas fa-info-circle"></i> No hay personal inactivo o eliminado.
                         </div>
                     }
                     else
@@ -52,7 +47,7 @@
                                         <th>Nombre</th>
                                         <th>Departamento</th>
                                         <th>Roles Asignados</th>
-                                        <th>Fecha Creación</th>
+                                        <th>Fecha Eliminación</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -92,21 +87,13 @@
                                                     }
                                                 }
                                             </td>
-                                            <td>@usuario.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>@usuario.FechaEliminacion?.ToString("dd/MM/yyyy HH:mm")</td>
                                             <td>
-                                                <a asp-controller="Admin" asp-action="AsignarRolesUsuario" asp-route-id="@usuario.Id" 
-                                                   class="btn btn-sm btn-info" title="Asignar Roles">
-                                                    <i class="fas fa-user-tag"></i> Roles
-                                                </a>
-                                                <a asp-controller="Auth" asp-action="EditarUsuario" asp-route-id="@usuario.Id"
-                                                   class="btn btn-sm btn-warning" title="Editar">
-                                                    <i class="fas fa-edit"></i> Editar
-                                                </a>
-                                                <form asp-controller="Auth" asp-action="EliminarUsuario" method="post" style="display: inline;"
-                                                      onsubmit="return confirm('¿Estás seguro de eliminar a @usuario.Nombre @usuario.ApellidoP?');">
+                                                <form asp-controller="Auth" asp-action="ReactivarUsuario" method="post" style="display: inline;"
+                                                      onsubmit="return confirm('¿Estás seguro de reactivar a @usuario.Nombre @usuario.ApellidoP?');">
                                                     <input type="hidden" name="id" value="@usuario.Id" />
-                                                    <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
-                                                        <i class="fas fa-trash"></i> Eliminar
+                                                    <button type="submit" class="btn btn-sm btn-success" title="Reactivar">
+                                                        <i class="fas fa-user-check"></i> Reactivar Usuario
                                                     </button>
                                                 </form>
                                             </td>
@@ -121,17 +108,3 @@
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cargar departamentos para la tabla
-            fetch('/api/departamentos')
-                .then(response => response.json())
-                .then(data => {
-                    // Actualizar departamentos en la tabla si es necesario
-                })
-                .catch(error => console.log('Departamentos cargados desde servidor'));
-        });
-    </script>
-}

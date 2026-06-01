@@ -205,6 +205,10 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.DepartamentoIdUsuarioModificacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_Depto_UsuMod");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Departamentos)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_Departamento_Empresa");
         });
 
         modelBuilder.Entity<Documento>(entity =>
@@ -259,6 +263,10 @@ public partial class DirContext : DbContext
                 .HasForeignKey(d => d.IdUsuarioPropietario)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Documento__IdUsuario");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Documentos)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_Documento_Empresa");
         });
 
         modelBuilder.Entity<DocumentoVersion>(entity =>
@@ -542,6 +550,10 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.TipoDocumentoIdUsuarioModificacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_TipoDoc_UsuMod");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.TipoDocumentos)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_TipoDocumento_Empresa");
         });
 
         modelBuilder.Entity<Usuario>(entity =>
@@ -591,6 +603,10 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.InverseIdUsuarioModificacionNavigation)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_Usuario_UsuMod");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Usuarios)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_Usuario_Empresa");
         });
 
         modelBuilder.Entity<UsuarioRol>(entity =>

@@ -1,6 +1,12 @@
 @model Gestion_de_Documentos.Models.Documento
+@using System.Security.Claims
 @{
     ViewData["Title"] = "Detalle del Documento";
+    var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var currentUserId = int.TryParse(userIdStr, out var id) ? id : 0;
+    var versionActual = Model.DocumentoVersions.FirstOrDefault();
+    var versionActualId = versionActual?.Id ?? 0;
+    var puedeAprobar = User.IsInRole("Administrador") || User.IsInRole("Superior");
 }
 
 @* ── Hero del documento ── *@
@@ -19,7 +25,8 @@
             "Borrador"   => ("badge-borrador", "fa-pencil-alt"),
             "En Revision"=> ("badge-revision", "fa-clock"),
             "Vigente"    => ("badge-aprobado", "fa-check-circle"),
-            _            => ("badge bg-secondary", "fa-circle")
+            "Rechazado"  => ("bg-danger", "fa-times-circle"),
+            _            => ("bg-secondary", "fa-circle")
         };
     }
     <span class="badge @badgeClass fs-6 px-3 py-2">
@@ -64,26 +71,50 @@
                 <i class="fas fa-bolt me-1"></i>Acciones Disponibles
             </h6>
             <div class="d-flex flex-column gap-2">
-                @if (Model.EstadoActual == "Borrador")
+
+                @* ── Botón Visualizar PDF (para todos) ── *@
+                @if (versionActualId > 0)
                 {
-                    <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary">
-                        <i class="fas fa-edit me-2"></i>Editar Metadatos
-                    </a>
-                    <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success">
-                        <i class="fas fa-file-upload me-2"></i>Subir Nueva Versión
-                    </a>
-                    <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id"
-                       class="btn btn-warning">
-                        <i class="fas fa-paper-plane me-2"></i>Enviar a Revisión
-                    </a>
+                    <button type="button" id="btnAbrirVisor"
+                            class="btn btn-jewel-primary"
+                            data-version-id="@versionActualId"
+                            data-src="@Url.Action("VerPrevio", "Documento", new { versionId = versionActualId })"
+                            data-bs-toggle="modal" data-bs-target="#modalVisorPdf">
+                        <i class="fas fa-eye me-2"></i>Visualizar Documento
+                    </button>
                 }
-                @if (Model.EstadoActual == "Vigente")
+
+                @if (Model.IdUsuarioCreacion == currentUserId)
                 {
-                    <a asp-action="Descargar" asp-route-versionId="@(Model.DocumentoVersions.FirstOrDefault()?.Id ?? 0)"
+                    @if (Model.EstadoActual == "Borrador")
+                    {
+                        <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-2"></i>Editar Metadatos
+                        </a>
+                    }
+                    @if (Model.EstadoActual == "Borrador" || Model.EstadoActual == "Rechazado" || Model.EstadoActual == "Vigente")
+                    {
+                        <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success">
+                            <i class="fas fa-file-upload me-2"></i>Subir Nueva Versión
+                        </a>
+                    }
+                    @if (Model.EstadoActual == "Borrador")
+                    {
+                        <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id"
+                           class="btn btn-warning">
+                            <i class="fas fa-paper-plane me-2"></i>Enviar a Revisión
+                        </a>
+                    }
+                }
+
+                @if (Model.EstadoActual == "Vigente" && versionActualId > 0)
+                {
+                    <a asp-action="Descargar" asp-route-versionId="@versionActualId"
                        class="btn btn-success">
                         <i class="fas fa-download me-2"></i>Descargar Versión Vigente
                     </a>
                 }
+
                 <a asp-action="Historial" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
                     <i class="fas fa-history me-2"></i>Ver Historial Completo
                 </a>
@@ -95,104 +126,150 @@
     </div>
 </div>
 
-@* ── Historial de Versiones ── *@
-<div class="sigd-card mt-4">
-    <h6 class="text-muted text-uppercase fw-600 mb-3" style="font-size:.75rem; letter-spacing:.06em;">
-        <i class="fas fa-history me-1"></i>Historial de Versiones
-    </h6>
-    <div class="table-responsive">
-        <table class="table mb-0">
-            <thead>
-                <tr>
-                    <th style="width:80px;">Versión</th>
-                    <th>Fecha Subida</th>
-                    <th>Hash SHA-256</th>
-                    <th>Almacenamiento (GridFS ID)</th>
-                    <th style="width:120px;" class="text-center">Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var version in Model.DocumentoVersions)
-                {
-                    var hash = version.HashDocumento ?? "";
-                    var hashCorto = hash.Length > 16
-                        ? hash.Substring(0, 8) + "..." + hash.Substring(hash.Length - 8)
-                        : hash;
+@* ── Historial de Comentarios ── *@
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0 text-dark"><i class="fas fa-comments me-2" style="color:var(--accent);"></i>Comentarios e Historial de Revisiones</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table align-middle" style="font-size:.88rem;">
+                <thead class="table-light">
                     <tr>
-                        <td>
-                            <span class="badge bg-primary">V@(version.NumeroVersion)</span>
-                        </td>
-                        <td style="font-size:.85rem;">
-                            @version.FechaSubida?.ToString("dd/MM/yyyy HH:mm")
-                        </td>
-                        <td>
-                            <code style="font-size:.75rem; color:var(--text-muted);" title="@hash">
-                                @hashCorto
-                            </code>
-                        </td>
-                        <td>
-                            <small class="text-muted">@version.RutaArchivoFisico</small>
-                        </td>
-                        <td class="text-center">
-                            <a asp-action="Descargar" asp-route-versionId="@version.Id"
-                               class="btn btn-sm btn-primary">
-                                <i class="fas fa-download me-1"></i>PDF
-                            </a>
-                        </td>
+                        <th>Versión</th>
+                        <th>Revisor</th>
+                        <th>Decisión</th>
+                        <th>Fecha</th>
+                        <th>Comentarios</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @{
+                        var flujos = Model.DocumentoVersions
+                            .SelectMany(v => v.FlujoAprobacions.Select(f => new { Flujo = f, Version = v }))
+                            .Where(x => x.Flujo.EstadoFirma == "Firmado" || x.Flujo.EstadoFirma == "Rechazado")
+                            .OrderByDescending(x => x.Flujo.FechaFirma)
+                            .ToList();
+                    }
+                    @if (flujos.Any())
+                    {
+                        foreach (var item in flujos)
+                        {
+                            var f = item.Flujo;
+                            var v = item.Version;
+                            var verStr = $"{v.NumeroVersion}.{v.VersionMinor}";
+                            var flowBadgeClass = f.EstadoFirma == "Firmado" ? "bg-success" : "bg-danger";
+                            var decisionText = f.EstadoFirma == "Firmado" ? "Aprobado" : "Rechazado";
+                            <tr>
+                                <td><span class="badge bg-primary">V @verStr</span></td>
+                                <td>@(f.IdUsuarioAsignadoNavigation?.Nombre) @(f.IdUsuarioAsignadoNavigation?.ApellidoP)</td>
+                                <td><span class="badge @flowBadgeClass">@decisionText</span></td>
+                                <td>@f.FechaFirma?.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><em>@f.Comentarios</em></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">No hay comentarios ni decisiones registradas aún.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-@* ── Historial de Aprobaciones ── *@
-<div class="sigd-card mt-4">
-    <h6 class="text-muted text-uppercase fw-600 mb-3" style="font-size:.75rem; letter-spacing:.06em;">
-        <i class="fas fa-signature me-1"></i>Historial de Aprobaciones
-    </h6>
-    <div class="table-responsive">
-        <table class="table mb-0">
-            <thead>
-                <tr>
-                    <th>Acción</th>
-                    <th>Revisor</th>
-                    <th>Estado Firma</th>
-                    <th>Comentarios</th>
-                    <th>Fecha</th>
-                    <th>Origen (IP)</th>
-                    <th class="text-center">Deshacer</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var version in Model.DocumentoVersions)
-                {
-                    foreach(var flujo in version.FlujoAprobacions.OrderBy(f => f.FechaCreacion))
+@* ── Modal Visor PDF ── *@
+<div class="modal fade" id="modalVisorPdf" tabindex="-1" aria-labelledby="modalVisorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width:92vw;">
+        <div class="modal-content" style="height:90vh;">
+            <div class="modal-header" style="background:var(--bg-card); border-bottom:1px solid var(--border);">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-file-pdf text-danger fs-5"></i>
+                    <h5 class="modal-title mb-0" id="modalVisorLabel">@Model.Titulo</h5>
+                    <code class="text-muted ms-2" style="font-size:.78rem;">@Model.CodigoInterno</code>
+                </div>
+                <div class="d-flex gap-2 ms-auto me-3">
+                    @if (versionActualId > 0)
                     {
-                        <tr>
-                            <td>@flujo.TipoAccion (V@(version.NumeroVersion).@version.VersionMinor)</td>
-                            <td>@flujo.IdUsuarioAsignadoNavigation?.Nombre @flujo.IdUsuarioAsignadoNavigation?.ApellidoP</td>
-                            <td>
-                                @if(flujo.EstadoFirma == "Firmado") { <span class="badge bg-success">Aprobado</span> }
-                                else if(flujo.EstadoFirma == "Rechazado") { <span class="badge bg-danger">Rechazado</span> }
-                                else { <span class="badge bg-warning text-dark">Pendiente</span> }
-                            </td>
-                            <td><small class="text-muted">@flujo.Comentarios</small></td>
-                            <td style="font-size:.85rem;">@flujo.FechaModificacion?.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td><code style="font-size:.75rem; color:var(--text-muted);">@flujo.IpOrigenFirmante</code></td>
-                            <td class="text-center">
-                                @if(flujo.EstadoFirma != "Pendiente" && Model.EstadoActual != "Vigente")
-                                {
-                                    <form asp-controller="Flujo" asp-action="DeshacerRespuesta" method="post" style="display:inline;">
-                                        <input type="hidden" name="idFlujo" value="@flujo.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Deshacer decisión"><i class="fas fa-undo"></i></button>
-                                    </form>
-                                }
-                            </td>
-                        </tr>
+                        <a asp-action="Descargar" asp-route-versionId="@versionActualId"
+                           class="btn btn-sm btn-outline-success" title="Descargar PDF">
+                            <i class="fas fa-download me-1"></i>Descargar
+                        </a>
                     }
-                }
-            </tbody>
-        </table>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0" style="flex:1; overflow:hidden;">
+                <div id="visorLoading" class="d-flex align-items-center justify-content-center h-100"
+                     style="background:var(--bg-hover);">
+                    <div class="text-center">
+                        <div class="spinner-border mb-3" style="color:var(--sapphire); width:3rem; height:3rem;" role="status"></div>
+                        <p class="text-muted">Cargando documento...</p>
+                    </div>
+                </div>
+                <iframe id="iframeVisor"
+                        src="about:blank"
+                        style="width:100%; height:100%; border:none; display:none;"
+                        title="Visor de documento PDF">
+                </iframe>
+            </div>
+            <div class="modal-footer" style="background:var(--bg-card); border-top:1px solid var(--border);">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cerrar Visor
+                </button>
+            </div>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('modalVisorPdf');
+    const iframe = document.getElementById('iframeVisor');
+    const loading = document.getElementById('visorLoading');
+    const btnAbrir = document.getElementById('btnAbrirVisor');
+
+    if (btnAbrir) {
+        btnAbrir.addEventListener('click', function () {
+            const src = this.dataset.src;
+            loading.classList.remove('d-none');
+            loading.classList.add('d-flex');
+            iframe.style.display = 'none';
+            iframe.src = src;
+
+            // Fallback para navegadores que no disparan el evento 'load' en PDFs
+            setTimeout(function() {
+                if (!loading.classList.contains('d-none')) {
+                    loading.classList.add('d-none');
+                    loading.classList.remove('d-flex');
+                    iframe.style.display = 'block';
+                }
+            }, 1500);
+        });
+    }
+
+    if (iframe) {
+        iframe.addEventListener('load', function () {
+            if (!loading.classList.contains('d-none')) {
+                loading.classList.add('d-none');
+                loading.classList.remove('d-flex');
+                iframe.style.display = 'block';
+            }
+        });
+    }
+
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', function () {
+            iframe.src = 'about:blank';
+            loading.classList.remove('d-none');
+            loading.classList.add('d-flex');
+            iframe.style.display = 'none';
+        });
+    }
+});
+</script>
+}

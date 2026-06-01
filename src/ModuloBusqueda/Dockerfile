@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # ── Stage 2: development ───────────────────────────────────
-# Instala TODAS las dependencias (incluye ts-node-dev, typescript).
+# Instala TODAS las dependencias (incluye tsx, typescript).
 # El código fuente NO se copia aquí: docker-compose lo monta como volumen
 # para que los cambios locales se reflejen en el contenedor sin rebuild.
 FROM base AS development

@@ -17,7 +17,7 @@
             <input type="hidden" name="idDocumento" value="@Model.Id" />
             
             <div class="mb-4">
-                <label class="form-label fw-bold">Seleccionar Revisor (Aprobador)</label>
+                <label class="form-label fw-bold">Seleccionar Revisor (Superior / Administrador)</label>
                 <select name="idRevisor" class="form-select" required>
                     <option value="">-- Selecciona a un Superior o Administrador --</option>
                     @foreach (var revisor in ViewBag.Revisores)
