@@ -1,0 +1,39 @@
+@model Gestion_de_Documentos.Models.Documento
+
+@{
+    ViewData["Title"] = "Asignar a Revisión";
+}
+
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white">
+        <h3 class="mb-0 text-dark">Enviar Documento a Revisión</h3>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            Estás a punto de enviar el documento <strong>@Model.Titulo</strong> a revisión. Una vez enviado, el documento pasará al estado "En Revisión" y no podrás editarlo ni subir nuevas versiones a menos que sea rechazado.
+        </div>
+
+        <form asp-action="EnviarARevision" method="post">
+            <input type="hidden" name="idDocumento" value="@Model.Id" />
+            
+            <div class="mb-4">
+                <label class="form-label fw-bold">Seleccionar Revisor (Superior / Administrador)</label>
+                <select name="idRevisor" class="form-select" required>
+                    <option value="">-- Selecciona a un Superior o Administrador --</option>
+                    @foreach (var revisor in ViewBag.Revisores)
+                    {
+                        <option value="@revisor.Id">@revisor.Nombre @revisor.ApellidoP (@revisor.Rol)</option>
+                    }
+                </select>
+                <small class="text-muted">Solo se muestran los usuarios que tienen permiso para revisar y aprobar documentos.</small>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a asp-controller="Documento" asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-warning text-dark fw-bold">
+                    <i class="fas fa-paper-plane"></i> Enviar a Revisión
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

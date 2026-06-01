@@ -1,7 +1,7 @@
 FROM php:8.2-apache
 
 # Actualizar el sistema e instalar las dependencias de PostgreSQL
-RUN apt-get update && apt-get install -y libpq-dev \
+RUN apt-get update && apt-get install -y libpq-dev git unzip zip \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-install pdo pdo_pgsql pgsql
 

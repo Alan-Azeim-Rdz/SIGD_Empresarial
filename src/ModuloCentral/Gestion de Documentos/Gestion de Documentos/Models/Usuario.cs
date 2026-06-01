@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Gestion_de_Documentos.Models;
 
@@ -11,14 +13,28 @@ public partial class Usuario
 
     public int IdDepartamento { get; set; }
 
+    public int? IdEmpresa { get; set; }
+
+    public virtual Empresa? IdEmpresaNavigation { get; set; }
+
+    [Required(ErrorMessage = "El nombre es obligatorio.")]
+    [StringLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres.")]
     public string Nombre { get; set; } = null!;
 
+    [Required(ErrorMessage = "El primer apellido es obligatorio.")]
+    [StringLength(100, ErrorMessage = "El primer apellido no puede exceder los 100 caracteres.")]
     public string ApellidoP { get; set; } = null!;
 
+    [StringLength(100, ErrorMessage = "El segundo apellido no puede exceder los 100 caracteres.")]
     public string? ApellidoM { get; set; }
 
+    [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
+    [EmailAddress(ErrorMessage = "El correo electrónico no tiene un formato válido.")]
+    [StringLength(150, ErrorMessage = "El correo electrónico no puede exceder los 150 caracteres.")]
     public string Correo { get; set; } = null!;
 
+    [Required(ErrorMessage = "La contraseña es obligatoria.")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener entre 8 y 100 caracteres.")]
     public string Contrasena { get; set; } = null!;
 
     public int? IdUsuarioCreacion { get; set; }
@@ -121,6 +137,8 @@ public partial class Usuario
 
     public virtual ICollection<Rol> RolIdUsuarioModificacionNavigations { get; set; } = new List<Rol>();
 
+    // 👇 ESTA ES LA LÍNEA MÁGICA QUE ARREGLA EL ERROR 👇
+    [NotMapped]
     public virtual ICollection<UsuarioRol> UsuarioRols { get; set; } = new List<UsuarioRol>();
 
     public virtual ICollection<RolPermiso> RolPermisoIdUsuarioCreacionNavigations { get; set; } = new List<RolPermiso>();

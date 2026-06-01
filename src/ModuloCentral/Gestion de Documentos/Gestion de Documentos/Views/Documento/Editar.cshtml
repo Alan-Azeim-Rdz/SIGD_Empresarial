@@ -1,0 +1,125 @@
+@model Gestion_de_Documentos.Models.Documento
+
+@{
+    ViewData["Title"] = "Editar Documento";
+}
+
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0 text-dark">Editar Metadatos de Documento</h3>
+        <span class="badge bg-warning text-dark">@Model.EstadoActual</span>
+    </div>
+    <div class="card-body">
+        <form asp-action="Editar" method="post">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="CodigoInterno" class="form-label fw-bold">Código Interno</label>
+                    <input asp-for="CodigoInterno" class="form-control" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Titulo" class="form-label fw-bold">Título del Documento</label>
+                    <input asp-for="Titulo" class="form-control" required />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="IdTipoDocumento" class="form-label fw-bold">Tipo de Documento</label>
+                    <select asp-for="IdTipoDocumento" class="form-select" required>
+                        <option value="">Seleccione...</option>
+                        @foreach(var tipo in ViewBag.TiposDocumento)
+                        {
+                            <option value="@tipo.Id">@tipo.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="IdDepartamento" class="form-label fw-bold">Departamento Propietario</label>
+                    <select asp-for="IdDepartamento" class="form-select" required>
+                        <option value="">Seleccione...</option>
+                        @foreach(var depto in ViewBag.Departamentos)
+                        {
+                            <option value="@depto.Id">@depto.Nombre</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @if (ViewBag.CamposPersonalizados != null && !string.IsNullOrEmpty(ViewBag.CamposPersonalizados as string))
+            {
+                <div class="card bg-light mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light border-0 pb-0">
+                        <h5 class="text-jewel-sapphire mb-0 fw-bold"><i class="fas fa-sliders-h"></i> Campos Personalizados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @using System.Text.Json
+                            @{
+                                var jsonStr = ViewBag.CamposPersonalizados as string;
+                                var valoresStr = Model.CamposPersonalizadosValores;
+                                var valoresDict = new Dictionary<string, string>();
+                                if (!string.IsNullOrEmpty(valoresStr))
+                                {
+                                    try
+                                    {
+                                        valoresDict = JsonSerializer.Deserialize<Dictionary<string, string>>(valoresStr) ?? new Dictionary<string, string>();
+                                    }
+                                    catch (Exception) {}
+                                }
+
+                                try
+                                {
+                                    using var docJson = JsonDocument.Parse(jsonStr);
+                                    foreach (var campo in docJson.RootElement.EnumerateArray())
+                                    {
+                                        var nombre = campo.GetProperty("Nombre").GetString() ?? "";
+                                        var tipo = campo.GetProperty("Tipo").GetString() ?? "Texto";
+                                        var requerido = campo.GetProperty("Requerido").GetBoolean();
+                                        
+                                        var valorActual = valoresDict.ContainsKey(nombre) ? valoresDict[nombre] : "";
+                                        
+                                        var inputType = "text";
+                                        if (tipo == "Numero") inputType = "number";
+                                        else if (tipo == "Fecha") inputType = "date";
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">@nombre @(requerido ? "*" : "")</label>
+                                            @if (tipo == "Booleano")
+                                            {
+                                                var isChecked = valorActual == "true";
+                                                <div class="form-check form-switch mt-2">
+                                                    <input type="checkbox" name="CP_@nombre" value="true" class="form-check-input" id="CP_@nombre" @(isChecked ? "checked" : "") />
+                                                    <label class="form-check-label text-muted" for="CP_@nombre">Sí / No</label>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <input type="@inputType" name="CP_@nombre" value="@valorActual" class="form-control" placeholder="Ingrese @nombre" @(requerido ? "required" : "") />
+                                            }
+                                        </div>
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    <div class="col-12 text-danger">Error al cargar la definición de campos personalizados.</div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Solo se pueden editar los metadatos. Si necesitas subir un archivo diferente, utiliza la opción <strong>"Subir Nueva Versión"</strong> en la pantalla de Detalles.
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-jewel-primary">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>

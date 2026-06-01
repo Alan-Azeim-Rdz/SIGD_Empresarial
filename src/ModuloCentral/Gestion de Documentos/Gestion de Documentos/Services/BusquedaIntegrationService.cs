@@ -31,14 +31,28 @@ namespace Gestion_de_Documentos.Services
             _busquedaBaseUrl = configuration["BusquedaModule:BaseUrl"] ?? "http://modulo_busqueda:3000";
         }
 
+<<<<<<< HEAD
         public async Task SincronizarDocumentoAsync(int idDocumento, int idUsuarioCreacion)
         {
             var payload = await ConstruirPayloadAsync(idDocumento, idUsuarioCreacion);
+=======
+        public async Task SincronizarDocumentoAsync(int idDocumento, int idUsuarioCreacion, string? ip = null)
+        {
+            var payload = await ConstruirPayloadAsync(idDocumento, idUsuarioCreacion, ip);
+>>>>>>> development
             if (payload is null) return;
 
             await EnviarPayloadAsync("/indexar", payload);
         }
 
+<<<<<<< HEAD
+=======
+        public async Task DesindexarDocumentoAsync(int idDocumento)
+        {
+            await EnviarDeleteAsync($"/documento/{idDocumento}");
+        }
+
+>>>>>>> development
         public async Task SincronizarTodosAsync(int idUsuarioCreacion)
         {
             var documentosVigentes = await _context.Documentos
@@ -52,7 +66,11 @@ namespace Gestion_de_Documentos.Services
             }
         }
 
+<<<<<<< HEAD
         private async Task<object?> ConstruirPayloadAsync(int idDocumento, int idUsuario)
+=======
+        private async Task<object?> ConstruirPayloadAsync(int idDocumento, int idUsuario, string? ip = null)
+>>>>>>> development
         {
             var doc = await _context.Documentos
                 .Include(d => d.DocumentoVersions)
@@ -62,12 +80,29 @@ namespace Gestion_de_Documentos.Services
             if (doc is null) return null;
 
             var version = doc.DocumentoVersions
+<<<<<<< HEAD
                 .Where(v => v.Estatus == true)
+=======
+                .Where(v => v.Estatus == true && v.VersionMinor == 0)
+>>>>>>> development
                 .OrderByDescending(v => v.NumeroVersion)
                 .FirstOrDefault();
 
             if (version is null) return null;
 
+<<<<<<< HEAD
+=======
+            // Obtener la IP si no se pasó
+            if (string.IsNullOrEmpty(ip))
+            {
+                var flujoDoc = await _context.FlujoAprobacions
+                    .Where(f => f.IdVersionDocumento == version.Id)
+                    .OrderByDescending(f => f.FechaCreacion)
+                    .FirstOrDefaultAsync();
+                ip = flujoDoc?.IpOrigenRemitente ?? "127.0.0.1";
+            }
+
+>>>>>>> development
             // TODO: Extract text from PDF in a real implementation
             var contenidoExtraido = $"Documento {doc.Titulo}. Código: {doc.CodigoInterno}. Tipo: {doc.IdTipoDocumentoNavigation?.Nombre}";
 
@@ -81,7 +116,12 @@ namespace Gestion_de_Documentos.Services
                 contenido_extraido = contenidoExtraido,
                 atributos_especificos = new { },
                 id_usuario_creacion = idUsuario,
+<<<<<<< HEAD
                 version = version.NumeroVersion
+=======
+                version = $"{version.NumeroVersion}.{version.VersionMinor}",
+                ip_subida = ip
+>>>>>>> development
             };
         }
 
@@ -120,5 +160,36 @@ namespace Gestion_de_Documentos.Services
                 return false;
             }
         }
+<<<<<<< HEAD
+=======
+
+        private async Task<bool> EnviarDeleteAsync(string ruta)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Delete, $"{_busquedaBaseUrl}{ruta}");
+                _logger.LogInformation("[SIGD-Busqueda-Sync] Enviando DELETE a {Url}", ruta);
+
+                var response = await _httpClient.SendAsync(request);
+                var body = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("[SIGD-Busqueda-Sync] Desindexado OK {Status}: {Body}", (int)response.StatusCode, body);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogError("[SIGD-Busqueda-Sync] Error al desindexar {Status}: {Body}", (int)response.StatusCode, body);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SIGD-Busqueda-Sync] Error de red al desindexar en {Ruta}.", ruta);
+                return false;
+            }
+        }
+>>>>>>> development
     }
 }

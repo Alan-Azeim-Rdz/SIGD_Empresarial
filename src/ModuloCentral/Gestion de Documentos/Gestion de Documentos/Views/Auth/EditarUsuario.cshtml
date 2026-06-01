@@ -3,6 +3,11 @@
 @{
     ViewData["Title"] = "Editar Usuario";
     var departamentos = ViewBag.Departamentos as List<Departamento> ?? new List<Departamento>();
+<<<<<<< HEAD
+=======
+    var roles = ViewBag.Roles as List<Rol> ?? new List<Rol>();
+    var idRolAsignado = ViewBag.IdRolAsignado as int? ?? 0;
+>>>>>>> development
 }
 
 <div class="row justify-content-center mt-4">
@@ -57,6 +62,7 @@
                     <!-- Datos de la Organización -->
                     <div class="mb-4">
                         <h5 style="color: var(--jewel-amethyst);" class="fw-bold mb-3">Datos de la Organización</h5>
+<<<<<<< HEAD
                         <div class="mb-3">
                             <label class="form-label fw-bold">Departamento <span class="text-danger">*</span></label>
                             <select name="idDepartamento" class="form-select" required>
@@ -73,6 +79,45 @@
                                     }
                                 }
                             </select>
+=======
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Departamento <span class="text-danger">*</span></label>
+                                <select name="idDepartamento" class="form-select" required>
+                                    <option value="">-- Seleccionar Departamento --</option>
+                                    @foreach (var dept in departamentos)
+                                    {
+                                        if (dept.Id == Model.IdDepartamento)
+                                        {
+                                            <option value="@dept.Id" selected>@dept.Nombre</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@dept.Id">@dept.Nombre</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Rol <span class="text-danger">*</span></label>
+                                <select name="idRol" class="form-select" required>
+                                    <option value="">-- Seleccionar Rol --</option>
+                                    @foreach (var rol in roles)
+                                    {
+                                        if (rol.Id == idRolAsignado)
+                                        {
+                                            <option value="@rol.Id" selected>@rol.Nombre</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@rol.Id">@rol.Nombre</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+>>>>>>> development
                         </div>
                     </div>
 

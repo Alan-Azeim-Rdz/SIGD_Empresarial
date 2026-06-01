@@ -1,0 +1,475 @@
+@{
+    ViewData["Title"] = "Dashboard de Reportes";
+}
+
+<!-- Chart.js desde CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+<style>
+    /* ── Variables del módulo ── */
+    :root {
+        --dash-accent:       #e8a020;
+        --dash-accent-light: rgba(232,160,32,.12);
+        --dash-header-grad:  linear-gradient(135deg, #c27803 0%, #92510a 100%);
+        --dash-sapphire:     #1e3d59;
+        --dash-emerald:      #0f7a72;
+        --dash-amethyst:     #6b4c9a;
+    }
+
+    /* ── Encabezado ── */
+    .dash-header {
+        background: var(--dash-header-grad);
+        border-radius: .85rem .85rem 0 0;
+        padding: 1.2rem 1.6rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .dash-header h1 { font-size: 1.25rem; font-weight: 700; margin: 0; }
+    .dash-header p  { font-size: .82rem; opacity: .82; margin: .2rem 0 0; }
+
+    .dash-toolbar {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        background: rgba(255,255,255,.12);
+        border-radius: .5rem;
+        padding: .35rem .7rem;
+    }
+    .dash-toolbar button {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,.88);
+        font-size: .82rem;
+        cursor: pointer;
+        padding: .2rem .6rem;
+        border-radius: .4rem;
+        transition: background .15s;
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+    }
+    .dash-toolbar button:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+    /* ── Cuerpo ── */
+    .dash-body {
+        background: var(--card-bg, #fff);
+        border: 1px solid rgba(30,61,89,.15);
+        border-top: none;
+        border-radius: 0 0 .85rem .85rem;
+        padding: 1.4rem;
+    }
+
+    /* ── Cards KPI ── */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.4rem;
+    }
+    .kpi-card {
+        background: var(--card-bg, #fff);
+        border: 1px solid rgba(30,61,89,.1);
+        border-radius: .8rem;
+        padding: 1.1rem 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+        transition: box-shadow .2s, transform .2s;
+    }
+    .kpi-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.09); transform: translateY(-2px); }
+    .kpi-icon {
+        width: 46px; height: 46px;
+        border-radius: .65rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .kpi-info .label { font-size: .72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .kpi-info .value { font-size: 1.5rem; font-weight: 800; color: var(--dash-sapphire); line-height: 1.2; }
+    .kpi-info .value.loading { width: 60px; height: 24px; background: #e2e8f0; border-radius: .3rem; animation: shimmer 1.2s infinite; }
+
+    @@keyframes shimmer {
+        0%,100% { opacity: .5; }
+        50%      { opacity: 1; }
+    }
+
+    /* ── Gráficas ── */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.2rem;
+        margin-bottom: 1.4rem;
+    }
+    @@media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+
+    .chart-card {
+        background: var(--card-bg, #fff);
+        border: 1px solid rgba(30,61,89,.1);
+        border-radius: .8rem;
+        padding: 1rem 1.1rem;
+    }
+    .chart-card h3 {
+        font-size: .85rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin: 0 0 .85rem;
+    }
+    .chart-placeholder {
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        font-size: .85rem;
+    }
+
+    /* ── Tabla de actividad reciente ── */
+    .recent-card {
+        background: var(--card-bg, #fff);
+        border: 1px solid rgba(30,61,89,.1);
+        border-radius: .8rem;
+        overflow: hidden;
+    }
+    .recent-card h3 {
+        font-size: .85rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin: 0;
+        padding: .9rem 1.1rem;
+        border-bottom: 1px solid rgba(30,61,89,.08);
+    }
+    .recent-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .85rem;
+    }
+    .recent-table thead th {
+        background: #f8fafc;
+        padding: .6rem 1rem;
+        text-align: left;
+        font-size: .72rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .recent-table tbody td {
+        padding: .7rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: var(--text, #1e3d59);
+        vertical-align: middle;
+    }
+    .recent-table tbody tr:last-child td { border-bottom: none; }
+    .recent-table tbody tr:hover { background: var(--dash-accent-light); }
+
+    .badge-version {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: .8rem;
+        font-size: .72rem;
+        font-weight: 700;
+        background: rgba(232,160,32,.15);
+        color: #c27803;
+    }
+    .badge-depto {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: .8rem;
+        font-size: .72rem;
+        font-weight: 700;
+        background: rgba(30,61,89,.08);
+        color: var(--dash-sapphire);
+    }
+
+    /* ── Estado de error ── */
+    .dash-error {
+        padding: 3rem;
+        text-align: center;
+        color: #ef4444;
+    }
+    .dash-error i { font-size: 2rem; display: block; margin-bottom: .75rem; opacity: .7; }
+
+    /* ── Spinner global ── */
+    .dash-spinner {
+        width: 2.2rem; height: 2.2rem;
+        border: 3px solid rgba(232,160,32,.2);
+        border-top-color: var(--dash-accent);
+        border-radius: 50%;
+        animation: spin .75s linear infinite;
+        margin: 3rem auto;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Fecha de actualización ── */
+    .dash-updated {
+        font-size: .75rem;
+        color: #94a3b8;
+        text-align: right;
+        margin-top: .5rem;
+    }
+</style>
+
+<div class="py-3 animate-fade-up">
+    <!-- Encabezado -->
+    <div class="dash-header">
+        <div>
+            <h1><i class="fas fa-chart-bar me-2"></i>Dashboard de Reportes</h1>
+            <p>KPIs y estadísticas de documentación en tiempo real</p>
+        </div>
+        <div class="dash-toolbar">
+            <button onclick="dashApp.reload()" title="Actualizar datos">
+                <i class="fas fa-sync-alt"></i>Actualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- Cuerpo -->
+    <div class="dash-body" id="dash-body">
+        <div class="dash-spinner"></div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let chartBarras   = null;
+    let chartLinea    = null;
+    let ultimaActualizacion = null;
+
+    // ── Colores para Chart.js ─────────────────────────────────────────────────
+    const PALETA = [
+        '#1e3d59','#0f7a72','#6b4c9a','#e8a020','#2a9d8f',
+        '#e76f51','#457b9d','#a8dadc','#f4a261','#264653',
+    ];
+
+    // ── Fetch al proxy .NET ───────────────────────────────────────────────────
+    async function fetchResumen() {
+        const res = await fetch('/Modulos/ApiDashboard?action=resumen', { credentials: 'same-origin' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
+
+    // ── Render KPIs ───────────────────────────────────────────────────────────
+    function renderKpis(kpis) {
+        const def = [
+            { label: 'Documentos Vigentes', key: 'total_documentos',   icon: 'fas fa-file-alt',    color: '#1e3d59', bg: 'rgba(30,61,89,.1)'  },
+            { label: 'Departamentos',        key: 'total_departamentos', icon: 'fas fa-sitemap',     color: '#0f7a72', bg: 'rgba(15,122,114,.1)' },
+            { label: 'Acuses de Lectura',    key: 'total_acuses',       icon: 'fas fa-check-double', color: '#6b4c9a', bg: 'rgba(107,76,154,.1)' },
+            { label: 'Última Publicación',   key: 'ultima_publicacion',  icon: 'fas fa-calendar-alt', color: '#c27803', bg: 'rgba(232,160,32,.12)' },
+        ];
+
+        return def.map(d => {
+            let val = kpis[d.key] ?? '—';
+            if (d.key === 'ultima_publicacion' && val && val !== '—') {
+                const dt = new Date(val);
+                val = isNaN(dt) ? val : dt.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+            }
+            return `
+                <div class="kpi-card">
+                    <div class="kpi-icon" style="background:${d.bg};color:${d.color};">
+                        <i class="${d.icon}"></i>
+                    </div>
+                    <div class="kpi-info">
+                        <div class="label">${d.label}</div>
+                        <div class="value">${val}</div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // ── Render gráfica de barras (por depto) ──────────────────────────────────
+    function renderBarras(datos, canvasId) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        if (chartBarras) { chartBarras.destroy(); }
+
+        const labels = datos.map(d => `Depto ${d.departamento}`);
+        const values = datos.map(d => parseInt(d.total));
+
+        chartBarras = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Documentos',
+                    data: values,
+                    backgroundColor: PALETA.slice(0, labels.length),
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // ── Render gráfica de línea (evolución mensual) ───────────────────────────
+    function renderLinea(datos, canvasId) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        if (chartLinea) { chartLinea.destroy(); }
+
+        const labels = datos.map(d => {
+            const [y, m] = d.mes.split('-');
+            return new Date(y, m - 1).toLocaleDateString('es-MX', { month:'short', year:'2-digit' });
+        });
+        const values = datos.map(d => parseInt(d.total));
+
+        chartLinea = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Publicaciones',
+                    data: values,
+                    borderColor: '#e8a020',
+                    backgroundColor: 'rgba(232,160,32,.1)',
+                    tension: .4,
+                    fill: true,
+                    pointBackgroundColor: '#e8a020',
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // ── Render tabla de recientes ─────────────────────────────────────────────
+    function renderRecientes(docs) {
+        if (!docs.length) {
+            return `<div style="padding:2rem;text-align:center;color:#94a3b8;">Sin actividad reciente.</div>`;
+        }
+        const filas = docs.map(d => `
+            <tr>
+                <td><code style="font-size:.8rem;">${esc(d.codigo_interno)}</code></td>
+                <td><strong>${esc(d.titulo)}</strong></td>
+                <td><span class="badge-version">v${parseInt(d.version_actual)}</span></td>
+                <td><span class="badge-depto">Depto ${parseInt(d.id_departamento)}</span></td>
+                <td style="color:#94a3b8;font-size:.8rem;">${esc(d.fecha_formateada)}</td>
+            </tr>`).join('');
+
+        return `
+            <table class="recent-table">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Título</th>
+                        <th>Versión</th>
+                        <th>Departamento</th>
+                        <th>Publicado</th>
+                    </tr>
+                </thead>
+                <tbody>${filas}</tbody>
+            </table>`;
+    }
+
+    function esc(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Render completo del body ──────────────────────────────────────────────
+    function renderBody(data) {
+        const body = document.getElementById('dash-body');
+
+        body.innerHTML = `
+            <!-- KPIs -->
+            <div class="kpi-grid">${renderKpis(data.kpis)}</div>
+
+            <!-- Gráficas -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3><i class="fas fa-building me-1"></i>Documentos por Departamento</h3>
+                    <div style="position:relative;height:200px;">
+                        ${data.por_departamento.length
+                            ? '<canvas id="chart-barras"></canvas>'
+                            : '<div class="chart-placeholder"><i class="fas fa-chart-bar me-2"></i>Sin datos</div>'}
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-line me-1"></i>Evolución Mensual (12 meses)</h3>
+                    <div style="position:relative;height:200px;">
+                        ${data.evolucion.length
+                            ? '<canvas id="chart-linea"></canvas>'
+                            : '<div class="chart-placeholder"><i class="fas fa-chart-line me-2"></i>Sin datos en los últimos 12 meses</div>'}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de actividad reciente -->
+            <div class="recent-card">
+                <h3><i class="fas fa-history me-1"></i>Últimas Publicaciones</h3>
+                ${renderRecientes(data.recientes)}
+            </div>
+
+            <p class="dash-updated" id="dash-updated"></p>`;
+
+        // Inicializar gráficas después de que el DOM actualice
+        requestAnimationFrame(() => {
+            if (data.por_departamento.length) renderBarras(data.por_departamento, 'chart-barras');
+            if (data.evolucion.length)        renderLinea(data.evolucion, 'chart-linea');
+
+            ultimaActualizacion = new Date();
+            document.getElementById('dash-updated').textContent =
+                `Actualizado: ${ultimaActualizacion.toLocaleTimeString('es-MX')}`;
+        });
+    }
+
+    function renderError(msg) {
+        document.getElementById('dash-body').innerHTML = `
+            <div class="dash-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>${esc(msg)}</p>
+                <button onclick="dashApp.reload()"
+                        style="margin-top:1rem;padding:.5rem 1.2rem;border:none;border-radius:.5rem;background:#e8a020;color:#fff;cursor:pointer;font-weight:600;">
+                    <i class="fas fa-sync-alt me-1"></i>Reintentar
+                </button>
+            </div>`;
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+    window.dashApp = {
+        async reload() {
+            document.getElementById('dash-body').innerHTML =
+                '<div class="dash-spinner"></div>';
+
+            // Destruir gráficas anteriores para evitar leak
+            if (chartBarras) { chartBarras.destroy(); chartBarras = null; }
+            if (chartLinea)  { chartLinea.destroy();  chartLinea  = null; }
+
+            try {
+                const data = await fetchResumen();
+                if (data.status !== 'ok') throw new Error(data.message ?? 'Respuesta inválida');
+                renderBody(data);
+            } catch (err) {
+                console.error('[Dashboard]', err);
+                renderError('No se pudo conectar con el módulo de reportes. Verifica que los servicios estén en línea.');
+            }
+        }
+    };
+
+    // ── Carga inicial ─────────────────────────────────────────────────────────
+    dashApp.reload();
+})();
+</script>

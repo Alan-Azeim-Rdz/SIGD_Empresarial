@@ -23,6 +23,8 @@ public partial class DirContext : DbContext
 
     public virtual DbSet<Departamento> Departamentos { get; set; }
 
+    public virtual DbSet<Empresa> Empresas { get; set; }
+
     public virtual DbSet<Documento> Documentos { get; set; }
 
     public virtual DbSet<DocumentoVersion> DocumentoVersions { get; set; }
@@ -205,6 +207,10 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.DepartamentoIdUsuarioModificacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_Depto_UsuMod");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Departamentos)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_Departamento_Empresa");
         });
 
         modelBuilder.Entity<Documento>(entity =>
@@ -259,6 +265,10 @@ public partial class DirContext : DbContext
                 .HasForeignKey(d => d.IdUsuarioPropietario)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Documento__IdUsuario");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Documentos)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_Documento_Empresa");
         });
 
         modelBuilder.Entity<DocumentoVersion>(entity =>
@@ -542,6 +552,10 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.TipoDocumentoIdUsuarioModificacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_TipoDoc_UsuMod");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.TipoDocumentos)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_TipoDocumento_Empresa");
         });
 
         modelBuilder.Entity<Usuario>(entity =>
@@ -591,6 +605,10 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioModificacionNavigation).WithMany(p => p.InverseIdUsuarioModificacionNavigation)
                 .HasForeignKey(d => d.IdUsuarioModificacion)
                 .HasConstraintName("FK_Usuario_UsuMod");
+
+            entity.HasOne(d => d.IdEmpresaNavigation).WithMany(p => p.Usuarios)
+                .HasForeignKey(d => d.IdEmpresa)
+                .HasConstraintName("FK_Usuario_Empresa");
         });
 
         modelBuilder.Entity<UsuarioRol>(entity =>
@@ -616,7 +634,8 @@ public partial class DirContext : DbContext
             entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.UsuarioRolIdUsuarioNavigations)
                 .HasForeignKey(d => d.IdUsuario)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UsuarioRol_Usuario");
+                .HasConstraintName("FK_UsuarioRol_Usuario")
+                .IsRequired();
 
             entity.HasOne(d => d.IdUsuarioCreacionNavigation).WithMany(p => p.UsuarioRolIdUsuarioCreacionNavigations)
                 .HasForeignKey(d => d.IdUsuarioCreacion)
@@ -631,8 +650,62 @@ public partial class DirContext : DbContext
                 .HasConstraintName("FK_UsuRol_UsuMod");
         });
 
+        modelBuilder.Entity<Empresa>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.ToTable("Empresa", tb =>
+            {
+                tb.HasTrigger("TRG_AutoFechaMod_Empresa");
+            });
+
+            entity.HasIndex(e => e.Slug, "UQ_Empresa_Slug").IsUnique();
+
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.Slug)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.RFC)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.CorreoContacto)
+                .HasMaxLength(150)
+                .IsUnicode(false);
+            entity.Property(e => e.FechaRegistro)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("getdate()");
+            entity.Property(e => e.Estatus)
+                .HasDefaultValueSql("1");
+            entity.Property(e => e.CamposPersonalizados)
+                .IsUnicode(true);
+
+            // Campos de auditoría
+            entity.Property(e => e.FechaCreacion).HasColumnType("datetime");
+            entity.Property(e => e.FechaModificacion).HasColumnType("datetime");
+            entity.Property(e => e.FechaEliminacion).HasColumnType("datetime");
+
+            // Relaciones de auditoría
+            entity.HasOne(d => d.IdUsuarioCreacionNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.IdUsuarioCreacion)
+                .HasConstraintName("FK_Empresa_UsuCrea");
+
+            entity.HasOne(d => d.IdUsuarioModificacionNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.IdUsuarioModificacion)
+                .HasConstraintName("FK_Empresa_UsuMod");
+
+            entity.HasOne(d => d.IdUsuarioEliminacionNavigation)
+                .WithMany()
+                .HasForeignKey(d => d.IdUsuarioEliminacion)
+                .HasConstraintName("FK_Empresa_UsuEli");
+        });
         OnModelCreatingPartial(modelBuilder);
     }
 
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+    private void OnModelCreatingPartial(ModelBuilder modelBuilder)
+    {
+    }
 }

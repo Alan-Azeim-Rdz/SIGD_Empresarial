@@ -1,24 +1,34 @@
-version: '3.8'
-
 services:
   # ==========================================
   # BASES DE DATOS
   # ==========================================
-
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sigd_sqlserver
     environment:
       - ACCEPT_EULA=Y
+<<<<<<< HEAD
       - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD:-Password123!}
       - MSSQL_PID=Developer
+=======
+      - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD}
+      - MSSQL_PID=Express
+>>>>>>> development
     ports:
-      - "1433:1433"
+      - "1434:1433"
     volumes:
       - sql_data:/var/opt/mssql
       - ./scripts/sqlserver:/scripts
+    entrypoint: /bin/bash /scripts/entrypoint.sh
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       - sigd_network
+    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
@@ -34,29 +44,39 @@ services:
       - ./scripts/postgres:/docker-entrypoint-initdb.d
     networks:
       - sigd_network
+    restart: unless-stopped
 
   mongodb:
     image: mongo:7.0
     container_name: sigd_mongodb
     environment:
+<<<<<<< HEAD
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-root}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-rootpassword}
+=======
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=sigd_busqueda
+>>>>>>> development
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+      - ./scripts/mongo:/docker-entrypoint-initdb.d:ro
     networks:
       - sigd_network
+    restart: unless-stopped
 
   # ==========================================
-  # APLICACIONES (MICROSERVICIOS)
+  # APLICACIONES (MICROSERVICIOS) - PRODUCCIÓN
   # ==========================================
 
+  # ------------------------------------------
+  # 1. MÓDULO CENTRAL (.NET)
+  # ------------------------------------------
   modulo_central:
     build:
-      # 1. El contexto es la carpeta de la Solución (un nivel arriba)
       context: "./src/ModuloCentral/Gestion de Documentos"
-      # 2. Le decimos a Docker exactamente dónde está escondido el Dockerfile
       dockerfile: "Gestion de Documentos/Dockerfile"
       args:
         BUILD_CONFIGURATION: Release
@@ -64,12 +84,29 @@ services:
     ports:
       - "5000:8080"
     depends_on:
-      - sqlserver
+      sqlserver:
+        condition: service_healthy
+      modulo_reportes:
+        condition: service_started
     environment:
+<<<<<<< HEAD
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE:-sigd_db};User Id=${APP_DB_USER:-sa};Password=${APP_DB_PASSWORD:-Password123!};TrustServerCertificate=True;
+=======
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
+      - ReportesModule__BaseUrl=http://modulo_reportes
+      - BusquedaModule__BaseUrl=http://modulo_busqueda:3000
+      - ReportesModule__SyncApiKey=${SYNC_API_KEY}
+      - ReportesModule__TimeoutSeconds=10
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/sigd_busqueda?authSource=admin
+      - MONGO_DB_NAME=sigd_busqueda
+>>>>>>> development
     networks:
       - sigd_network
+    restart: unless-stopped
 
+  # ------------------------------------------
+  # 2. MÓDULO DE REPORTES (PHP)
+  # ------------------------------------------
   modulo_reportes:
     build:
       context: ./src/ModuloReportes
@@ -81,24 +118,49 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
+<<<<<<< HEAD
       - DB_USER=${PG_USER:-postgres}
       - DB_PASS=${PG_PASSWORD:-postgres}
       - DB_NAME=${PG_DATABASE:-sigd_db}
+=======
+      - DB_USER=${PG_USER}
+      - DB_PASS=${PG_PASSWORD}
+      - DB_NAME=${PG_DATABASE}
+      - SYNC_API_KEY=${SYNC_API_KEY}
+>>>>>>> development
     networks:
       - sigd_network
+    restart: unless-stopped
 
+  # ------------------------------------------
+  # 3. MÓDULO DE BÚSQUEDA (Node.js / TypeScript)
+  # ------------------------------------------
   modulo_busqueda:
     build:
       context: ./src/ModuloBusqueda
+      dockerfile: Dockerfile
+      target: production
     container_name: app_busqueda_node
     ports:
       - "3000:3000"
     depends_on:
       - mongodb
     environment:
+<<<<<<< HEAD
       - MONGO_URI=mongodb://${MONGO_USERNAME:-root}:${MONGO_PASSWORD:-rootpassword}@mongodb:27017/?authSource=admin
+=======
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/sigd_busqueda?authSource=admin
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/docs"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+>>>>>>> development
     networks:
       - sigd_network
+    restart: unless-stopped
 
 # ==========================================
 # VOLÚMENES Y REDES

@@ -1,0 +1,74 @@
+@model List<Permiso>
+@{
+    ViewData["Title"] = "Gestionar Permisos";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold" style="color: var(--jewel-amethyst);">
+                        <i class="fas fa-lock"></i> Gestión de Permisos
+                    </h2>
+                </div>
+                <a asp-action="CrearPermiso" class="btn btn-jewel-primary">
+                    <i class="fas fa-plus"></i> Nuevo Permiso
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-jewel">
+                <div class="card-body">
+                    @if (Model.Count == 0)
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No hay permisos registrados.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead style="background-color: var(--jewel-amethyst); color: white;">
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Descripción</th>
+                                        <th>Módulo</th>
+                                        <th>Fecha Creación</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var permiso in Model)
+                                    {
+                                        <tr>
+                                            <td><code>@permiso.Codigo</code></td>
+                                            <td>@permiso.Descripcion</td>
+                                            <td><span class="badge bg-light text-dark">@permiso.Modulo</span></td>
+                                            <td>@permiso.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <a asp-action="EditarPermiso" asp-route-id="@permiso.Id" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-edit"></i> Editar
+                                                </a>
+                                                <form asp-action="EliminarPermiso" method="post" style="display: inline;">
+                                                    <input type="hidden" name="id" value="@permiso.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro?');">
+                                                        <i class="fas fa-trash"></i> Eliminar
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

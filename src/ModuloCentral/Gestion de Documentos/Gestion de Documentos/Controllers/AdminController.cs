@@ -166,8 +166,15 @@ namespace Gestion_de_Documentos.Controllers
         #region ROLES
         public async Task<IActionResult> Roles()
         {
+<<<<<<< HEAD
             var roles = await _context.Rols
                 .Where(r => r.Estatus == true)
+=======
+            // Mostrar solo roles activos, excluir roles de sistema restringidos
+            var roles = await _context.Rols
+                .Where(r => r.Estatus == true
+                         && r.Nombre != "Super Administrador")
+>>>>>>> development
                 .ToListAsync();
             return View(roles);
         }
@@ -249,16 +256,37 @@ namespace Gestion_de_Documentos.Controllers
             return View(rol);
         }
 
+<<<<<<< HEAD
+=======
+        // Roles que no pueden eliminarse (sistema)
+        private static readonly HashSet<string> RolesSistema = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Administrador", "Auditor", "Usuario", "Super Administrador", "Superior"
+        };
+
+>>>>>>> development
         [HttpPost]
         public async Task<IActionResult> EliminarRol(int id)
         {
             var rol = await _context.Rols.FindAsync(id);
             if (rol != null)
             {
+<<<<<<< HEAD
+=======
+                if (RolesSistema.Contains(rol.Nombre))
+                {
+                    TempData["Error"] = $"El rol '{rol.Nombre}' es un rol del sistema y no puede ser eliminado.";
+                    return RedirectToAction("Roles");
+                }
+>>>>>>> development
                 rol.Estatus = false;
                 rol.FechaEliminacion = DateTime.Now;
                 rol.IdUsuarioEliminacion = GetCurrentUserId();
                 await _context.SaveChangesAsync();
+<<<<<<< HEAD
+=======
+                TempData["Exito"] = $"Rol '{rol.Nombre}' eliminado correctamente.";
+>>>>>>> development
             }
             return RedirectToAction("Roles");
         }
@@ -456,7 +484,11 @@ namespace Gestion_de_Documentos.Controllers
         {
             var empresaId = GetCurrentUserEmpresaId();
             var usuario = await _context.Usuarios
+<<<<<<< HEAD
                 .Include(u => u.UsuarioRols)
+=======
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
+>>>>>>> development
                 .ThenInclude(ur => ur.IdRolNavigation)
                 .FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
 
@@ -471,7 +503,11 @@ namespace Gestion_de_Documentos.Controllers
             {
                 Usuario = usuario,
                 RolesDisponibles = rolesDisponibles,
+<<<<<<< HEAD
                 RolesAsignados = usuario.UsuarioRols
+=======
+                RolesAsignados = usuario.UsuarioRolIdUsuarioNavigations
+>>>>>>> development
                     .Where(ur => ur.Estatus == true)
                     .Select(ur => ur.IdRol)
                     .ToList()
@@ -485,14 +521,22 @@ namespace Gestion_de_Documentos.Controllers
         {
             var empresaId = GetCurrentUserEmpresaId();
             var usuario = await _context.Usuarios
+<<<<<<< HEAD
                 .Include(u => u.UsuarioRols)
+=======
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
+>>>>>>> development
                 .FirstOrDefaultAsync(u => u.Id == idUsuario && u.IdEmpresa == empresaId);
 
             if (usuario == null)
                 return NotFound();
 
             // Eliminar roles anteriores
+<<<<<<< HEAD
             var rolesActuales = usuario.UsuarioRols.Where(ur => ur.Estatus == true).ToList();
+=======
+            var rolesActuales = usuario.UsuarioRolIdUsuarioNavigations.Where(ur => ur.Estatus == true).ToList();
+>>>>>>> development
             foreach (var rol in rolesActuales)
             {
                 rol.Estatus = false;

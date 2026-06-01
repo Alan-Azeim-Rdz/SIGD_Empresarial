@@ -20,9 +20,20 @@
                         <i class="fas fa-users"></i> Gestión de Usuarios
                     </h2>
                 </div>
+<<<<<<< HEAD
                 <a asp-controller="Auth" asp-action="Registro" class="btn btn-jewel-primary">
                     <i class="fas fa-plus"></i> Nuevo Usuario
                 </a>
+=======
+                <div class="d-flex gap-2">
+                    <a asp-controller="Auth" asp-action="UsuariosEliminados" class="btn btn-outline-danger">
+                        <i class="fas fa-user-slash"></i> Ver Inactivos
+                    </a>
+                    <a asp-controller="Auth" asp-action="Registro" class="btn btn-jewel-primary">
+                        <i class="fas fa-plus"></i> Nuevo Usuario
+                    </a>
+                </div>
+>>>>>>> development
             </div>
         </div>
     </div>
@@ -65,6 +76,7 @@
                                             </td>
                                             <td>@usuario.Nombre @usuario.ApellidoP</td>
                                             <td>
+<<<<<<< HEAD
                                                 @{
                                                     var dpto = ViewBag.Departamentos as List<Departamento>;
                                                     if (dpto != null)
@@ -75,6 +87,15 @@
                                                             <span class="badge bg-light text-dark">@dept.Nombre</span>
                                                         }
                                                     }
+=======
+                                                @if (usuario.IdDepartamentoNavigation != null)
+                                                {
+                                                    <span class="badge bg-light text-dark">@usuario.IdDepartamentoNavigation.Nombre</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light text-dark">Sin departamento</span>
+>>>>>>> development
                                                 }
                                             </td>
                                             <td>

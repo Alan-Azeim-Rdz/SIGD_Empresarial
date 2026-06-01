@@ -15,6 +15,12 @@ public partial class Documento
 
     public string Titulo { get; set; } = null!;
 
+    public int? IdEmpresa { get; set; }
+
+    public string? CamposPersonalizadosValores { get; set; }
+
+    public virtual Empresa? IdEmpresaNavigation { get; set; }
+
     public int IdDepartamento { get; set; }
 
     public string EstadoActual { get; set; } = null!;

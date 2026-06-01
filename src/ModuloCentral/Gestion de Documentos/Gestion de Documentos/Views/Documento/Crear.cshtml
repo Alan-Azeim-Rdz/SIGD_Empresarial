@@ -1,0 +1,111 @@
+@model Gestion_de_Documentos.Models.Documento
+
+@{
+    ViewData["Title"] = "Crear Documento";
+}
+
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white">
+        <h3 class="mb-0 text-dark">Subir Nuevo Documento (PDF)</h3>
+    </div>
+    <div class="card-body">
+        <form asp-action="Crear" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="CodigoInterno" class="form-label fw-bold">Código Interno</label>
+                    <input asp-for="CodigoInterno" class="form-control" placeholder="Ej. PROC-ADM-001" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Titulo" class="form-label fw-bold">Título del Documento</label>
+                    <input asp-for="Titulo" class="form-control" required />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="IdTipoDocumento" class="form-label fw-bold">Tipo de Documento</label>
+                    <select asp-for="IdTipoDocumento" class="form-select" required>
+                        <option value="">Seleccione...</option>
+                        @foreach(var tipo in ViewBag.TiposDocumento)
+                        {
+                            <option value="@tipo.Id">@tipo.Nombre (@tipo.Abreviatura)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="IdDepartamento" class="form-label fw-bold">Departamento Propietario</label>
+                    <select asp-for="IdDepartamento" class="form-select" required>
+                        <option value="">Seleccione...</option>
+                        @foreach(var depto in ViewBag.Departamentos)
+                        {
+                            <option value="@depto.Id">@depto.Nombre</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            @if (ViewBag.CamposPersonalizados != null && !string.IsNullOrEmpty(ViewBag.CamposPersonalizados as string))
+            {
+                <div class="card bg-light mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-light border-0 pb-0">
+                        <h5 class="text-jewel-sapphire mb-0 fw-bold"><i class="fas fa-sliders-h"></i> Campos Personalizados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @using System.Text.Json
+                            @{
+                                var jsonStr = ViewBag.CamposPersonalizados as string;
+                                try
+                                {
+                                    using var docJson = JsonDocument.Parse(jsonStr);
+                                    foreach (var campo in docJson.RootElement.EnumerateArray())
+                                    {
+                                        var nombre = campo.GetProperty("Nombre").GetString() ?? "";
+                                        var tipo = campo.GetProperty("Tipo").GetString() ?? "Texto";
+                                        var requerido = campo.GetProperty("Requerido").GetBoolean();
+                                        
+                                        var inputType = "text";
+                                        if (tipo == "Numero") inputType = "number";
+                                        else if (tipo == "Fecha") inputType = "date";
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">@nombre @(requerido ? "*" : "")</label>
+                                            @if (tipo == "Booleano")
+                                            {
+                                                <div class="form-check form-switch mt-2">
+                                                    <input type="checkbox" name="CP_@nombre" value="true" class="form-check-input" id="CP_@nombre" />
+                                                    <label class="form-check-label text-muted" for="CP_@nombre">Sí / No</label>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <input type="@inputType" name="CP_@nombre" class="form-control" placeholder="Ingrese @nombre" @(requerido ? "required" : "") />
+                                            }
+                                        </div>
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    <div class="col-12 text-danger">Error al cargar la definición de campos personalizados.</div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">Archivo Físico (Solo PDF)</label>
+                <input type="file" name="archivoPdf" class="form-control" accept=".pdf,application/pdf" required />
+                <small class="text-muted">El archivo se guardará automáticamente en MongoDB GridFS garantizando su integridad y estandarización.</small>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-jewel-primary">Guardar como Borrador</button>
+            </div>
+        </form>
+    </div>
+</div>

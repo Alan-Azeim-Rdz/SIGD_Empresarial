@@ -1,10 +1,13 @@
-﻿@model Gestion_de_Documentos.Models.Usuario
+@model Gestion_de_Documentos.Models.Usuario
+@using Gestion_de_Documentos.Models
 @{
     ViewData["Title"] = "Alta de Usuario";
+    var departamentos = ViewBag.Departamentos as List<Departamento> ?? new List<Departamento>();
+    var roles = ViewBag.Roles as List<Rol> ?? new List<Rol>();
 }
 
 <div class="row justify-content-center mt-4">
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="card card-jewel">
             <div class="card-body p-4">
                 <h3 class="fw-bold mb-4" style="color: var(--jewel-amethyst);">
@@ -21,45 +24,122 @@
                 }
 
                 <form asp-action="Registro" method="post">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Nombre de Usuario</label>
-                            <input asp-for="Nombre" class="form-control" required autocomplete="off" />
-                            <span asp-validation-for="Nombre" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Correo Electrónico</label>
-                            <input asp-for="Correo" type="email" class="form-control" required />
-                            <span asp-validation-for="Correo" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Apellido Paterno</label>
-                            <input asp-for="ApellidoP" class="form-control" required />
-                            <span asp-validation-for="ApellidoP" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Apellido Materno</label>
-                            <input asp-for="ApellidoM" class="form-control" />
-                            <span asp-validation-for="ApellidoM" class="text-danger"></span>
-                        </div>
-                    </div>
-
+                    <!-- Datos Personales -->
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Contraseña Temporal</label>
-                        <input asp-for="Contrasena" type="password" class="form-control" required />
-                        <small class="text-muted">El usuario deberá cambiarla en su primer acceso.</small>
-                        <span asp-validation-for="Contrasena" class="text-danger"></span>
+                        <h5 style="color: var(--jewel-amethyst);" class="fw-bold mb-3">Datos Personales</h5>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                                <input asp-for="Nombre" class="form-control" required autocomplete="off" placeholder="Juan" />
+                                <span asp-validation-for="Nombre" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Apellido Paterno <span class="text-danger">*</span></label>
+                                <input asp-for="ApellidoP" class="form-control" required placeholder="García" />
+                                <span asp-validation-for="ApellidoP" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Apellido Materno</label>
+                                <input asp-for="ApellidoM" class="form-control" placeholder="López" />
+                                <span asp-validation-for="ApellidoM" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Correo Electrónico <span class="text-danger">*</span></label>
+                                <input asp-for="Correo" type="email" class="form-control" required placeholder="usuario@empresa.com" />
+                                <span asp-validation-for="Correo" class="text-danger"></span>
+                            </div>
+                        </div>
                     </div>
 
+                    <hr class="my-4" />
+
+                    <!-- Datos de la Organización -->
+                    <div class="mb-4">
+                        <h5 style="color: var(--jewel-amethyst);" class="fw-bold mb-3">Datos de la Organización</h5>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Departamento <span class="text-danger">*</span></label>
+                                <select asp-for="IdDepartamento" class="form-select" required>
+                                    <option value="">-- Seleccionar Departamento --</option>
+                                    @foreach (var dept in departamentos)
+                                    {
+                                        <option value="@dept.Id">@dept.Nombre</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="IdDepartamento" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Rol <span class="text-danger">*</span></label>
+                                <select name="idRol" class="form-select" required>
+                                    <option value="">-- Seleccionar Rol --</option>
+                                    @foreach (var rol in roles)
+                                    {
+                                        <option value="@rol.Id">@rol.Nombre</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Estatus <span class="text-danger">*</span></label>
+                                <select class="form-select" required disabled>
+                                    <option value="true" selected>Activo</option>
+                                </select>
+                                <small class="text-muted">El usuario se creará con estatus "Activo".</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Datos de Acceso -->
+                    <div class="mb-4">
+                        <h5 style="color: var(--jewel-amethyst);" class="fw-bold mb-3">Datos de Acceso</h5>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Contraseña Temporal <span class="text-danger">*</span></label>
+                            <input asp-for="Contrasena" type="password" class="form-control" required autocomplete="new-password" placeholder="••••••••" />
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle"></i> 
+                                El usuario <strong>deberá obligatoriamente cambiar esta contraseña en su primer acceso</strong>.
+                            </small>
+                            <span asp-validation-for="Contrasena" class="text-danger"></span>
+                        </div>
+
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-shield-alt"></i> 
+                            <strong>Requerimientos de la contraseña:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Mínimo 8 caracteres</li>
+                                <li>Contener letras mayúsculas y minúsculas</li>
+                                <li>Contener números</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Botones -->
                     <div class="d-flex justify-content-end mt-4">
-                        <a asp-controller="Home" asp-action="Index" class="btn btn-light me-2">Cancelar</a>
-                        <button type="submit" class="btn btn-jewel-primary">Registrar Usuario</button>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-light me-2">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-jewel-primary">
+                            <i class="fas fa-user-plus"></i> Registrar Usuario
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

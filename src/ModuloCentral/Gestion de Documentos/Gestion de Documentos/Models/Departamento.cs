@@ -11,6 +11,10 @@ public partial class Departamento
 
     public string Nombre { get; set; } = null!;
 
+    public int? IdEmpresa { get; set; }
+
+    public virtual Empresa? IdEmpresaNavigation { get; set; }
+
     public string Abreviatura { get; set; } = null!;
 
     public int? IdUsuarioCreacion { get; set; }

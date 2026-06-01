@@ -1,0 +1,58 @@
+@model Gestion_de_Documentos.Models.Documento
+
+@{
+    ViewData["Title"] = "Subir Nueva Versión";
+    var ultimaVersion = Model.DocumentoVersions?.OrderByDescending(v => v.NumeroVersion).ThenByDescending(v => v.VersionMinor).FirstOrDefault();
+    var versionActualMajor = ultimaVersion?.NumeroVersion ?? 0;
+    var versionActualMinor = ultimaVersion?.VersionMinor ?? 1;
+    var versionActualStr = $"{versionActualMajor}.{versionActualMinor}";
+    
+    var nuevaVersionMajor = versionActualMajor;
+    var nuevaVersionMinor = 1;
+    if (Model.EstadoActual == "Vigente")
+    {
+        nuevaVersionMinor = 1;
+    }
+    else
+    {
+        nuevaVersionMinor = versionActualMinor + 1;
+    }
+    var nuevaVersionStr = $"{nuevaVersionMajor}.{nuevaVersionMinor}";
+}
+
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white">
+        <h3 class="mb-0 text-dark">Subir Nueva Versión de Documento</h3>
+        <p class="text-muted mb-0">Estás por subir la <strong>Versión @nuevaVersionStr</strong> de "@Model.Titulo"</p>
+    </div>
+    <div class="card-body">
+        <form asp-action="SubirNuevaVersion" method="post" enctype="multipart/form-data">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> La versión anterior (V@(versionActualStr)) quedará en el historial. Esta nueva versión reemplazará al archivo físico vigente.
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    <i class="fas fa-comment-alt me-1"></i>Motivo del Cambio
+                </label>
+                <textarea name="motivoCambio" class="form-control" rows="3"
+                    placeholder="Ej: Corrección de procedimiento en sección 3, actualización de norma ISO..."></textarea>
+                <small class="text-muted">Opcional pero recomendado para trazabilidad.</small>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold">
+                    <i class="fas fa-file-pdf me-1"></i>Archivo Físico Nuevo (Solo PDF)
+                </label>
+                <input type="file" name="archivoPdf" class="form-control" accept=".pdf,application/pdf" required />
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-success"><i class="fas fa-upload"></i> Subir Versión @nuevaVersionStr</button>
+            </div>
+        </form>
+    </div>
+</div>

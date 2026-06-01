@@ -2,11 +2,13 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    // "rootDir": "./src",
+    "rootDir": "./",
     "outDir": "./dist",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
     "target": "esnext",
     "types": [
       "node"
@@ -31,11 +33,22 @@
     // "noPropertyAccessFromIndexSignature": true,
     // Recommended Options
     "strict": true,
-    "jsx": "react-jsx",
+    "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": false,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
+<<<<<<< HEAD
     "skipLibCheck": true
   },
+=======
+    "skipLibCheck": true,
+    "ignoreDeprecations": "5.0"
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "__tests__"
+  ]
+>>>>>>> development
 }

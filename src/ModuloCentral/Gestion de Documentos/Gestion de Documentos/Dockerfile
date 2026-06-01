@@ -16,14 +16,18 @@ COPY ["Gestion de Documentos/Gestion de Documentos.csproj", "Gestion de Document
 RUN dotnet restore "./Gestion de Documentos/Gestion de Documentos.csproj"
 COPY . .
 WORKDIR "/src/Gestion de Documentos"
-RUN dotnet build "./Gestion de Documentos.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# Esta fase se usa para publicar el proyecto de servicio que se copiará en la fase final.
+# --- NUEVA ETAPA: DESARROLLO (Aquí ocurre la magia) ---
+FROM build AS development
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1
+ENV ASPNETCORE_ENVIRONMENT=Development
+ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://+:8080", "--no-launch-profile"]
+
+# --- ETAPAS ORIGINALES (Para Producción) ---
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./Gestion de Documentos.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-# Esta fase se usa en producción o cuando se ejecuta desde VS en modo normal (valor predeterminado cuando no se usa la configuración de depuración)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
