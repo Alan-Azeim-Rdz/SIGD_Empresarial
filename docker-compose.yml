@@ -10,7 +10,7 @@ services:
     container_name: sigd_sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD}
+      - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD:-Password123!}
       - MSSQL_PID=Developer
     ports:
       - "1433:1433"
@@ -24,9 +24,9 @@ services:
     image: postgres:16-alpine
     container_name: sigd_postgres
     environment:
-      - POSTGRES_USER=${PG_USER}
-      - POSTGRES_PASSWORD=${PG_PASSWORD}
-      - POSTGRES_DB=${PG_DATABASE}
+      - POSTGRES_USER=${PG_USER:-postgres}
+      - POSTGRES_PASSWORD=${PG_PASSWORD:-postgres}
+      - POSTGRES_DB=${PG_DATABASE:-sigd_db}
     ports:
       - "5432:5432"
     volumes:
@@ -39,8 +39,8 @@ services:
     image: mongo:7.0
     container_name: sigd_mongodb
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-root}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-rootpassword}
     ports:
       - "27017:27017"
     volumes:
@@ -58,13 +58,15 @@ services:
       context: "./src/ModuloCentral/Gestion de Documentos"
       # 2. Le decimos a Docker exactamente dónde está escondido el Dockerfile
       dockerfile: "Gestion de Documentos/Dockerfile"
+      args:
+        BUILD_CONFIGURATION: Release
     container_name: app_central_dotnet
     ports:
       - "5000:8080"
     depends_on:
       - sqlserver
     environment:
-      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE};User Id=${APP_DB_USER};Password=${APP_DB_PASSWORD};TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=${SQL_DATABASE:-sigd_db};User Id=${APP_DB_USER:-sa};Password=${APP_DB_PASSWORD:-Password123!};TrustServerCertificate=True;
     networks:
       - sigd_network
 
@@ -79,9 +81,9 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${PG_USER}
-      - DB_PASS=${PG_PASSWORD}
-      - DB_NAME=${PG_DATABASE}
+      - DB_USER=${PG_USER:-postgres}
+      - DB_PASS=${PG_PASSWORD:-postgres}
+      - DB_NAME=${PG_DATABASE:-sigd_db}
     networks:
       - sigd_network
 
@@ -94,7 +96,7 @@ services:
     depends_on:
       - mongodb
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_USERNAME:-root}:${MONGO_PASSWORD:-rootpassword}@mongodb:27017/?authSource=admin
     networks:
       - sigd_network
 
