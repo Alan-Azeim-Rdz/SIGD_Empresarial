@@ -1,0 +1,140 @@
+@model Gestion_de_Documentos.Models.Documento
+
+@{
+    ViewData["Title"] = "Detalle del Documento";
+}
+
+<div class="card card-jewel mt-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h3 class="mb-0 text-dark">Detalle: @Model.Titulo</h3>
+        <span class="badge bg-secondary p-2">Estado: @Model.EstadoActual</span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>Código Interno:</strong> @Model.CodigoInterno</li>
+                    <li class="list-group-item"><strong>Tipo:</strong> @Model.IdTipoDocumentoNavigation?.Nombre</li>
+                    <li class="list-group-item"><strong>Departamento:</strong> @Model.IdDepartamentoNavigation?.Nombre</li>
+                    <li class="list-group-item"><strong>Fecha de Creación:</strong> @Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</li>
+                    @using System.Text.Json
+                    @if (!string.IsNullOrEmpty(Model.CamposPersonalizadosValores))
+                    {
+                        try
+                        {
+                            var valoresDict = JsonSerializer.Deserialize<Dictionary<string, string>>(Model.CamposPersonalizadosValores);
+                            if (valoresDict != null && valoresDict.Any())
+                            {
+                                <li class="list-group-item bg-light mt-2 fw-bold text-jewel-sapphire"><i class="fas fa-info-circle"></i> Datos Especiales</li>
+                                foreach (var kvp in valoresDict)
+                                {
+                                    var mostrarValor = kvp.Value;
+                                    if (mostrarValor == "true") mostrarValor = "Sí";
+                                    else if (mostrarValor == "false") mostrarValor = "No";
+                                    
+                                    <li class="list-group-item"><strong>@kvp.Key:</strong> @mostrarValor</li>
+                                }
+                            }
+                        }
+                        catch (Exception) {}
+                    }
+                </ul>
+            </div>
+            <div class="col-md-6 text-center mt-4">
+                @if (Model.EstadoActual == "Borrador")
+                {
+                    <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                        <i class="fas fa-edit"></i> Editar Metadatos
+                    </a>
+                    <a asp-action="SubirNuevaVersion" asp-route-id="@Model.Id" class="btn btn-outline-success btn-lg w-100 mb-2">
+                        <i class="fas fa-file-upload"></i> Subir Nueva Versión
+                    </a>
+                    <a asp-controller="Flujo" asp-action="EnviarARevision" asp-route-idDocumento="@Model.Id" class="btn btn-warning text-dark btn-lg w-100 mb-2">
+                        <i class="fas fa-paper-plane"></i> Asignar a Revisión
+                    </a>
+                }
+                <a asp-action="Historial" asp-route-id="@Model.Id" class="btn btn-outline-info w-100 mb-2">
+                    <i class="fas fa-history"></i> Ver Historial Completo
+                </a>
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-arrow-left"></i> Volver a Mis Documentos
+                </a>
+            </div>
+        </div>
+
+        <h4 class="mt-5 mb-3 text-jewel-sapphire">Historial de Versiones</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Versión</th>
+                        <th>Fecha Subida</th>
+                        <th>Hash (SHA-256)</th>
+                        <th>Almacenamiento (GridFS ID)</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(var version in Model.DocumentoVersions)
+                    {
+                        <tr>
+                            <td>V@(version.NumeroVersion)</td>
+                            <td>@version.FechaSubida?.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td><small class="text-muted">@version.HashDocumento</small></td>
+                            <td><small>@version.RutaArchivoFisico</small></td>
+                            <td>
+                                <a asp-action="Descargar" asp-route-versionId="@version.Id" class="btn btn-sm btn-jewel-primary">Descargar PDF</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h4 class="mt-5 mb-3 text-jewel-sapphire">Historial de Aprobaciones</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Acción</th>
+                        <th>Revisor</th>
+                        <th>Estado Firma</th>
+                        <th>Comentarios</th>
+                        <th>Fecha</th>
+                        <th>Origen (IP)</th>
+                        <th>Deshacer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var version in Model.DocumentoVersions)
+                    {
+                        foreach(var flujo in version.FlujoAprobacions.OrderBy(f => f.FechaCreacion))
+                        {
+                            <tr>
+                                <td>@flujo.TipoAccion (V@(version.NumeroVersion).@version.VersionMinor)</td>
+                                <td>@flujo.IdUsuarioAsignadoNavigation?.Nombre @flujo.IdUsuarioAsignadoNavigation?.ApellidoP</td>
+                                <td>
+                                    @if(flujo.EstadoFirma == "Firmado") { <span class="badge bg-success">Aprobado</span> }
+                                    else if(flujo.EstadoFirma == "Rechazado") { <span class="badge bg-danger">Rechazado</span> }
+                                    else { <span class="badge bg-warning text-dark">Pendiente</span> }
+                                </td>
+                                <td><small>@flujo.Comentarios</small></td>
+                                <td>@flujo.FechaModificacion?.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><small>@flujo.IpOrigenFirmante</small></td>
+                                <td>
+                                    @if(flujo.EstadoFirma != "Pendiente" && Model.EstadoActual != "Vigente")
+                                    {
+                                        <form asp-controller="Flujo" asp-action="DeshacerRespuesta" method="post" style="display:inline;">
+                                            <input type="hidden" name="idFlujo" value="@flujo.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Deshacer decisión"><i class="fas fa-undo"></i></button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

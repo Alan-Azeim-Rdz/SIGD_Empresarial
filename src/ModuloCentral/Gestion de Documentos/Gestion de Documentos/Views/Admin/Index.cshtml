@@ -1,0 +1,130 @@
+@model AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Panel de Administración";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold" style="color: var(--jewel-amethyst);">
+                <i class="fas fa-cogs"></i> Panel de Administración
+            </h2>
+            <p class="text-muted">Gestiona todos los aspectos del sistema</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card border-start border-5" style="border-color: var(--jewel-amethyst) !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Usuarios Activos</h6>
+                            <h3 class="fw-bold">@Model.TotalUsuarios</h3>
+                        </div>
+                        <i class="fas fa-users fa-3x" style="color: var(--jewel-amethyst); opacity: 0.2;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card border-start border-5" style="border-color: #FF6B6B !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Roles Disponibles</h6>
+                            <h3 class="fw-bold">@Model.TotalRoles</h3>
+                        </div>
+                        <i class="fas fa-shield-alt fa-3x" style="color: #FF6B6B; opacity: 0.2;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card border-start border-5" style="border-color: #4ECDC4 !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Departamentos</h6>
+                            <h3 class="fw-bold">@Model.TotalDepartamentos</h3>
+                        </div>
+                        <i class="fas fa-building fa-3x" style="color: #4ECDC4; opacity: 0.2;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card border-start border-5" style="border-color: #FFD93D !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Tipos de Documento</h6>
+                            <h3 class="fw-bold">@Model.TotalTiposDocumento</h3>
+                        </div>
+                        <i class="fas fa-file-alt fa-3x" style="color: #FFD93D; opacity: 0.2;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+            <div class="card card-jewel h-100">
+                <div class="card-header" style="background-color: var(--jewel-amethyst); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a asp-action="Departamentos" class="list-group-item list-group-item-action">
+                            <i class="fas fa-building me-2"></i> Gestionar Departamentos
+                        </a>
+                        <a asp-action="Roles" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shield-alt me-2"></i> Gestionar Roles
+                        </a>
+                        <a asp-action="Permisos" class="list-group-item list-group-item-action">
+                            <i class="fas fa-lock me-2"></i> Gestionar Permisos
+                        </a>
+                        <a asp-action="TiposDocumento" class="list-group-item list-group-item-action">
+                            <i class="fas fa-file-alt me-2"></i> Gestionar Tipos de Documento
+                        </a>
+                        <a asp-action="CamposPersonalizados" class="list-group-item list-group-item-action">
+                            <i class="fas fa-sliders-h me-2"></i> Configurar Campos Personalizados
+                        </a>
+                        <form asp-action="SincronizarBasesDeDatos" method="post" class="m-0 p-0">
+                            <button type="submit" class="list-group-item list-group-item-action text-start w-100 border-0" onclick="return confirm('¿Está seguro de querer sincronizar todos los documentos vigentes hacia Búsqueda y Reportes?');">
+                                <i class="fas fa-sync-alt me-2 text-primary"></i> Sincronizar Bases de Datos
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card card-jewel h-100">
+                <div class="card-header" style="background-color: var(--jewel-amethyst); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Información</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <h6 class="alert-heading"><i class="fas fa-lightbulb"></i> Administración del Sistema</h6>
+                        <p class="mb-0">
+                            Desde este panel puedes gestionar todos los elementos del sistema:
+                        </p>
+                        <ul class="mt-2 mb-0">
+                            <li><strong>Departamentos:</strong> Crea y organiza los departamentos de tu organización</li>
+                            <li><strong>Roles:</strong> Define los roles disponibles para los usuarios</li>
+                            <li><strong>Permisos:</strong> Establece los permisos específicos por módulo</li>
+                            <li><strong>Tipos de Documento:</strong> Configura los tipos de documentos del sistema</li>
+                            <li><strong>Campos Personalizados:</strong> Define campos adicionales específicos de tu empresa</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
