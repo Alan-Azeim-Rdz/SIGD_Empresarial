@@ -1,4 +1,5 @@
 using Gestion_de_Documentos.Models;
+using Gestion_de_Documentos.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -6,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<IMongoGridFsService, MongoGridFsService>();
 
 // Add DbContext with connection string from configuration
 builder.Services.AddDbContext<DirContext>(options =>
