@@ -39,10 +39,17 @@ namespace Gestion_de_Documentos.Services
             await EnviarPayloadAsync("/indexar", payload);
         }
 
-        public async Task SincronizarTodosAsync(int idUsuarioCreacion)
+        public async Task SincronizarTodosAsync(int idUsuarioCreacion, int? idEmpresa = null)
         {
-            var documentosVigentes = await _context.Documentos
-                .Where(d => d.Estatus == true && d.EstadoActual == "Vigente")
+            var query = _context.Documentos
+                .Where(d => d.Estatus == true && d.EstadoActual == "Vigente");
+
+            if (idEmpresa.HasValue)
+            {
+                query = query.Where(d => d.IdEmpresa == idEmpresa.Value);
+            }
+
+            var documentosVigentes = await query
                 .Select(d => d.Id)
                 .ToListAsync();
 
@@ -74,7 +81,6 @@ namespace Gestion_de_Documentos.Services
             return new
             {
                 id_documento_sql = doc.Id,
-                id_empresa = doc.IdEmpresa ?? 0,
                 codigo_interno = doc.CodigoInterno,
                 titulo = doc.Titulo,
                 tags = new string[] { doc.IdTipoDocumentoNavigation?.Nombre ?? "General" },

@@ -1,0 +1,138 @@
+@{
+    var iframeUrl = ViewData["IframeUrl"]?.ToString() ?? "#";
+    var iconClass = ViewData["IconClass"]?.ToString() ?? "fas fa-external-link-alt";
+    var subTitle  = ViewData["SubTitle"]?.ToString() ?? "";
+}
+
+<style>
+    .module-header {
+        background: linear-gradient(135deg, var(--jewel-sapphire) 0%, #2d6a9f 100%);
+        border-radius: .85rem .85rem 0 0;
+        padding: 1.1rem 1.5rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .module-header h1 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .module-header p {
+        font-size: .85rem;
+        opacity: .8;
+        margin: 0;
+    }
+    .module-iframe-wrapper {
+        border: 1px solid rgba(99,102,241,0.15);
+        border-radius: 0 0 .85rem .85rem;
+        overflow: hidden;
+        background: #050816;
+        position: relative;
+    }
+    #module-iframe {
+        width: 100%;
+        min-height: 78vh;
+        border: none;
+        display: block;
+        transition: opacity .3s;
+    }
+    #iframe-overlay {
+        position: absolute;
+        inset: 0;
+        background: #050816;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        z-index: 10;
+        transition: opacity .4s;
+    }
+    #iframe-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    .module-toolbar {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        background: rgba(255,255,255,.1);
+        border-radius: .5rem;
+        padding: .3rem .6rem;
+    }
+    .module-toolbar a {
+        color: rgba(255,255,255,.85);
+        font-size: .8rem;
+        text-decoration: none;
+        padding: .2rem .6rem;
+        border-radius: .4rem;
+        transition: background .15s;
+    }
+    .module-toolbar a:hover { background: rgba(255,255,255,.18); color: #fff; }
+</style>
+
+<div class="py-3">
+    <div class="module-header">
+        <div>
+            <h1><i class="@iconClass me-2"></i>@ViewData["Title"]</h1>
+            @if (!string.IsNullOrEmpty(subTitle))
+            {
+                <p>@subTitle</p>
+            }
+        </div>
+        <div class="module-toolbar">
+            <a href="javascript:void(0)" id="btn-reload" title="Recargar módulo">
+                <i class="fas fa-sync-alt me-1"></i>Recargar
+            </a>
+            <a href="@iframeUrl" target="_blank" title="Abrir en nueva pestaña (modo alternativo)">
+                <i class="fas fa-external-link-alt me-1"></i>Abrir aparte
+            </a>
+        </div>
+    </div>
+
+    <div class="module-iframe-wrapper">
+        <!-- Overlay de carga -->
+        <div id="iframe-overlay">
+            <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"></div>
+            <p class="text-muted fw-semibold">Cargando módulo…</p>
+        </div>
+
+        <iframe id="module-iframe"
+                src="@iframeUrl"
+                title="@ViewData["Title"]"
+                allowfullscreen
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals">
+        </iframe>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const iframe  = document.getElementById('module-iframe');
+        const overlay = document.getElementById('iframe-overlay');
+        const btnReload = document.getElementById('btn-reload');
+
+        // Ocultar overlay cuando el iframe cargue
+        iframe.addEventListener('load', function () {
+            overlay.classList.add('hidden');
+        });
+
+        // Botón recargar: muestra el overlay y recarga el iframe
+        btnReload.addEventListener('click', function () {
+            overlay.classList.remove('hidden');
+            iframe.src = iframe.src;
+        });
+
+        // Ajustar altura dinámicamente al resize
+        function adjustHeight() {
+            const vh = window.innerHeight;
+            const top = iframe.getBoundingClientRect().top;
+            iframe.style.minHeight = Math.max(500, vh - top - 40) + 'px';
+        }
+        window.addEventListener('resize', adjustHeight);
+        adjustHeight();
+    })();
+</script>

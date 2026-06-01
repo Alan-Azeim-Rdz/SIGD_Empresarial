@@ -1,22 +1,19 @@
 @model Gestion_de_Documentos.Models.Documento
-
 @{
     ViewData["Title"] = "Asignar a Revisión";
 }
-
 <div class="card card-jewel mt-4">
     <div class="card-header bg-white">
         <h3 class="mb-0 text-dark">Enviar Documento a Revisión</h3>
     </div>
     <div class="card-body">
         <div class="alert alert-info">
-            Estás a punto de enviar el documento <strong>@Model.Titulo</strong> a revisión. Una vez enviado, el documento pasará al estado "En Revisión" y no podrás editarlo ni subir nuevas versiones a menos que sea rechazado.
+            Estás a punto de enviar el documento <strong>@Model.Titulo</strong> a revisión.
+            Una vez enviado, no podrás editarlo ni subir nuevas versiones a menos que sea rechazado.
         </div>
-
         <form asp-action="EnviarARevision" method="post">
             <input type="hidden" name="idDocumento" value="@Model.Id" />
-            
-            <div class="mb-4">
+            <div class="mb-3">
                 <label class="form-label fw-bold">Seleccionar Revisor (Aprobador)</label>
                 <select name="idRevisor" class="form-select" required>
                     <option value="">-- Selecciona a un Superior o Administrador --</option>
@@ -25,15 +22,63 @@
                         <option value="@revisor.Id">@revisor.Nombre @revisor.ApellidoP (@revisor.Rol)</option>
                     }
                 </select>
-                <small class="text-muted">Solo se muestran los usuarios que tienen permiso para revisar y aprobar documentos.</small>
+                <small class="text-muted">Solo se muestran usuarios con permiso para aprobar documentos.</small>
             </div>
-
+            <div class="mb-4">
+                <label class="form-label fw-bold">
+                    <i class="fas fa-comment-alt me-1"></i>Contexto o Descripción (Opcional)
+                </label>
+                <textarea name="descripcionEnvio" class="form-control" rows="3"
+                    placeholder="Ej: Este documento fue actualizado según la nueva normativa ISO. Por favor revisar sección 3..."></textarea>
+                <small class="text-muted">Proporciona contexto al revisor para facilitar su evaluación.</small>
+            </div>
             <div class="d-flex justify-content-between">
-                <a asp-controller="Documento" asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-warning text-dark fw-bold">
-                    <i class="fas fa-paper-plane"></i> Enviar a Revisión
+                <a asp-controller="Documento" asp-action="Detalle" asp-route-id="@Model.Id"
+                   class="btn btn-secondary">Cancelar</a>
+                <button type="button" class="btn btn-warning text-dark fw-bold" id="btnEnviarFinal">
+                    <i class="fas fa-paper-plane me-1"></i>Enviar a Revisión
                 </button>
             </div>
         </form>
     </div>
 </div>
+<script>
+document.getElementById('btnEnviarFinal').addEventListener('click', function () {
+    const revisor = document.querySelector('select[name="idRevisor"]').value;
+    if (!revisor) {
+        Swal.fire({
+            title: 'Selecciona un revisor',
+            text: 'Debes seleccionar un revisor antes de continuar.',
+            icon: 'warning',
+            confirmButtonColor: '#6366F1',
+            background: '#0B1120',
+            color: '#F1F5F9'
+        });
+        return;
+    }
+    Swal.fire({
+        title: '¿Confirmar envío a revisión?',
+        html: `
+            <div style="text-align:left; font-size:.9rem; line-height:1.8;">
+                <p>Estás a punto de enviar este documento a revisión.</p>
+                <p style="color:#F59E0B; font-size:.82rem;">
+                    ⚠️ Una vez enviado <strong>no podrás editarlo</strong>
+                    hasta que sea rechazado por el revisor.
+                </p>
+            </div>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-paper-plane me-1"></i> Sí, Enviar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#F59E0B',
+        cancelButtonColor: '#374151',
+        background: '#0B1120',
+        color: '#F1F5F9',
+        backdrop: 'rgba(5,8,22,0.8)'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.querySelector('form').submit();
+        }
+    });
+});
+</script>

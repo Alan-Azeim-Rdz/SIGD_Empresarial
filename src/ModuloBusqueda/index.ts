@@ -13,30 +13,28 @@ import pino from 'pino';
 // ── 1. LOGGER ────────────────────────────────────────
 // Prod (NODE_ENV=production): JSON puro en stdout, 1 línea por entrada.
 // Dev: pino-pretty con colores (instalado en devDependencies).
-const loggerOptions: any = {
-  level: process.env['LOG_LEVEL'] ?? 'info'
-};
-if (process.env['NODE_ENV'] !== 'production') {
-  loggerOptions.transport = { target: 'pino-pretty', options: { colorize: true } };
-}
-export const logger = pino(loggerOptions);
+export const logger = pino({
+  level: process.env['LOG_LEVEL'] ?? 'info',
+  transport: process.env['NODE_ENV'] === 'production'
+    ? undefined
+    : { target: 'pino-pretty', options: { colorize: true } }
+});
 
 // ── 2. CONFIGURACIÓN EXPRESS ──────────────────────────
 export const app = express();
 
-app.use(express.json());
-
-// Middleware para habilitar CORS (Cross-Origin Resource Sharing)
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
-  } else {
-    next();
+    return;
   }
+  next();
 });
+
+app.use(express.json());
 
 // Middleware de log HTTP: registra método, URL, status y latencia
 // de cada petición al terminar la respuesta (evento 'finish').
@@ -57,7 +55,6 @@ app.use((req, res, next) => {
 // Esquema sincronizado con scripts/mongo/init_busqueda.js
 interface IMetadato extends Document {
   id_documento_sql:         number;
-  id_empresa:               number;
   codigo_interno:           string;
   titulo:                   string;
   tags:                     string[];
@@ -75,7 +72,6 @@ interface IMetadato extends Document {
 const MetadatoSchema = new Schema<IMetadato>(
   {
     id_documento_sql:        { type: Number, required: true, unique: true },
-    id_empresa:              { type: Number, required: true },
     codigo_interno:          { type: String, required: true, unique: true },
     titulo:                  { type: String, required: true },
     tags:                    { type: [String], default: [] },
@@ -99,7 +95,7 @@ MetadatoSchema.index(
 );
 
 // Evita error "Cannot overwrite model" cuando Jest reimporta el módulo
-export const Metadato = (mongoose.models['DocumentosMetadata'] as mongoose.Model<IMetadato>) ??
+export const Metadato = (mongoose.models['DocumentosMetadata'] as ReturnType<typeof mongoose.model<IMetadato>>) ??
   mongoose.model<IMetadato>('DocumentosMetadata', MetadatoSchema);
 
 // ── 4. OPENAPI / SWAGGER ──────────────────────────────
@@ -127,10 +123,9 @@ const swaggerSpec = swaggerJsdoc({
       schemas: {
         MetadatoInput: {
           type: 'object',
-          required: ['id_documento_sql', 'id_empresa', 'codigo_interno', 'titulo', 'id_usuario_creacion'],
+          required: ['id_documento_sql', 'codigo_interno', 'titulo', 'id_usuario_creacion'],
           properties: {
             id_documento_sql:    { type: 'integer', example: 11,                              description: 'ID del documento en SQL Server' },
-            id_empresa:          { type: 'integer', example: 1,                               description: 'ID de la empresa (tenant)' },
             codigo_interno:      { type: 'string',  example: 'CAL-MAN-001',                  description: 'Código interno único del documento' },
             titulo:              { type: 'string',  example: 'Manual de Calidad ISO 9001:2015' },
             tags:                { type: 'array', items: { type: 'string' }, example: ['calidad', 'ISO 9001', 'manual', 'SGC'] },
@@ -239,12 +234,12 @@ app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
  */
 app.post('/indexar', async (req: Request, res: Response) => {
   try {
-    const { id_documento_sql, id_empresa, codigo_interno, titulo, tags, version, contenido_extraido, id_usuario_creacion } = req.body;
+    const { id_documento_sql, codigo_interno, titulo, tags, version, contenido_extraido, id_usuario_creacion } = req.body;
 
-    if (!id_documento_sql || !id_empresa || !codigo_interno || !titulo || !id_usuario_creacion) {
+    if (!id_documento_sql || !codigo_interno || !titulo || !id_usuario_creacion) {
       res.status(400).json({
         success: false,
-        mensaje: 'Faltan campos obligatorios: id_documento_sql, id_empresa, codigo_interno, titulo, id_usuario_creacion'
+        mensaje: 'Faltan campos obligatorios: id_documento_sql, codigo_interno, titulo, id_usuario_creacion'
       });
       return;
     }
@@ -272,7 +267,6 @@ app.post('/indexar', async (req: Request, res: Response) => {
 
     const nuevoMetadato = new Metadato({
       id_documento_sql,
-      id_empresa,
       codigo_interno,
       titulo,
       tags:                tags || [],
@@ -366,12 +360,6 @@ export function escapeRegex(text: string): string {
 app.get('/buscar', async (req: Request, res: Response) => {
   try {
     const query = (req.query['q'] as string | undefined)?.trim();
-    const id_empresa = parseInt(req.query['id_empresa'] as string, 10);
-
-    if (!id_empresa) {
-      res.status(400).json({ success: false, mensaje: 'Debes enviar el parámetro id_empresa.' });
-      return;
-    }
 
     if (!query) {
       res.status(400).json({ success: false, mensaje: 'Debes enviar un término de búsqueda. Ejemplo: /buscar?q=calidad' });
@@ -387,7 +375,6 @@ app.get('/buscar', async (req: Request, res: Response) => {
     const regex      = { $regex: safeQuery, $options: 'i' };
     const resultados = await Metadato.find({
       estatus: true,
-      id_empresa,
       $or: [
         { titulo:             regex },
         { tags:               regex },
@@ -453,21 +440,14 @@ app.get('/buscar', async (req: Request, res: Response) => {
  */
 app.get('/documento/:id', async (req: Request, res: Response) => {
   try {
-    const id = req.params['id'] as string;
-    const id_empresa = parseInt(req.query['id_empresa'] as string, 10);
-
-    if (!id_empresa) {
-      res.status(400).json({ success: false, mensaje: 'Debes enviar el parámetro id_empresa.' });
-      return;
-    }
-
+    const { id } = req.params;
     const esNumerico = /^\d+$/.test(id);
 
     const filtro = esNumerico
-      ? { id_documento_sql: parseInt(id, 10), id_empresa, estatus: true }
-      : { codigo_interno: id,                 id_empresa, estatus: true };
+      ? { id_documento_sql: parseInt(id, 10), estatus: true }
+      : { codigo_interno: id,                 estatus: true };
 
-    const documento = await Metadato.findOne(filtro as any);
+    const documento = await Metadato.findOne(filtro);
 
     if (!documento) {
       res.status(404).json({ success: false, mensaje: `No se encontró ningún documento activo con id: ${id}` });

@@ -85,13 +85,19 @@ namespace Gestion_de_Documentos.Services
         /// Envía todos los documentos vigentes (estado "Publicado") en un solo
         /// batch hacia el endpoint sincronizar_batch del Módulo de Reportes.
         /// </summary>
-        public async Task SincronizarTodosAsync(int idUsuarioSolicitante)
+        public async Task SincronizarTodosAsync(int idUsuarioSolicitante, int? idEmpresa = null)
         {
-            var documentos = await _context.Documentos
+            var query = _context.Documentos
                 .Include(d => d.DocumentoVersions)
                 .Include(d => d.IdTipoDocumentoNavigation)
-                .Where(d => d.Estatus == true && d.EstadoActual == "Vigente")
-                .ToListAsync();
+                .Where(d => d.Estatus == true && d.EstadoActual == "Vigente");
+
+            if (idEmpresa.HasValue)
+            {
+                query = query.Where(d => d.IdEmpresa == idEmpresa.Value);
+            }
+
+            var documentos = await query.ToListAsync();
 
             if (documentos.Count == 0)
             {
@@ -165,7 +171,6 @@ namespace Gestion_de_Documentos.Services
             return new DocumentoSyncPayload
             {
                 IdDocumento          = doc.Id,
-                IdEmpresa            = doc.IdEmpresa ?? 0,
                 CodigoInterno        = doc.CodigoInterno,
                 Titulo               = doc.Titulo,
                 IdTipo               = doc.IdTipoDocumento ?? 0,
@@ -274,7 +279,6 @@ namespace Gestion_de_Documentos.Services
     public record DocumentoSyncPayload
     {
         public int    IdDocumento         { get; init; }
-        public int    IdEmpresa           { get; init; }
         public string CodigoInterno       { get; init; } = string.Empty;
         public string Titulo              { get; init; } = string.Empty;
         public int    IdTipo              { get; init; }

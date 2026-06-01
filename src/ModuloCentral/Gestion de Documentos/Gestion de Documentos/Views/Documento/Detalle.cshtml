@@ -196,3 +196,15 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btnEnviar = document.getElementById('btnEnviarRevision');
+    if (btnEnviar) {
+        btnEnviar.addEventListener('click', function () {
+            window.location.href = '@Url.Action("EnviarARevision", "Flujo", new { idDocumento = Model.Id })';
+        });
+    }
+});
+</script>
+

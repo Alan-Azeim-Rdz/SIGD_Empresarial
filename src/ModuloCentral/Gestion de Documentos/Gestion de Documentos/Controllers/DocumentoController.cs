@@ -76,6 +76,8 @@ namespace Gestion_de_Documentos.Controllers
             ModelState.Remove("BitacoraControlDocumentos");
             ModelState.Remove("BitacoraTransaccionals");
             ModelState.Remove("DocumentoVersions");
+            ModelState.Remove("IdUsuarioModificacionNavigation");
+            ModelState.Remove("IdUsuarioEliminacionNavigation");
 
             if (ModelState.IsValid)
             {
@@ -205,7 +207,7 @@ namespace Gestion_de_Documentos.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SubirNuevaVersion(int id, IFormFile archivoPdf, string? motivoCambio)
+        public async Task<IActionResult> SubirNuevaVersion(int id, IFormFile archivoPdf)
         {
             var userId = GetCurrentUserId();
             var doc = await _context.Documentos
@@ -270,12 +272,11 @@ namespace Gestion_de_Documentos.Controllers
                     MimeType = "application/pdf",
                     TamanoBytes = archivoPdf.Length,
                     IdUsuarioCreacion = userId,
-                    MotivoCambio = motivoCambio,
                     FechaCreacion = DateTime.Now
                 };
 
                 _context.DocumentoVersions.Add(nuevaVersion);
-
+                
                 doc.FechaModificacion = DateTime.Now;
                 doc.IdUsuarioModificacion = userId;
                 
@@ -291,7 +292,6 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> Historial(int id)
         {
             var empresaId = GetCurrentUserEmpresaId();
-
             var doc = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
@@ -312,7 +312,6 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> Detalle(int id)
         {
             var empresaId = GetCurrentUserEmpresaId();
-
             var doc = await _context.Documentos
                 .Include(d => d.IdDepartamentoNavigation)
                 .Include(d => d.IdTipoDocumentoNavigation)
@@ -337,7 +336,6 @@ namespace Gestion_de_Documentos.Controllers
             var version = await _context.DocumentoVersions
                 .Include(v => v.IdDocumentoNavigation)
                 .FirstOrDefaultAsync(v => v.Id == versionId && v.IdDocumentoNavigation.IdEmpresa == empresaId);
-
             if (version == null || string.IsNullOrEmpty(version.RutaArchivoFisico))
                 return NotFound();
 

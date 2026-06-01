@@ -129,14 +129,18 @@
             background-color: var(--bg-card);
             transition: background .15s;
         }
+        .table tbody tr {
+            background-color: var(--bg-card) !important;
+        }
         .table tbody tr:hover {
-            background-color: rgba(59,130,246,.05) !important;
+            background-color: rgba(59,130,246,.08) !important;
         }
         .table tbody td {
             padding: .75rem 1rem;
             border-bottom: 1px solid var(--border);
             vertical-align: middle;
-            color: var(--text-primary);
+            color: var(--text-primary) !important;
+            background-color: transparent !important;
         }
         .table tr:last-child td {
             border-bottom: none;
@@ -303,6 +307,9 @@
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                     <input type="text" id="inputBusqueda" class="form-control border-start-0 ps-1" placeholder="Ej. Manual de Calidad, ISO 9001, Soldadura...">
+                <button id="btnLimpiar" class="btn btn-outline-jewel btn-sm d-none" onclick="limpiarBusqueda()">
+                    <i class="fas fa-times"></i> Limpiar
+                </button>
                 </div>
             </div>
         </div>
@@ -325,6 +332,7 @@
             </table>
         </div>
         
+        <div id="contenedorPaginacion"></div>
         <div id="alertaNotificacion" class="alert d-none mt-3" role="alert"></div>
     </div>
 
@@ -402,11 +410,25 @@
         const inputBusqueda = document.getElementById('inputBusqueda');
         const tablaResultados = document.getElementById('tablaResultados');
         const alertaNotificacion = document.getElementById('alertaNotificacion');
+        let todosLosDocumentos = [];
+        let paginaActual = 1;
+        const porPagina = 10;
 
         // 1. EVENTO DE BÚSQUEDA -> Consulta a Node.js (Puerto 3000)
+        function limpiarBusqueda() {
+            inputBusqueda.value = '';
+            document.getElementById('btnLimpiar').classList.add('d-none');
+            tablaResultados.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Escribe en el buscador para consultar normativas...</td></tr>';
+            document.getElementById('contenedorPaginacion').innerHTML = '';
+            todosLosDocumentos = [];
+        }
+
         inputBusqueda.addEventListener('keyup', async (e) => {
             const query = e.target.value;
-            if (query.length < 3) return; // Esperar a que escriba al menos 3 letras
+            const btnLimpiar = document.getElementById('btnLimpiar');
+            if (query.length > 0) btnLimpiar.classList.remove('d-none');
+            else btnLimpiar.classList.add('d-none');
+            if (query.length < 3) return;
 
             try {
                 // Aquí llamamos a tu microservicio de MongoDB usando la URL dinámica resuelta
@@ -420,13 +442,21 @@
         });
 
         function renderizarTabla(documentos) {
+            todosLosDocumentos = documentos;
+            paginaActual = 1;
+            renderizarPagina();
+        }
+
+        function renderizarPagina() {
             tablaResultados.innerHTML = '';
-            if (documentos.length === 0) {
+            if (todosLosDocumentos.length === 0) {
                 tablaResultados.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No se encontraron documentos vigentes.</td></tr>';
+                document.getElementById('contenedorPaginacion').innerHTML = '';
                 return;
             }
-
-            documentos.forEach(doc => {
+            const inicio = (paginaActual - 1) * porPagina;
+            const docsPagina = todosLosDocumentos.slice(inicio, inicio + porPagina);
+            docsPagina.forEach(doc => {
                 const fila = `
                     <tr>
                         <td><span class="badge badge-codigo">${doc.codigo_interno}</span></td>
@@ -444,6 +474,26 @@
                 `;
                 tablaResultados.innerHTML += fila;
             });
+            const totalPaginas = Math.ceil(todosLosDocumentos.length / porPagina);
+            const contenedor = document.getElementById('contenedorPaginacion');
+            if (totalPaginas <= 1) { contenedor.innerHTML = ''; return; }
+            let html = `<div class="d-flex justify-content-between align-items-center mt-3">
+                <small style="color:var(--text-secondary)">Página ${paginaActual} de ${totalPaginas} (${todosLosDocumentos.length} docs)</small>
+                <div style="display:flex;gap:6px;">`;
+            if (paginaActual > 1) html += `<button onclick="cambiarPagina(${paginaActual-1})" class="btn btn-outline-jewel btn-sm">← Anterior</button>`;
+            for (let i = 1; i <= totalPaginas; i++) {
+                html += `<button onclick="cambiarPagina(${i})" class="btn btn-sm ${i===paginaActual?'btn-jewel-primary':'btn-outline-jewel'}">${i}</button>`;
+            }
+            if (paginaActual < totalPaginas) html += `<button onclick="cambiarPagina(${paginaActual+1})" class="btn btn-outline-jewel btn-sm">Siguiente →</button>`;
+            html += `</div></div>`;
+            contenedor.innerHTML = html;
+        }
+
+        function cambiarPagina(pagina) {
+            const totalPaginas = Math.ceil(todosLosDocumentos.length / porPagina);
+            if (pagina < 1 || pagina > totalPaginas) return;
+            paginaActual = pagina;
+            renderizarPagina();
         }
 
         // 2. EVENTO DE FIRMA -> Consulta a PHP/PostgreSQL (Puerto 8000)

@@ -5,7 +5,6 @@ export function mockDoc(overrides: Record<string, unknown> = {}): Record<string,
   return {
     _id:               'mock-id-abc123',
     id_documento_sql:  1,
-    id_empresa:        1,
     codigo_interno:    'CAL-MAN-001',
     titulo:            'Manual de Calidad ISO 9001:2015',
     tags:              ['calidad', 'ISO'],
@@ -23,7 +22,6 @@ export function mockDoc(overrides: Record<string, unknown> = {}): Record<string,
 /** Payload mínimo válido para POST /indexar */
 export const payloadIndexarValido = {
   id_documento_sql:    42,
-  id_empresa:          1,
   codigo_interno:      'TEST-DOC-001',
   titulo:              'Documento de Prueba',
   tags:                ['prueba', 'test'],

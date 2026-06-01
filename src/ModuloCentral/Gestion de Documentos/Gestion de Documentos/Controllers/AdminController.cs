@@ -33,6 +33,81 @@ namespace Gestion_de_Documentos.Controllers
             return int.TryParse(claim, out var empId) ? empId : 0;
         }
 
+        #region GESTIÓN DE USUARIOS
+        [HttpGet]
+        public async Task<IActionResult> EditarUsuario(int id)
+        {
+            var empresaId = GetCurrentUserEmpresaId();
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId && u.Estatus == true);
+            if (usuario == null) return NotFound();
+            ViewBag.Departamentos = await _context.Departamentos
+                .Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
+            return View(usuario);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditarUsuario(int id, Usuario model)
+        {
+            var empresaId = GetCurrentUserEmpresaId();
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId && u.Estatus == true);
+            if (usuario == null) return NotFound();
+
+            ModelState.Remove("Contrasena");
+            ModelState.Remove("IdDepartamentoNavigation");
+            ModelState.Remove("IdUsuarioCreacionNavigation");
+            ModelState.Remove("IdUsuarioModificacionNavigation");
+            ModelState.Remove("IdUsuarioEliminacionNavigation");
+            ModelState.Remove("IdEmpresaNavigation");
+
+            if (ModelState.IsValid)
+            {
+                var deptoValido = await _context.Departamentos.AnyAsync(d => d.Id == model.IdDepartamento && d.Estatus == true && d.IdEmpresa == empresaId);
+                if (!deptoValido)
+                {
+                    ModelState.AddModelError("IdDepartamento", "El departamento seleccionado no es válido.");
+                    ViewBag.Departamentos = await _context.Departamentos
+                        .Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
+                    return View(model);
+                }
+
+                usuario.Nombre = model.Nombre;
+                usuario.ApellidoP = model.ApellidoP;
+                usuario.ApellidoM = model.ApellidoM;
+                usuario.Correo = model.Correo;
+                usuario.IdDepartamento = model.IdDepartamento;
+                usuario.FechaModificacion = DateTime.Now;
+                usuario.IdUsuarioModificacion = GetCurrentUserId();
+                _context.Update(usuario);
+                await _context.SaveChangesAsync();
+                return RedirectToAction("Usuarios", "Auth");
+            }
+            ViewBag.Departamentos = await _context.Departamentos
+                .Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToListAsync();
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EliminarUsuario(int id)
+        {
+            var empresaId = GetCurrentUserEmpresaId();
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId && u.Estatus == true);
+            if (usuario == null) return NotFound();
+
+            // Soft delete
+            usuario.Estatus = false;
+            usuario.FechaEliminacion = DateTime.Now;
+            usuario.IdUsuarioEliminacion = GetCurrentUserId();
+            _context.Update(usuario);
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Usuarios", "Auth");
+        }
+        #endregion
+
         #region PANEL PRINCIPAL
         public IActionResult Index()
         {
@@ -51,10 +126,11 @@ namespace Gestion_de_Documentos.Controllers
         public async Task<IActionResult> SincronizarBasesDeDatos()
         {
             var userId = GetCurrentUserId();
+            var empresaId = GetCurrentUserEmpresaId();
             try
             {
-                await _busquedaService.SincronizarTodosAsync(userId);
-                await _reportesService.SincronizarTodosAsync(userId);
+                await _busquedaService.SincronizarTodosAsync(userId, empresaId);
+                await _reportesService.SincronizarTodosAsync(userId, empresaId);
                 TempData["Exito"] = "Sincronización completada hacia MongoDB y PostgreSQL.";
             }
             catch (Exception ex)
@@ -83,12 +159,14 @@ namespace Gestion_de_Documentos.Controllers
         [HttpPost]
         public async Task<IActionResult> CrearDepartamento(Departamento departamento)
         {
+            var empresaId = GetCurrentUserEmpresaId();
+            ModelState.Remove("IdEmpresaNavigation");
+            ModelState.Remove("IdEmpresa");
             if (ModelState.IsValid)
             {
-                var empresaId = GetCurrentUserEmpresaId();
-                // Verificar que no exista en la misma empresa
+                // Verificar que no exista
                 var existe = await _context.Departamentos
-                    .AnyAsync(d => d.Nombre == departamento.Nombre && d.Estatus == true && d.IdEmpresa == empresaId);
+                    .AnyAsync(d => d.Nombre == departamento.Nombre && d.IdEmpresa == empresaId && d.Estatus == true);
 
                 if (existe)
                 {
@@ -96,10 +174,10 @@ namespace Gestion_de_Documentos.Controllers
                     return View(departamento);
                 }
 
-                departamento.IdEmpresa = empresaId;
                 departamento.Estatus = true;
                 departamento.FechaCreacion = DateTime.Now;
                 departamento.IdUsuarioCreacion = GetCurrentUserId();
+                departamento.IdEmpresa = empresaId;
 
                 _context.Departamentos.Add(departamento);
                 await _context.SaveChangesAsync();
@@ -121,11 +199,13 @@ namespace Gestion_de_Documentos.Controllers
         [HttpPost]
         public async Task<IActionResult> EditarDepartamento(Departamento departamento)
         {
+            var empresaId = GetCurrentUserEmpresaId();
+            ModelState.Remove("IdEmpresaNavigation");
+            ModelState.Remove("IdEmpresa");
             if (ModelState.IsValid)
             {
-                var empresaId = GetCurrentUserEmpresaId();
                 var existe = await _context.Departamentos
-                    .AnyAsync(d => d.Nombre == departamento.Nombre && d.Id != departamento.Id && d.Estatus == true && d.IdEmpresa == empresaId);
+                    .AnyAsync(d => d.Nombre == departamento.Nombre && d.Id != departamento.Id && d.IdEmpresa == empresaId && d.Estatus == true);
 
                 if (existe)
                 {
@@ -371,11 +451,13 @@ namespace Gestion_de_Documentos.Controllers
         [HttpPost]
         public async Task<IActionResult> CrearTipoDocumento(TipoDocumento tipoDocumento)
         {
+            var empresaId = GetCurrentUserEmpresaId();
+            ModelState.Remove("IdEmpresaNavigation");
+            ModelState.Remove("IdEmpresa");
             if (ModelState.IsValid)
             {
-                var empresaId = GetCurrentUserEmpresaId();
                 var existe = await _context.TipoDocumentos
-                    .AnyAsync(t => t.Nombre == tipoDocumento.Nombre && t.Estatus == true && t.IdEmpresa == empresaId);
+                    .AnyAsync(t => t.Nombre == tipoDocumento.Nombre && t.IdEmpresa == empresaId && t.Estatus == true);
 
                 if (existe)
                 {
@@ -383,10 +465,10 @@ namespace Gestion_de_Documentos.Controllers
                     return View(tipoDocumento);
                 }
 
-                tipoDocumento.IdEmpresa = empresaId;
                 tipoDocumento.Estatus = true;
                 tipoDocumento.FechaCreacion = DateTime.Now;
                 tipoDocumento.IdUsuarioCreacion = GetCurrentUserId();
+                tipoDocumento.IdEmpresa = empresaId;
 
                 _context.TipoDocumentos.Add(tipoDocumento);
                 await _context.SaveChangesAsync();
@@ -408,11 +490,13 @@ namespace Gestion_de_Documentos.Controllers
         [HttpPost]
         public async Task<IActionResult> EditarTipoDocumento(TipoDocumento tipoDocumento)
         {
+            var empresaId = GetCurrentUserEmpresaId();
+            ModelState.Remove("IdEmpresaNavigation");
+            ModelState.Remove("IdEmpresa");
             if (ModelState.IsValid)
             {
-                var empresaId = GetCurrentUserEmpresaId();
                 var existe = await _context.TipoDocumentos
-                    .AnyAsync(t => t.Nombre == tipoDocumento.Nombre && t.Id != tipoDocumento.Id && t.Estatus == true && t.IdEmpresa == empresaId);
+                    .AnyAsync(t => t.Nombre == tipoDocumento.Nombre && t.Id != tipoDocumento.Id && t.IdEmpresa == empresaId && t.Estatus == true);
 
                 if (existe)
                 {
@@ -456,7 +540,7 @@ namespace Gestion_de_Documentos.Controllers
         {
             var empresaId = GetCurrentUserEmpresaId();
             var usuario = await _context.Usuarios
-                .Include(u => u.UsuarioRols)
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
                 .ThenInclude(ur => ur.IdRolNavigation)
                 .FirstOrDefaultAsync(u => u.Id == id && u.IdEmpresa == empresaId);
 
@@ -471,7 +555,7 @@ namespace Gestion_de_Documentos.Controllers
             {
                 Usuario = usuario,
                 RolesDisponibles = rolesDisponibles,
-                RolesAsignados = usuario.UsuarioRols
+                RolesAsignados = usuario.UsuarioRolIdUsuarioNavigations
                     .Where(ur => ur.Estatus == true)
                     .Select(ur => ur.IdRol)
                     .ToList()
@@ -485,14 +569,14 @@ namespace Gestion_de_Documentos.Controllers
         {
             var empresaId = GetCurrentUserEmpresaId();
             var usuario = await _context.Usuarios
-                .Include(u => u.UsuarioRols)
+                .Include(u => u.UsuarioRolIdUsuarioNavigations)
                 .FirstOrDefaultAsync(u => u.Id == idUsuario && u.IdEmpresa == empresaId);
 
             if (usuario == null)
                 return NotFound();
 
             // Eliminar roles anteriores
-            var rolesActuales = usuario.UsuarioRols.Where(ur => ur.Estatus == true).ToList();
+            var rolesActuales = usuario.UsuarioRolIdUsuarioNavigations.Where(ur => ur.Estatus == true).ToList();
             foreach (var rol in rolesActuales)
             {
                 rol.Estatus = false;
@@ -589,67 +673,6 @@ namespace Gestion_de_Documentos.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction("Roles");
-        }
-        #endregion
-
-        #region CAMPOS PERSONALIZADOS
-        [HttpGet]
-        public async Task<IActionResult> CamposPersonalizados()
-        {
-            var empresaId = GetCurrentUserEmpresaId();
-            var empresa = await _context.Empresas.FindAsync(empresaId);
-            if (empresa == null)
-                return NotFound("Empresa no encontrada.");
-
-            ViewBag.CamposPersonalizados = empresa.CamposPersonalizados;
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> GuardarCamposPersonalizados(string camposJson)
-        {
-            var empresaId = GetCurrentUserEmpresaId();
-            var empresa = await _context.Empresas.FindAsync(empresaId);
-            if (empresa == null)
-                return NotFound("Empresa no encontrada.");
-
-            // Validar que sea JSON válido o esté vacío
-            if (!string.IsNullOrEmpty(camposJson))
-            {
-                try
-                {
-                    using var doc = System.Text.Json.JsonDocument.Parse(camposJson);
-                    // Validar estructura básica: debe ser un arreglo de objetos
-                    if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array)
-                    {
-                        ModelState.AddModelError("", "La estructura de los campos debe ser un arreglo JSON.");
-                        ViewBag.CamposPersonalizados = camposJson;
-                        return View("CamposPersonalizados");
-                    }
-                    foreach (var element in doc.RootElement.EnumerateArray())
-                    {
-                        if (!element.TryGetProperty("Nombre", out _) || !element.TryGetProperty("Tipo", out _) || !element.TryGetProperty("Requerido", out _))
-                        {
-                            ModelState.AddModelError("", "Cada campo debe tener Nombre, Tipo y Requerido.");
-                            ViewBag.CamposPersonalizados = camposJson;
-                            return View("CamposPersonalizados");
-                        }
-                    }
-                }
-                catch (System.Text.Json.JsonException)
-                {
-                    ModelState.AddModelError("", "El formato JSON provisto no es válido.");
-                    ViewBag.CamposPersonalizados = camposJson;
-                    return View("CamposPersonalizados");
-                }
-            }
-
-            empresa.CamposPersonalizados = camposJson;
-            _context.Update(empresa);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Campos personalizados actualizados con éxito.";
-            return RedirectToAction("CamposPersonalizados");
         }
         #endregion
     }

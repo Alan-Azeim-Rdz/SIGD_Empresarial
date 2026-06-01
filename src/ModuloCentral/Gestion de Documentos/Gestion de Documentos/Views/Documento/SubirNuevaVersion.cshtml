@@ -24,21 +24,51 @@
             <div class="mb-3">
                 <label class="form-label fw-bold">
                     <i class="fas fa-comment-alt me-1"></i>Motivo del Cambio
+                    <span class="text-muted fw-normal" style="font-size:.8rem;">(opcional)</span>
                 </label>
                 <textarea name="motivoCambio" class="form-control" rows="3"
                     placeholder="Ej: Corrección de procedimiento en sección 3, actualización de norma ISO..."></textarea>
-                <small class="text-muted">Opcional pero recomendado para trazabilidad.</small>
+                <small class="text-muted">Proporciona contexto sobre los cambios realizados en esta versión.</small>
             </div>
+
             <div class="mb-4">
-                <label class="form-label fw-bold">
-                    <i class="fas fa-file-pdf me-1"></i>Archivo Físico Nuevo (Solo PDF)
-                </label>
+                <label class="form-label fw-bold">Archivo Físico Nuevo (Solo PDF)</label>
                 <input type="file" name="archivoPdf" class="form-control" accept=".pdf,application/pdf" required />
             </div>
 
             <div class="d-flex justify-content-between">
                 <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-secondary">Cancelar</a>
-                <button type="submit" class="btn btn-success"><i class="fas fa-upload"></i> Subir Versión @nuevaVersion</button>
+                <button type="button" class="btn btn-success" id="btnSubirVersion">
+                    <i class="fas fa-upload me-1"></i>Subir Nueva Versión
+                </button>
+                <script>
+                document.getElementById('btnSubirVersion').addEventListener('click', function () {
+                    Swal.fire({
+                        title: 'Confirmar nueva versión',
+                        html: `
+                            <div style="text-align:left; font-size:.9rem; line-height:1.8;">
+                                <p>Estás a punto de subir una <strong>nueva versión</strong> del documento.</p>
+                                <p style="color:#F59E0B; font-size:.82rem;">
+                                     La versión anterior quedará en el historial.<br>
+                                    📎 El nuevo archivo reemplazará al vigente.
+                                </p>
+                            </div>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-upload me-1"></i> Sí, subir',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#10B981',
+                        cancelButtonColor: '#374151',
+                        background: '#0B1120',
+                        color: '#F1F5F9',
+                        backdrop: 'rgba(5,8,22,0.8)'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            document.querySelector('form').submit();
+                        }
+                    });
+                });
+                </script>
             </div>
         </form>
     </div>

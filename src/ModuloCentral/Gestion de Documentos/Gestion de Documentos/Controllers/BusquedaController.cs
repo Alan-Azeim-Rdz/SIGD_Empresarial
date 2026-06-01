@@ -19,15 +19,41 @@ namespace Gestion_de_Documentos.Controllers
             _logger = logger;
         }
 
-        public IActionResult Global()
+        public async Task<IActionResult> Global(string q = "")
         {
-            return View();
-        }
+            try
+            {
+                var baseUrl = _config["BusquedaModule:BaseUrl"] ?? "http://modulo_busqueda:3000";
+                var client  = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-        private int GetCurrentUserEmpresaId()
-        {
-            var claim = User.FindFirst("IdEmpresa")?.Value;
-            return int.TryParse(claim, out var empId) ? empId : 0;
+                // Si no hay búsqueda, traer todos con término vacío usando /buscar?q=a|e|i|o|u
+                var termino = string.IsNullOrWhiteSpace(q) ? "a" : q;
+                var url      = $"{baseUrl}/buscar?q={Uri.EscapeDataString(termino)}";
+                var response = await client.GetAsync(url);
+                var body     = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    var root = doc.RootElement;
+                    ViewBag.Resultados = body;
+                    ViewBag.Total = root.TryGetProperty("total", out var total) ? total.GetInt32() : 0;
+                }
+                else
+                {
+                    ViewBag.Resultados = null;
+                    ViewBag.Total = 0;
+                }
+            }
+            catch
+            {
+                ViewBag.Resultados = null;
+                ViewBag.Total = 0;
+            }
+
+            ViewBag.Query = q;
+            return View();
         }
 
         [HttpGet]
@@ -42,8 +68,7 @@ namespace Gestion_de_Documentos.Controllers
                 var client  = _httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                var empresaId = GetCurrentUserEmpresaId();
-                var url      = $"{baseUrl}/buscar?q={Uri.EscapeDataString(q)}&id_empresa={empresaId}";
+                var url      = $"{baseUrl}/buscar?q={Uri.EscapeDataString(q)}";
                 var response = await client.GetAsync(url);
                 var body     = await response.Content.ReadAsStringAsync();
 

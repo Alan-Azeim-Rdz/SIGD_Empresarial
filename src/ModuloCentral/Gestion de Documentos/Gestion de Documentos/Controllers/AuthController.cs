@@ -102,6 +102,7 @@ namespace Gestion_de_Documentos.Controllers
         public IActionResult Registro()
         {
             ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
+            ViewBag.Roles = _context.Rols.Where(r => r.Estatus == true).ToList();
             return View();
         }
 
@@ -118,11 +119,11 @@ namespace Gestion_de_Documentos.Controllers
             ModelState.Remove("IdUsuarioCreacionNavigation");
             ModelState.Remove("IdUsuarioModificacionNavigation");
             ModelState.Remove("IdUsuarioEliminacionNavigation");
+            ModelState.Remove("IdUsuarioPropietarioNavigation");
             ModelState.Remove("IdEmpresa");
             ModelState.Remove("Estatus");
             ModelState.Remove("FechaCreacion");
             ModelState.Remove("IdUsuarioCreacion");
-
             if (ModelState.IsValid)
             {
                 bool existe = await _context.Usuarios.AnyAsync(u => u.Correo == nuevoUsuario.Correo);
@@ -150,6 +151,22 @@ namespace Gestion_de_Documentos.Controllers
                 _context.Usuarios.Add(nuevoUsuario);
                 await _context.SaveChangesAsync();
 
+                // Asignar rol seleccionado
+                if (int.TryParse(Request.Form["idRol"], out int idRol) && idRol > 0)
+                {
+                    var usuarioRol = new UsuarioRol
+                    {
+                        IdUsuario = nuevoUsuario.Id,
+                        IdRol = idRol,
+                        Estatus = true,
+                        FechaCreacion = DateTime.Now,
+                        IdUsuarioCreacion = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0"),
+                        FechaAsignacion = DateTime.Now
+                    };
+                    _context.UsuarioRols.Add(usuarioRol);
+                    await _context.SaveChangesAsync();
+                }
+
                 ViewBag.Exito = "Usuario creado exitosamente. Deberá cambiar su contraseña en el primer acceso.";
                 ModelState.Clear();
                 ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true).ToList();
@@ -165,6 +182,7 @@ namespace Gestion_de_Documentos.Controllers
             }
 
             ViewBag.Departamentos = _context.Departamentos.Where(d => d.Estatus == true && d.IdEmpresa == empresaId).ToList();
+            ViewBag.Roles = _context.Rols.Where(r => r.Estatus == true).ToList();
             return View(nuevoUsuario);
         }
 
@@ -172,12 +190,17 @@ namespace Gestion_de_Documentos.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Usuarios()
         {
-            // Usamos la propiedad de navegación correcta aquí también para evitar el error en la vista de lista
             var usuarios = await _context.Usuarios
-                .Include(u => u.UsuarioRolIdUsuarioNavigations)
+                .Include(u => u.UsuarioRolIdUsuarioNavigations.Where(ur => ur.Estatus == true))
                     .ThenInclude(ur => ur.IdRolNavigation)
+                .Include(u => u.IdDepartamentoNavigation)
                 .Where(u => u.Estatus == true)
                 .ToListAsync();
+
+            ViewBag.Departamentos = await _context.Departamentos
+                .Where(d => d.Estatus == true)
+                .ToListAsync();
+
             return View(usuarios);
         }
 
