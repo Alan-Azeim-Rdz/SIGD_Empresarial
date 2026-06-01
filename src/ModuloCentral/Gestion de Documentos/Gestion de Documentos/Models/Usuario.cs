@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Gestion_de_Documentos.Models;
@@ -6,6 +6,8 @@ namespace Gestion_de_Documentos.Models;
 public partial class Usuario
 {
     public int Id { get; set; }
+
+    public int? IdEmpresa { get; set; }
 
     public int IdDepartamento { get; set; }
 
